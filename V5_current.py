@@ -1761,8 +1761,6 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal):
                                     print(f"    → Updated Pi area: {new_Pi.area:.2f}")
                                 else:
                                     print(f"    → Pi consumed (empty after subtraction)")
-                                    # Update Pi_data to reflect the empty polygon
-                                    Pi_data['polygon'] = new_Pi
                                     break
                             except Exception as e:
                                 print(f"    → Boolean operation error: {e}")

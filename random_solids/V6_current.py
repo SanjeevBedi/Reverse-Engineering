@@ -91,10 +91,49 @@ def plot_polygon(
 
 def build_solid_with_polygons_test(seed=47315, quiet=False):
     from Base_Solid import build_solid_with_polygons
+    from OCC.Core.gp import gp_Pnt, gp_Vec, gp_Trsf
+    from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox
+    from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Transform
+    from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Cut
 
     print(f"[DEBUG] Calling build_solid_with_polygons(seed={seed}, "
-          f"quiet={quiet}) as test...")
-    return build_solid_with_polygons(seed, quiet)
+        f"quiet={quiet}) as test...")
+    original = build_solid_with_polygons(seed, quiet)
+
+    # # Create box at (0,0,0) of size (60,50,60)
+    # box = BRepPrimAPI_MakeBox(60, 25, 60).Shape()
+    # # Move box to (10,0,0)
+    # trsf = gp_Trsf()
+    # trsf.SetTranslation(gp_Vec(10, 0, 0))
+    # moved_box = BRepBuilderAPI_Transform(box, trsf, True).Shape()
+
+    # # Subtract box from original
+    # cut = BRepAlgoAPI_Cut(original, moved_box)
+    # cut_shape = cut.Shape()
+
+    # # Create box at (0,0,0) of size (60,50,60)
+    # box = BRepPrimAPI_MakeBox(60, 25, 60).Shape()
+    # # Move box to (10,0,0)
+    # trsf = gp_Trsf()
+    # trsf.SetTranslation(gp_Vec(10, 35, 0))
+    # moved_box = BRepBuilderAPI_Transform(box, trsf, True).Shape()
+
+    # # Subtract box from original
+    # cut = BRepAlgoAPI_Cut(cut_shape, moved_box)
+    # cut_shape1 = cut.Shape()
+
+    # # Create box at (0,0,0) of size (60,50,60)
+    # box = BRepPrimAPI_MakeBox(60, 40, 8).Shape()
+    # # Move box to (10,0,0)
+    # trsf = gp_Trsf()
+    # trsf.SetTranslation(gp_Vec(0, 0, 0))
+    # moved_box = BRepBuilderAPI_Transform(box, trsf, True).Shape()
+
+    # # Subtract box from original
+    # cut = BRepAlgoAPI_Cut(cut_shape1, moved_box)
+    # cut_shape2 = cut.Shape()
+
+    return original
 
 
 
@@ -312,8 +351,7 @@ def extract_faces_from_solid(solid):
                     polygon_data['normal'] = face_normal
                     polygon_data['face_id'] = face_count
                     
-                    # Analyze co-linearity and axis alignment for this face
-                    analyze_face_colinearity(polygon_data['outer_boundary'], face_count)
+                    # ...existing code...
                     
                     faces.append(polygon_data)
                     
@@ -793,7 +831,13 @@ def create_polygon_from_projection(projected_vertices, allow_invalid=False):
         if allow_invalid:
             # Return the raw polygon, even if invalid
             if not polygon.is_valid:
+                from shapely.validation import explain_validity
+                reason = explain_validity(polygon)
                 print(f"    → Polygon is invalid, but allow_invalid=True: storing as-is")
+                print(f"      Reason: {reason}")
+                if 'Self-intersection' in reason:
+                    print(f"      [INVESTIGATE] Polygon vertices: {projected_vertices}")
+                    print(f"      [INVESTIGATE] Polygon WKT: {polygon.wkt}")
             else:
                 print(f"    → Valid polygon created with {len(polygon.exterior.coords)-1} vertices")
             return polygon
@@ -805,7 +849,9 @@ def create_polygon_from_projection(projected_vertices, allow_invalid=False):
 
         # For invalid polygons, try to fix
         if not polygon.is_valid:
-            print(f"    → Invalid polygon detected (reason: {polygon.is_valid}), attempting to fix...")
+            from shapely.validation import explain_validity
+            reason = explain_validity(polygon)
+            print(f"    → Invalid polygon detected: {reason}")
             print(f"    → Original vertices: {original_vertex_count}, coords in polygon: {len(polygon.exterior.coords)-1}")
 
             try:
@@ -970,13 +1016,13 @@ def plot_arrays_visualization(array_A, array_B, array_C, unit_projection_normal)
         try:
             polygon = poly_data['polygon']
             name = poly_data['name']
+            print(f"[PLOT] Array_C {i+1}/{len(array_C)}: {name}, area={polygon.area:.2f}")
             if polygon.geom_type == 'Polygon':
                 if polygon.area > 0:
                     plot_polygon(polygon, ax3, facecolor='none', edgecolor='lightgray', alpha=0.8, linewidth=0.7, linestyle='--', label=f'C: {name}', outline_only=True)
                 else:
                     # Degenerate polygon (zero area): plot as black dashed line
                     coords = list(polygon.exterior.coords)
-                    print(f"[DEBUG] Plotting degenerate polygon in Array_C (combined): {name}, coords={coords}")
                     ax3.plot(
                         [c[0] for c in coords],
                         [c[1] for c in coords],
@@ -988,7 +1034,7 @@ def plot_arrays_visualization(array_A, array_B, array_C, unit_projection_normal)
                     midy = (coords[0][1] + coords[-1][1]) / 2
                     ax3.text(midx, midy, name, ha='center', va='center', fontsize=8, color='red', weight='bold')
         except Exception as e:
-            print(f"Error plotting array_C polygon in combined subplot: {e}")
+            print(f"[PLOT] Error plotting array_C polygon in combined subplot: {name}: {e}")
 
     # Plot array_B polygons afterwards as solid black lines
     for i, poly_data in enumerate(array_B):
@@ -1225,42 +1271,7 @@ def analyze_face_colinearity(face_vertices, face_id):
         
         if cross_magnitude < 1e-6:  # Very small cross product = co-linear
             colinear_groups.append([i, (i+1)%len(face_vertices), (i+2)%len(face_vertices)])
-            print(f"          Co-linear vertices found: {i}-{(i+1)%len(face_vertices)}-{(i+2)%len(face_vertices)}")
-            print(f"            V{i}: ({v1[0]:.3f}, {v1[1]:.3f}, {v1[2]:.3f})")
-            print(f"            V{(i+1)%len(face_vertices)}: ({v2[0]:.3f}, {v2[1]:.3f}, {v2[2]:.3f})")
-            print(f"            V{(i+2)%len(face_vertices)}: ({v3[0]:.3f}, {v3[1]:.3f}, {v3[2]:.3f})")
-            print(f"            Cross product magnitude: {cross_magnitude:.8f}")
-    
-    if not colinear_groups:
-        print(f"          ✓ No co-linear vertices detected")
-    else:
-        print(f"          ⚠️  {len(colinear_groups)} co-linear groups found - may cause triangle appearance")
-    
-    # Check axis alignment
-    print(f"        Axis Alignment Analysis:")
-    for i in range(len(face_vertices)):
-        v1 = np.array(face_vertices[i])
-        v2 = np.array(face_vertices[(i + 1) % len(face_vertices)])
-        
-        edge_vector = v2 - v1
-        edge_length = np.linalg.norm(edge_vector)
-        
-        if edge_length > 1e-6:
-            edge_unit = edge_vector / edge_length
-            
-            # Check alignment with main axes
-            x_alignment = abs(np.dot(edge_unit, [1, 0, 0]))
-            y_alignment = abs(np.dot(edge_unit, [0, 1, 0]))
-            z_alignment = abs(np.dot(edge_unit, [0, 0, 1]))
-            
-            max_alignment = max(x_alignment, y_alignment, z_alignment)
-            
-            if max_alignment > 0.99:  # Very close to axis-aligned
-                axis = "X" if x_alignment == max_alignment else "Y" if y_alignment == max_alignment else "Z"
-                print(f"          Edge {i}-{(i+1)%len(face_vertices)}: ✓ {axis}-axis aligned ({max_alignment:.6f})")
-            else:
-                print(f"          Edge {i}-{(i+1)%len(face_vertices)}: ⚠️  Inclined (max alignment: {max_alignment:.6f})")
-                print(f"            X: {x_alignment:.6f}, Y: {y_alignment:.6f}, Z: {z_alignment:.6f}")
+    # ...existing code...
 
 def classify_faces_by_projection(face_polygons, unit_projection_normal):
     """Enhanced face classification with historic polygon classification algorithm."""
@@ -1360,6 +1371,12 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal):
             normal = poly_data['normal']
             dot_product = poly_data['dot_product']
             
+            # Check for invalid polygons in Array_A
+            if not polygon.is_valid:
+                from shapely.validation import explain_validity
+                reason = explain_validity(polygon)
+                print(f"  [WARNING] {name} is invalid in Array_A: {reason}")
+                print(f"    [INVESTIGATE] Polygon WKT: {polygon.wkt}")
             # Handle both Polygon and MultiPolygon cases
             if hasattr(polygon, 'exterior'):
                 # Simple polygon
@@ -1421,10 +1438,12 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal):
                 Pj_parent_face = Pj_data['parent_face']
                 try:
                     intersection = Pi.intersection(Pj)
-                    
-                    if (not intersection.is_empty and
-                        hasattr(intersection, 'area') and
-                        intersection.area > 1e-6):
+                    print(f"[DEBUG] Checking intersection: {Pi_name} vs {Pj_name}, area={getattr(intersection, 'area', None)}")
+                    if intersection.is_empty:
+                        print(f"[DEBUG] Intersection is empty: {Pi_name} vs {Pj_name}")
+                    elif not hasattr(intersection, 'area') or intersection.area <= 1e-6:
+                        print(f"[DEBUG] Intersection too small: {Pi_name} vs {Pj_name}, area={getattr(intersection, 'area', None)}")
+                    else:
                         # Find interior point for depth analysis
                         result = find_interior_point(intersection, debug=False)
                         if isinstance(result, tuple):
@@ -1432,15 +1451,19 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal):
                         else:
                             interior_point = result
                         if interior_point is None:
+                            print(f"[DEBUG] No interior point found for intersection: {Pi_name} vs {Pj_name}")
                             continue
                         # Calculate 3D depths using line-face intersection
-                        Pi_intersection_3d = intersect_line_with_face(
-                            interior_point, unit_projection_normal, Pi_parent_face)
-                        Pj_intersection_3d = intersect_line_with_face(
-                            interior_point, unit_projection_normal, Pj_parent_face)
-                        Pi_depth = calculate_depth_along_normal(Pi_intersection_3d, unit_projection_normal)
-                        Pj_depth = calculate_depth_along_normal(Pj_intersection_3d, unit_projection_normal)
-                        
+                        try:
+                            Pi_intersection_3d = intersect_line_with_face(
+                                interior_point, unit_projection_normal, Pi_parent_face)
+                            Pj_intersection_3d = intersect_line_with_face(
+                                interior_point, unit_projection_normal, Pj_parent_face)
+                            Pi_depth = calculate_depth_along_normal(Pi_intersection_3d, unit_projection_normal)
+                            Pj_depth = calculate_depth_along_normal(Pj_intersection_3d, unit_projection_normal)
+                        except Exception as e:
+                            print(f"[DEBUG] Depth calculation failed for {Pi_name} vs {Pj_name}: {e}")
+                            continue
                         # Add intersection to array_C
                         intersection_name = f"Intersection_{Pi_name}_{Pj_name}"
                         intersection_data = {
@@ -1453,7 +1476,7 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal):
                             'dot_product': 0
                         }
                         array_C.append(intersection_data)
-                        
+                        print(f"[DEBUG] Added intersection to Array_C: {intersection_name}, area={intersection.area}")
                         # Apply depth-based boolean operations
                         if Pi_depth > Pj_depth:
                             try:
@@ -1464,7 +1487,7 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal):
                                 else:
                                     array_B.pop(j)
                             except Exception as e:
-                                pass
+                                print(f"[DEBUG] Exception during Pj.difference(Pi): {e}")
                         else:
                             try:
                                 new_Pi = Pi.difference(Pj)
@@ -1477,11 +1500,10 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal):
                                     # Update Pi_data to reflect the empty polygon
                                     Pi_data['polygon'] = new_Pi
                                     break
-                            except Exception:
-                                pass
-                
-                except Exception:
-                    pass
+                            except Exception as e:
+                                print(f"[DEBUG] Exception during Pi.difference(Pj): {e}")
+                except Exception as e:
+                    print(f"[DEBUG] Exception in intersection loop: {Pi_name} vs {Pj_name}: {e}")
             
             # Add remaining Pi to array_B if it still has area
             if Pi_data['polygon'].area > 1e-6:
@@ -1499,6 +1521,12 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal):
             moved_face = array_B.pop(i)
             array_C.append(moved_face)
     
+    print("\n===== FINAL ARRAY_B =====")
+    for poly_data in array_B:
+        print(f"  {poly_data['name']}: area={poly_data['polygon'].area:.2f}, dot={poly_data.get('dot_product', 'N/A')}")
+    print("\n===== FINAL ARRAY_C =====")
+    for poly_data in array_C:
+        print(f"  {poly_data['name']}: area={poly_data['polygon'].area:.2f}, dot={poly_data.get('dot_product', 'N/A')}")
     return [], array_B, array_C
 
 
@@ -1626,10 +1654,13 @@ def plot_four_views(solid, user_normal):
         coords_y = []
         polygons_drawn = False
         # Plot hidden polygons first
-        for poly, _ in hidden:
+        for idx, (poly, tag) in enumerate(hidden):
+            plotted = False
+            if label == 'Isometric View':
+                print(f"[PLOT-ALL] Isometric Hidden {idx+1}/{len(hidden)}: tag={tag}, type={getattr(poly, 'geom_type', type(poly))}, area={getattr(poly, 'area', 'N/A'):.4f}")
+            # Polygon
             if hasattr(poly, 'exterior') and not poly.is_empty:
                 x, y = poly.exterior.xy
-                # Dashed gray line: small dashes and gaps
                 ax.plot(x, y, color='gray', linestyle=(0, (2, 2)), linewidth=1.2, alpha=0.8)
                 polygons_drawn = True
                 coords_x.append(x)
@@ -1637,6 +1668,40 @@ def plot_four_views(solid, user_normal):
                 for interior in poly.interiors:
                     ix, iy = interior.xy
                     ax.plot(ix, iy, color='gray', linestyle=(0, (2, 2)), linewidth=1.2, alpha=0.8)
+                plotted = True
+            # MultiPolygon
+            elif getattr(poly, 'geom_type', None) == 'MultiPolygon':
+                for subpoly in poly.geoms:
+                    if hasattr(subpoly, 'exterior') and not subpoly.is_empty:
+                        x, y = subpoly.exterior.xy
+                        ax.plot(x, y, color='gray', linestyle=(0, (2, 2)), linewidth=1.2, alpha=0.8)
+                        polygons_drawn = True
+                        coords_x.append(x)
+                        coords_y.append(y)
+                        for interior in subpoly.interiors:
+                            ix, iy = interior.xy
+                            ax.plot(ix, iy, color='gray', linestyle=(0, (2, 2)), linewidth=1.2, alpha=0.8)
+                        plotted = True
+            # GeometryCollection
+            elif getattr(poly, 'geom_type', None) == 'GeometryCollection':
+                for subgeom in poly.geoms:
+                    if getattr(subgeom, 'geom_type', None) == 'Polygon' and not subgeom.is_empty:
+                        x, y = subgeom.exterior.xy
+                        ax.plot(x, y, color='gray', linestyle=(0, (2, 2)), linewidth=1.2, alpha=0.8)
+                        polygons_drawn = True
+                        coords_x.append(x)
+                        coords_y.append(y)
+                        for interior in subgeom.interiors:
+                            ix, iy = interior.xy
+                            ax.plot(ix, iy, color='gray', linestyle=(0, (2, 2)), linewidth=1.2, alpha=0.8)
+                        plotted = True
+                    elif getattr(subgeom, 'geom_type', None) == 'LineString' and not subgeom.is_empty:
+                        x, y = subgeom.xy
+                        ax.plot(x, y, color='gray', linestyle='dashed', linewidth=1.2, alpha=0.8)
+                        polygons_drawn = True
+                        coords_x.append(x)
+                        coords_y.append(y)
+                        plotted = True
         # Plot visible polygons
         for poly, _ in visible:
             if hasattr(poly, 'exterior') and not poly.is_empty:
