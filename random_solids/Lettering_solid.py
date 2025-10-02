@@ -1,6 +1,15 @@
 import numpy as np
 import random
 import argparse
+
+# Import configuration system
+try:
+    from config_system import ConfigurationManager, create_default_config, load_config
+    CONFIG_AVAILABLE = True
+except ImportError:
+    CONFIG_AVAILABLE = False
+    print("[WARNING] config_system not available, using hardcoded values")
+
 from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox
 from OCC.Core.gp import gp_Pnt, gp_Vec, gp_Trsf, gp_Ax3, gp_Dir
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Transform
@@ -122,14 +131,34 @@ def plot_face_boundaries_3d(solid):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Random solid generator with reproducible seed.")
     parser.add_argument('--seed', type=int, help='Random seed for reproducible solid generation')
+    parser.add_argument('--config-file', type=str, help='Load configuration from file instead of generating random values')
+    parser.add_argument('--save-config', action='store_true', help='Save configuration parameters to file')
     args = parser.parse_args()
-    if args.seed is not None:
-        seed = args.seed
+    
+    # Handle configuration loading/creation
+    if CONFIG_AVAILABLE:
+        if args.config_file:
+            print(f"Loading configuration from: {args.config_file}")
+            config = load_config(args.config_file)
+            seed = config.seed
+        else:
+            seed = args.seed if args.seed is not None else random.randint(0, 999999)
+            print(f"Creating default configuration with seed: {seed}")
+            config = create_default_config(seed)
+        
+        # Save configuration if requested
+        if args.save_config:
+            config.save_to_file()
+        
+        # Apply seed from configuration
+        config.apply_seed()
     else:
-        seed = random.randint(0, 999999)
-    print(f"Random seed for this run: {seed}")
-    random.seed(seed)
-    np.random.seed(seed)
+        # Fallback to original behavior
+        seed = args.seed if args.seed is not None else random.randint(0, 999999)
+        config = None
+        print(f"Random seed for this run: {seed}")
+        random.seed(seed)
+        np.random.seed(seed)
 
 
 def middle_weighted_rand(a, b, size=1):
@@ -138,17 +167,79 @@ def middle_weighted_rand(a, b, size=1):
     """
     return np.random.triangular(a, (a + b) / 2, b, size)
 
-def build_oriented_solid(location, u_dir, v_dir, width, length, depth, seed=None):
+def build_oriented_solid(location, u_dir, v_dir, width, length, depth, config_or_seed=None):
     """
     Build a rectangular base at 'location' with orientation given by u_dir, v_dir (unit vectors),
     dimensions width, length, extruded by depth along w = u x v, with 2 units margin on all sides.
     Add horizontal and vertical cuboids as in the current logic, in the local u,v,w frame.
-    If seed is given, set the random seed.
+    If config_or_seed is given, use it for configuration or as seed.
     Returns the solid.
     """
-    if seed is not None:
-        random.seed(seed)
-        np.random.seed(seed)
+    
+    # Handle both config object and backward compatibility with seed
+    if hasattr(config_or_seed, 'get_section'):  # It's a config object
+        config = config_or_seed
+        cfg = config.get_section('lettering_solid')
+        seed = config.seed
+        config.apply_seed()
+        
+        # Get parameters from config
+        base_margin = cfg.get('base_expansion_margin', 2)
+        base_z_offset = cfg.get('base_z_offset', 0.00025)
+        grid_size = cfg.get('grid_size', 5)
+        
+        # Cuboid choices and probabilities
+        cuboid_choices = cfg.get('cuboid_choices', [2, 1, 3, 4])
+        base_prob = cfg.get('cuboid_base_prob', 8 / 15)
+        
+        # Vertical cuboid parameters
+        v_width_min_factor = cfg.get('vertical_width_min_factor', 0.6)
+        v_width_max_factor = cfg.get('vertical_width_max_factor', 0.9)
+        v_length_min_factor = cfg.get('vertical_length_min_factor', 0.6)
+        v_length_max_factor = cfg.get('vertical_length_max_factor', 0.9)
+        v_length_divisor = cfg.get('vertical_length_divisor', 5)
+        v_depth_min_factor = cfg.get('vertical_depth_min_factor', 0.5)
+        v_depth_max_factor = cfg.get('vertical_depth_max_factor', 1.0)
+        v_embed_factor = cfg.get('vertical_embed_factor', 0.3)
+        
+        # Horizontal cuboid parameters
+        h_width_min_factor = cfg.get('horizontal_width_min_factor', 0.6)
+        h_width_max_factor = cfg.get('horizontal_width_max_factor', 0.9)
+        h_width_divisor = cfg.get('horizontal_width_divisor', 5)
+        h_length_min_factor = cfg.get('horizontal_length_min_factor', 0.6)
+        h_length_max_factor = cfg.get('horizontal_length_max_factor', 0.9)
+        h_depth_min_factor = cfg.get('horizontal_depth_min_factor', 0.5)
+        h_depth_max_factor = cfg.get('horizontal_depth_max_factor', 1.0)
+        h_embed_factor = cfg.get('horizontal_embed_factor', 0.3)
+        
+    else:  # Backward compatibility - it's a seed or None
+        seed = config_or_seed
+        if seed is not None:
+            random.seed(seed)
+            np.random.seed(seed)
+        
+        # Use hardcoded defaults
+        base_margin = 2
+        base_z_offset = 0.00025
+        grid_size = 5
+        cuboid_choices = [2, 1, 3, 4]
+        base_prob = 8 / 15
+        v_width_min_factor = 0.6
+        v_width_max_factor = 0.9
+        v_length_min_factor = 0.6
+        v_length_max_factor = 0.9
+        v_length_divisor = 5
+        v_depth_min_factor = 0.5
+        v_depth_max_factor = 1.0
+        v_embed_factor = 0.3
+        h_width_min_factor = 0.6
+        h_width_max_factor = 0.9
+        h_width_divisor = 5
+        h_length_min_factor = 0.6
+        h_length_max_factor = 0.9
+        h_depth_min_factor = 0.5
+        h_depth_max_factor = 1.0
+        h_embed_factor = 0.3
     # Normalize directions and check perpendicularity
     u = np.array(u_dir, dtype=float)
     u = u / np.linalg.norm(u)
@@ -158,44 +249,45 @@ def build_oriented_solid(location, u_dir, v_dir, width, length, depth, seed=None
     w = w / np.linalg.norm(w)
     # Debug: print dot products to check perpendicularity
     print(f"u·v = {np.dot(u, v):.6f}, u·w = {np.dot(u, w):.6f}, v·w = {np.dot(v, w):.6f}")
-    # Expand rectangle by 2 units on all sides
-    width_exp = width + 2
-    length_exp = length + 2
+    
+    # Expand rectangle by configured margin on all sides
+    width_exp = width + base_margin
+    length_exp = length + base_margin
+    
     # Build the base box in the local coordinate system (aligned with axes)
-    base_box = BRepPrimAPI_MakeBox(gp_Pnt(0, 0, 0.00025), width_exp, length_exp, depth).Shape()
+    base_box = BRepPrimAPI_MakeBox(gp_Pnt(0, 0, base_z_offset), width_exp, length_exp, depth).Shape()
     fused = base_box
+    
     # Print base bounding box
     bbox = Bnd_Box()
     brepbndlib_Add(base_box, bbox)
     xmin, ymin, zmin, xmax, ymax, zmax = bbox.Get()
     print(f"[DEBUG] Base bounding box: x=({xmin:.2f},{xmax:.2f}), y=({ymin:.2f},{ymax:.2f}), z=({zmin:.2f},{zmax:.2f})")
+    
     # Place cuboids in the local coordinate system (aligned with axes)
-    horiz_choices = [2, 1, 3, 4]
-    horiz_p = 8 / 15
-    horiz_weights = [horiz_p, horiz_p/2, horiz_p/4, horiz_p/8]
-    horiz_weights = np.array(horiz_weights)
-    horiz_weights = horiz_weights / horiz_weights.sum()
-    cum_weights = np.cumsum(horiz_weights)
+    weights = np.array([base_prob / (2**i) for i in range(len(cuboid_choices))])
+    weights = weights / weights.sum()
+    cum_weights = np.cumsum(weights)
     r = random.random()
-    num_horiz = horiz_choices[np.searchsorted(cum_weights, r)]
+    num_horiz = cuboid_choices[np.searchsorted(cum_weights, r)]
     r = random.random()
-    num_vert = horiz_choices[np.searchsorted(cum_weights, r)]
+    num_vert = cuboid_choices[np.searchsorted(cum_weights, r)]
+    
     used_positions = set()
-    grid_n = 5
-    cell_w = (width) / grid_n
-    cell_l = (length) / grid_n
+    cell_w = width / grid_size
+    cell_l = length / grid_size
     for _ in range(num_vert):
         while True:
-            col = random.randint(0, grid_n - 1)
-            row = random.randint(0, grid_n - 1)
+            col = random.randint(0, grid_size - 1)
+            row = random.randint(0, grid_size - 1)
             pos = (col, row)
             if pos not in used_positions:
                 used_positions.add(pos)
                 break
-        # Vertical cuboid: max size (0.9*width)x(0.9*length/5)xdepth
-        v_w = np.random.uniform(cell_w * 0.6, 0.9 * width)
-        v_l = np.random.uniform(cell_l * 0.6, 0.9 * length / grid_n)
-        v_d = random.uniform(depth * 0.5, depth)
+        # Vertical cuboid: parameterized size calculation
+        v_w = np.random.uniform(cell_w * v_width_min_factor, v_width_max_factor * width)
+        v_l = np.random.uniform(cell_l * v_length_min_factor, v_length_max_factor * length / v_length_divisor)
+        v_d = random.uniform(depth * v_depth_min_factor, depth * v_depth_max_factor)
         v_x = col * cell_w + (cell_w - v_w) / 2
         v_y = row * cell_l + (cell_l - v_l) / 2
         # Clamp so cuboid stays within base
@@ -207,7 +299,7 @@ def build_oriented_solid(location, u_dir, v_dir, width, length, depth, seed=None
         if v_y + v_l > length_exp:
             v_l = length_exp - v_y
         # Embed cuboid into base: set v_z negative so it always intersects base
-        v_z = -v_d * 0.3
+        v_z = -v_d * v_embed_factor
         print(f"VERTICAL: origin=({v_x:.2f}, {v_y:.2f}, {v_z:.2f}), size=({v_w:.2f}, {v_l:.2f}, {v_d:.2f})")
         cuboid = BRepPrimAPI_MakeBox(gp_Pnt(v_x, v_y, v_z), v_w, v_l, v_d).Shape()
         # Print cuboid bounding box
@@ -230,16 +322,16 @@ def build_oriented_solid(location, u_dir, v_dir, width, length, depth, seed=None
         print(f"[DEBUG] Faces before fusion: {face_count_before}, after fusion: {face_count_after}")
     for _ in range(num_horiz):
         while True:
-            col = random.randint(0, grid_n - 1)
-            row = random.randint(0, grid_n - 1)
+            col = random.randint(0, grid_size - 1)
+            row = random.randint(0, grid_size - 1)
             pos = (col, row)
             if pos not in used_positions:
                 used_positions.add(pos)
                 break
-        # Horizontal cuboid: max size (0.9*width/5)x(0.9*length)xdepth
-        h_w = np.random.uniform(cell_w * 0.6, 0.9 * width / grid_n)
-        h_l = np.random.uniform(cell_l * 0.6, 0.9 * length)
-        h_d = random.uniform(depth * 0.5, depth)
+        # Horizontal cuboid: parameterized size calculation
+        h_w = np.random.uniform(cell_w * h_width_min_factor, h_width_max_factor * width / h_width_divisor)
+        h_l = np.random.uniform(cell_l * h_length_min_factor, h_length_max_factor * length)
+        h_d = random.uniform(depth * h_depth_min_factor, depth * h_depth_max_factor)
         h_x = col * cell_w + (cell_w - h_w) / 2
         h_y = row * cell_l + (cell_l - h_l) / 2
         # Clamp so cuboid stays within base
@@ -251,7 +343,7 @@ def build_oriented_solid(location, u_dir, v_dir, width, length, depth, seed=None
         if h_y + h_l > length_exp:
             h_l = length_exp - h_y
         # Embed cuboid into base: set h_z negative so it always intersects base
-        h_z = -h_d * 0.3
+        h_z = -h_d * h_embed_factor
         print(f"HORIZONTAL: origin=({h_x:.2f}, {h_y:.2f}, {h_z:.2f}), size=({h_w:.2f}, {h_l:.2f}, {h_d:.2f})")
         cuboid = BRepPrimAPI_MakeBox(gp_Pnt(h_x, h_y, h_z), h_w, h_l, h_d).Shape()
         # Print cuboid bounding box
@@ -301,7 +393,7 @@ if __name__ == "__main__":
     depth = 10
     seed = None  # Or set to an int for reproducibility
 
-    solid = build_oriented_solid(location, u_dir, v_dir, width, length, depth, seed)
+    solid = build_oriented_solid(location, u_dir, v_dir, width, length, depth, config if config else seed)
     # --- Display the final solid in OpenCASCADE GUI ---
     display, start_display, add_menu, add_function_to_menu = init_display()
     display.DisplayShape(solid, update=True)
