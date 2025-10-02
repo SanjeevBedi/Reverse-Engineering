@@ -1,6 +1,10 @@
 import os
 import sys
 print("Running file:", os.path.abspath(__file__))
+
+# Import configuration system
+from config_system import ConfigurationManager, create_default_config, load_config
+
 from OCC.Core.gp import gp_Trsf  # noqa: F401
 from OCC.Core.TopLoc import TopLoc_Location  # noqa: F401
 from OCC.Core.TopAbs import (
@@ -89,51 +93,52 @@ def plot_polygon(
         ax.legend(loc='upper left', bbox_to_anchor=(0.02, 0.98), fontsize=9)
 
 
-def build_solid_with_polygons_test(seed=47315, quiet=False):
+def build_solid_with_polygons_test(config, quiet=False):
     from Base_Solid import build_solid_with_polygons
     from OCC.Core.gp import gp_Pnt, gp_Vec, gp_Trsf
     from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox
     from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Transform
     from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Cut
 
-    print(f"[DEBUG] Calling build_solid_with_polygons(seed={seed}, "
-        f"quiet={quiet}) as test...")
-    original = build_solid_with_polygons(seed, quiet)
+    seed = config.seed
+    print(f"[DEBUG] Calling build_solid_with_polygons(config, "
+          f"seed={seed}, quiet={quiet}) as test...")
+    original = build_solid_with_polygons(config.seed, quiet)
 
-    # # Create box at (0,0,0) of size (60,50,60)
-    # box = BRepPrimAPI_MakeBox(60, 25, 60).Shape()
-    # # Move box to (10,0,0)
-    # trsf = gp_Trsf()
-    # trsf.SetTranslation(gp_Vec(10, 0, 0))
-    # moved_box = BRepBuilderAPI_Transform(box, trsf, True).Shape()
+    # Create box at (0,0,0) of size (60,50,60)
+    box = BRepPrimAPI_MakeBox(60, 25, 60).Shape()
+    # Move box to (10,0,0)
+    trsf = gp_Trsf()
+    trsf.SetTranslation(gp_Vec(10, 0, 0))
+    moved_box = BRepBuilderAPI_Transform(box, trsf, True).Shape()
 
-    # # Subtract box from original
-    # cut = BRepAlgoAPI_Cut(original, moved_box)
-    # cut_shape = cut.Shape()
+    # Subtract box from original
+    cut = BRepAlgoAPI_Cut(original, moved_box)
+    cut_shape = cut.Shape()
 
-    # # Create box at (0,0,0) of size (60,50,60)
-    # box = BRepPrimAPI_MakeBox(60, 25, 60).Shape()
-    # # Move box to (10,0,0)
-    # trsf = gp_Trsf()
-    # trsf.SetTranslation(gp_Vec(10, 35, 0))
-    # moved_box = BRepBuilderAPI_Transform(box, trsf, True).Shape()
+    # Create box at (0,0,0) of size (60,50,60)
+    box = BRepPrimAPI_MakeBox(60, 25, 60).Shape()
+    # Move box to (10,0,0)
+    trsf = gp_Trsf()
+    trsf.SetTranslation(gp_Vec(10, 35, 0))
+    moved_box = BRepBuilderAPI_Transform(box, trsf, True).Shape()
 
-    # # Subtract box from original
-    # cut = BRepAlgoAPI_Cut(cut_shape, moved_box)
-    # cut_shape1 = cut.Shape()
+    # Subtract box from original
+    cut = BRepAlgoAPI_Cut(cut_shape, moved_box)
+    cut_shape1 = cut.Shape()
 
-    # # Create box at (0,0,0) of size (60,50,60)
-    # box = BRepPrimAPI_MakeBox(60, 40, 8).Shape()
-    # # Move box to (10,0,0)
-    # trsf = gp_Trsf()
-    # trsf.SetTranslation(gp_Vec(0, 0, 0))
-    # moved_box = BRepBuilderAPI_Transform(box, trsf, True).Shape()
+    # Create box at (0,0,0) of size (60,50,60)
+    box = BRepPrimAPI_MakeBox(60, 40, 3).Shape()
+    # Move box to (10,0,0)
+    trsf = gp_Trsf()
+    trsf.SetTranslation(gp_Vec(0, 0, 0))
+    moved_box = BRepBuilderAPI_Transform(box, trsf, True).Shape()
 
-    # # Subtract box from original
-    # cut = BRepAlgoAPI_Cut(cut_shape1, moved_box)
-    # cut_shape2 = cut.Shape()
+    # Subtract box from original
+    cut = BRepAlgoAPI_Cut(cut_shape1, moved_box)
+    cut_shape2 = cut.Shape()
 
-    return original
+    return cut_shape2
 
 
 
@@ -1609,55 +1614,97 @@ def project_face_to_projection_plane(face_vertices, projection_normal):
     
     return np.array(projected)
 
-def get_visible_hidden_polygons(solid, projection_normal):
-    """Extract visible and hidden polygons from a solid using projection normal."""
-    print(f"[DEBUG] get_visible_hidden_polygons: Using projection normal: [{projection_normal[0]:.6f}, {projection_normal[1]:.6f}, {projection_normal[2]:.6f}]")
-    # Extract face polygons from the solid
-    face_polygons = extract_faces_from_solid(solid)
-    # Classify faces using the projection normal
-    _, array_B, array_C = classify_faces_by_projection(face_polygons, projection_normal)
-    # array_B: visible polygons, array_C: hidden polygons
-    # Return lists of shapely polygons for plotting
-    # Tagging logic: assign tag based on face_id and source
-    def assign_tag(face_id):
-        # Robust tag assignment: if face_id is None or invalid, return empty string
-        if face_id is None or face_id < 0:
-            return ""
-        if face_id < 6:
-            return f"B{face_id+1}"
-        elif face_id < 12:
-            return f"S{face_id-5}"
-        else:
-            return f"H{face_id-11}"
-
-    visible = []
-    for data in array_B:
-        if 'polygon' in data:
-            face_id = data.get('face_id')
-            tag = assign_tag(face_id)
-            visible.append((data['polygon'], tag))
-    hidden = []
-    for data in array_C:
-        if 'polygon' in data:
-            face_id = data.get('face_id')
-            tag = assign_tag(face_id)
-            hidden.append((data['polygon'], tag))
-    return visible, hidden
 
 #def plot_polygons(visible, hidden, show_combined, show_visible, show_hidden):
-def plot_four_views(solid, user_normal):
+def plot_four_views(solid, user_normal,
+    ordered_vertices,
+    Vertex_Top_View,
+    Vertex_Front_View,
+    Vertex_Side_View,
+    Vertex_Iso_View):
     import matplotlib.pyplot as plt
     import numpy as np
+
+    # Helper to project a 3D vertex to 2D for a given normal
+    def project_vertex_to_plane(vertex, normal):
+        normal = np.array(normal)
+        normal = normal / np.linalg.norm(normal)
+        if abs(normal[0]) < 0.9:
+            temp = np.array([1.0, 0.0, 0.0])
+        else:
+            temp = np.array([0.0, 1.0, 0.0])
+        u = temp - np.dot(temp, normal) * normal
+        u = u / np.linalg.norm(u)
+        v = np.cross(normal, u)
+        v = v / np.linalg.norm(v)
+        vertex = np.array(vertex)
+        proj_u = np.dot(vertex, u)
+        proj_v = np.dot(vertex, v)
+        return np.array([proj_u, proj_v])
+
+    # For each view, fill the corresponding array
+    view_configs = [
+        (np.array([0,0,1]), 'Top View', Vertex_Top_View),
+        (user_normal, 'Isometric View', Vertex_Iso_View),
+        (np.array([0,1,0]), 'Front View', Vertex_Front_View),
+        (np.array([1,0,0]), 'Side View', Vertex_Side_View)
+    ]
+
+    # Extract face polygons from the solid
+    face_polygons = extract_faces_from_solid(solid)
+    # Store visible/hidden polygons for each view
+    view_polygons = []
+    for normal, label, vertex_array in view_configs:
+            normal = normal / np.linalg.norm(normal)
+            print(f"[DEBUG] get_visible_hidden_polygons: Using projection normal: [{normal[0]:.6f}, {normal[1]:.6f}, {normal[2]:.6f}]")
+            _, array_B, array_C = classify_faces_by_projection(face_polygons, normal)
+            visible = [data['polygon'] for data in array_B if 'polygon' in data]
+            hidden = [data['polygon'] for data in array_C if 'polygon' in data]
+            # Project all ordered vertices to this view
+            projected_vertices_2d = [project_vertex_to_plane(v, normal) for v in ordered_vertices]
+            def find_vertex_index(pt, tol=1e-5):
+                pt_arr = np.array(pt)
+                for idx, v_proj in enumerate(projected_vertices_2d):
+                    if np.linalg.norm(pt_arr - v_proj) < tol:
+                        return idx
+                return None
+            # Scan hidden polygons first
+            for poly in hidden:
+                if hasattr(poly, 'exterior') and not poly.is_empty:
+                    coords = list(poly.exterior.coords)
+                    for i in range(len(coords)-1):
+                        idx1 = find_vertex_index(coords[i])
+                        idx2 = find_vertex_index(coords[i+1])
+                        if idx1 is not None and idx2 is not None:
+                            vertex_array[idx1, idx2] = 1
+                            vertex_array[idx2, idx1] = 1
+            # Then scan visible polygons
+            for poly in visible:
+                if hasattr(poly, 'exterior') and not poly.is_empty:
+                    coords = list(poly.exterior.coords)
+                    for i in range(len(coords)-1):
+                        idx1 = find_vertex_index(coords[i])
+                        idx2 = find_vertex_index(coords[i+1])
+                        if idx1 is not None and idx2 is not None:
+                            vertex_array[idx1, idx2] = 2
+                            vertex_array[idx2, idx1] = 2
+            print("\n" + "="*60)
+            print(f"{label} Vertex Array (1=hidden, 2=visible):")
+            print(np.array2string(vertex_array, separator=', '))
+            print("="*60)
+            # Store polygons for this view
+            view_polygons.append((visible, hidden))
+    # ...existing code...
     # Swap side and isometric views, and fix front view orientation
     def plot_polygons_on_ax(ax, visible, hidden, label, flip_y=False):
         coords_x = []
         coords_y = []
         polygons_drawn = False
         # Plot hidden polygons first
-        for idx, (poly, tag) in enumerate(hidden):
+        for idx, poly in enumerate(hidden):
             plotted = False
             if label == 'Isometric View':
-                print(f"[PLOT-ALL] Isometric Hidden {idx+1}/{len(hidden)}: tag={tag}, type={getattr(poly, 'geom_type', type(poly))}, area={getattr(poly, 'area', 'N/A'):.4f}")
+                print(f"[PLOT-ALL] Isometric Hidden {idx+1}/{len(hidden)}: type={getattr(poly, 'geom_type', type(poly))}, area={getattr(poly, 'area', 'N/A'):.4f}")
             # Polygon
             if hasattr(poly, 'exterior') and not poly.is_empty:
                 x, y = poly.exterior.xy
@@ -1703,10 +1750,10 @@ def plot_four_views(solid, user_normal):
                         coords_y.append(y)
                         plotted = True
         # Plot visible polygons
-        for poly, _ in visible:
+        for poly in visible:
+            # Polygon
             if hasattr(poly, 'exterior') and not poly.is_empty:
                 x, y = poly.exterior.xy
-                # Solid black line
                 ax.plot(x, y, color='black', linewidth=1.8, alpha=0.95)
                 polygons_drawn = True
                 coords_x.append(x)
@@ -1714,6 +1761,36 @@ def plot_four_views(solid, user_normal):
                 for interior in poly.interiors:
                     ix, iy = interior.xy
                     ax.plot(ix, iy, color='black', linewidth=1.8, alpha=0.95)
+            # MultiPolygon
+            elif getattr(poly, 'geom_type', None) == 'MultiPolygon':
+                for subpoly in poly.geoms:
+                    if hasattr(subpoly, 'exterior') and not subpoly.is_empty:
+                        x, y = subpoly.exterior.xy
+                        ax.plot(x, y, color='black', linewidth=1.8, alpha=0.95)
+                        polygons_drawn = True
+                        coords_x.append(x)
+                        coords_y.append(y)
+                        for interior in subpoly.interiors:
+                            ix, iy = interior.xy
+                            ax.plot(ix, iy, color='black', linewidth=1.8, alpha=0.95)
+            # GeometryCollection
+            elif getattr(poly, 'geom_type', None) == 'GeometryCollection':
+                for subgeom in poly.geoms:
+                    if getattr(subgeom, 'geom_type', None) == 'Polygon' and not subgeom.is_empty:
+                        x, y = subgeom.exterior.xy
+                        ax.plot(x, y, color='black', linewidth=1.8, alpha=0.95)
+                        polygons_drawn = True
+                        coords_x.append(x)
+                        coords_y.append(y)
+                        for interior in subgeom.interiors:
+                            ix, iy = interior.xy
+                            ax.plot(ix, iy, color='black', linewidth=1.8, alpha=0.95)
+                    elif getattr(subgeom, 'geom_type', None) == 'LineString' and not subgeom.is_empty:
+                        x, y = subgeom.xy
+                        ax.plot(x, y, color='black', linestyle='dashed', linewidth=1.8, alpha=0.95)
+                        polygons_drawn = True
+                        coords_x.append(x)
+                        coords_y.append(y)
         ax.set_title(label, fontsize=14)
         ax.set_xticks([])
         ax.set_yticks([])
@@ -1753,8 +1830,8 @@ def plot_four_views(solid, user_normal):
     for i, ax in enumerate(axes):
         normal, label, flip_y = views[i]
         normal = normal / np.linalg.norm(normal)
+        visible, hidden = view_polygons[i]
         print(f"[DEBUG] plot_four_views: {label} projection normal: [{normal[0]:.6f}, {normal[1]:.6f}, {normal[2]:.6f}]")
-        visible, hidden = get_visible_hidden_polygons(solid, normal)
         print(f"[DEBUG] {label}: {len(visible)} visible, {len(hidden)} hidden polygons")
         plot_polygons_on_ax(ax, visible, hidden, label, flip_y)
     plt.tight_layout()
@@ -1762,6 +1839,269 @@ def plot_four_views(solid, user_normal):
     plt.show()
 
 def main():
+    # === HELPER FUNCTIONS: must be defined before use ===
+    def project_to_view(vertex, normal):
+        normal = np.array(normal)
+        normal = normal / np.linalg.norm(normal)
+        if np.allclose(normal, [0, 0, 1]):
+            u_axis = np.array([1, 0, 0])
+            v_axis = np.array([0, 1, 0])
+        elif np.allclose(normal, [0, 1, 0]):
+            u_axis = np.array([1, 0, 0])
+            v_axis = np.array([0, 0, 1])
+        elif np.allclose(normal, [1, 0, 0]):
+            u_axis = np.array([0, 1, 0])
+            v_axis = np.array([0, 0, 1])
+        else:
+            u_axis = np.cross([0, 0, 1], normal)
+            if np.linalg.norm(u_axis) < 1e-8:
+                u_axis = np.cross([0, 1, 0], normal)
+            u_axis = u_axis / np.linalg.norm(u_axis)
+            v_axis = np.cross(normal, u_axis)
+            v_axis = v_axis / np.linalg.norm(v_axis)
+        vertex = np.array(vertex)
+        u = np.dot(vertex, u_axis)
+        v = np.dot(vertex, v_axis)
+        return u, v
+
+    def filter_possible_vertices(possible_vertices, summary_array, view_name, u_col, v_col, normal, tol=1e-6):
+        valid_indices = []
+        for idx, vert in enumerate(possible_vertices):
+            u, v = project_to_view(vert, normal)
+            u_matches = np.isclose(u, summary_array[:, u_col], atol=tol)
+            v_matches = np.isclose(v, summary_array[:, v_col], atol=tol)
+            match_found = np.any(u_matches & v_matches)
+            if match_found:
+                valid_indices.append(idx)
+        return valid_indices
+
+    def make_summary_array(vertex_array, all_vertices_sorted, proj_normal, view_name):
+        try:
+            n = vertex_array.shape[0]
+            arr = np.zeros((n, 14))
+            print(f"[DEBUG] {view_name}: vertex_array shape = {vertex_array.shape}")
+            nonzero_row_indices = [i for i in range(n) if np.any(vertex_array[i, :])]
+            num_nonzero = len(nonzero_row_indices)
+            print(f"[DEBUG] {view_name}: number of nonzero rows = {num_nonzero}")
+            def project_vertex(vertex, normal):
+                normal = np.array(normal)
+                normal = normal / np.linalg.norm(normal)
+                if np.allclose(normal, [0, 0, 1]):
+                    u_axis = np.array([1, 0, 0])
+                    v_axis = np.array([0, 1, 0])
+                elif np.allclose(normal, [0, 1, 0]):
+                    u_axis = np.array([1, 0, 0])
+                    v_axis = np.array([0, 0, 1])
+                elif np.allclose(normal, [1, 0, 0]):
+                    u_axis = np.array([0, 1, 0])
+                    v_axis = np.array([0, 0, 1])
+                else:
+                    u_axis = np.cross([0, 0, 1], normal)
+                    if np.linalg.norm(u_axis) < 1e-8:
+                        u_axis = np.cross([0, 1, 0], normal)
+                    u_axis = u_axis / np.linalg.norm(u_axis)
+                    v_axis = np.cross(normal, u_axis)
+                    v_axis = v_axis / np.linalg.norm(v_axis)
+                vertex = np.array(vertex)
+                u = np.dot(vertex, u_axis)
+                v = np.dot(vertex, v_axis)
+                return u, v, 0.0
+            for row_idx, v_idx in enumerate(nonzero_row_indices):
+                x, y, z = all_vertices_sorted[v_idx]
+                arr[row_idx, 0:3] = [x, y, z]
+                xp, yp, _ = project_vertex([x, y, z], proj_normal)
+                if view_name == 'Top View':
+                    arr[row_idx, 3] = xp
+                    arr[row_idx, 4] = yp
+                elif view_name == 'Front View':
+                    arr[row_idx, 3] = xp
+                    arr[row_idx, 5] = yp
+                elif view_name == 'Side View':
+                    arr[row_idx, 4] = xp
+                    arr[row_idx, 5] = yp
+                else:
+                    arr[row_idx, 3] = xp
+                    arr[row_idx, 4] = yp
+                arr[row_idx, 6:] = vertex_array[v_idx, nonzero_row_indices]
+            print(f"\n[DEBUG] Summary array for {view_name} (shape: {arr.shape}):")
+            print(arr)
+            print(f"[DEBUG] Finished {view_name} summary array.")
+            return arr
+        except Exception as e:
+            print(f"[ERROR] Exception in make_summary_array for {view_name}: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    # === FINAL: Print valid possible vertices for Top and Side views with debug ===
+    print("\n[DEBUG] Entering valid possible vertices filtering block...")
+    if 'possible_vertices' in locals():
+        print(f"[DEBUG] possible_vertices shape: {possible_vertices.shape}")
+        print(f"[DEBUG] possible_vertices sample: {possible_vertices[:min(3, len(possible_vertices))]}")
+    if 'top_view_summary' in locals():
+        print(f"[DEBUG] top_view_summary shape: {top_view_summary.shape}")
+        print(f"[DEBUG] top_view_summary sample: {top_view_summary[:min(3, len(top_view_summary))]}")
+    else:
+        print("[DEBUG] top_view_summary not found!")
+    # Top View filtering
+    if 'possible_vertices' in locals() and 'top_view_summary' in locals() and top_view_summary is not None:
+        valid_top = filter_possible_vertices(
+            possible_vertices, top_view_summary, 'Top View', 3, 4, [0, 0, 1]
+        )
+        print("\n=== Valid Possible_Vertices for Top View ===")
+        print(f"Count: {len(valid_top)}")
+        for idx in valid_top:
+            print(f"  Index {idx}: {possible_vertices[idx]}")
+        if not valid_top:
+            print("  (None)")
+    else:
+        print("[DEBUG] Skipping Top View filtering: missing data.")
+
+    # === Filter Possible_Vertices by projection onto Top and Side views ===
+    def project_to_view(vertex, normal):
+        # Project a 3D point onto a plane with the given normal
+        # Returns (u, v) coordinates in the view's plane
+        normal = np.array(normal)
+        normal = normal / np.linalg.norm(normal)
+        # Choose arbitrary orthogonal axes for the view
+        if np.allclose(normal, [0, 0, 1]):
+            u_axis = np.array([1, 0, 0])
+            v_axis = np.array([0, 1, 0])
+        elif np.allclose(normal, [0, 1, 0]):
+            u_axis = np.array([1, 0, 0])
+            v_axis = np.array([0, 0, 1])
+        elif np.allclose(normal, [1, 0, 0]):
+            u_axis = np.array([0, 1, 0])
+            v_axis = np.array([0, 0, 1])
+        else:
+            # For isometric or arbitrary, use Gram-Schmidt
+            u_axis = np.cross([0, 0, 1], normal)
+            if np.linalg.norm(u_axis) < 1e-8:
+                u_axis = np.cross([0, 1, 0], normal)
+            u_axis = u_axis / np.linalg.norm(u_axis)
+            v_axis = np.cross(normal, u_axis)
+            v_axis = v_axis / np.linalg.norm(v_axis)
+        vertex = np.array(vertex)
+        u = np.dot(vertex, u_axis)
+        v = np.dot(vertex, v_axis)
+        return u, v
+
+    def filter_possible_vertices(possible_vertices, summary_array, view_name, u_col, v_col, normal, tol=1e-6):
+        valid_indices = []
+        for idx, vert in enumerate(possible_vertices):
+            u, v = project_to_view(vert, normal)
+            u_matches = np.isclose(u, summary_array[:, u_col], atol=tol)
+            v_matches = np.isclose(v, summary_array[:, v_col], atol=tol)
+            match_found = np.any(u_matches & v_matches)
+            if match_found:
+                valid_indices.append(idx)
+        return valid_indices
+
+    # Only run if possible_vertices and summary arrays exist
+
+    # === FINAL: Print valid possible vertices for Top and Side views ===
+    # This must come after all arrays are created and filled, and possible_vertices is defined
+    if 'possible_vertices' in locals():
+        # Top View summary (already created above)
+        if 'top_view_summary' in locals() and top_view_summary is not None:
+            valid_top = filter_possible_vertices(
+                possible_vertices, top_view_summary, 'Top View', 3, 4, [0, 0, 1]
+            )
+            print("\n=== Valid Possible_Vertices for Top View ===")
+            print(f"Count: {len(valid_top)}")
+            for idx in valid_top:
+                print(f"  Index {idx}: {possible_vertices[idx]}")
+            if not valid_top:
+                print("  (None)")
+        # Side View summary (create here, after all arrays are filled)
+        side_view_summary = make_summary_array(Vertex_Side_View, all_vertices_sorted, np.array([1, 0, 0]), 'Side View')
+        if side_view_summary is not None:
+            valid_side = filter_possible_vertices(
+                possible_vertices, side_view_summary, 'Side View', 4, 5, [1, 0, 0]
+            )
+            print("\n=== Valid Possible_Vertices for Side View ===")
+            print(f"Count: {len(valid_side)}")
+            for idx in valid_side:
+                print(f"  Index {idx}: {possible_vertices[idx]}")
+            if not valid_side:
+                print("  (None)")
+    # === Custom summary arrays for each view ===
+    # Helper function must be defined before any use
+    def make_summary_array(vertex_array, all_vertices_sorted, proj_normal, view_name):
+        print(f"[DEBUG] Processing {view_name} summary array...")
+        try:
+            vertex_array = np.asarray(vertex_array)
+            n = vertex_array.shape[0]
+            print(f"[DEBUG] {view_name}: vertex_array shape = {vertex_array.shape}")
+            nonzero_row_indices = [i for i in range(n) if np.any(vertex_array[i, :])]
+            num_nonzero = len(nonzero_row_indices)
+            print(f"[DEBUG] {view_name}: number of nonzero rows = {num_nonzero}")
+            arr = np.zeros((num_nonzero, 6 + num_nonzero), dtype=float)
+            def project_vertex(vertex, normal):
+                normal = np.array(normal)
+                normal = normal / np.linalg.norm(normal)
+                if abs(normal[0]) < 0.9:
+                    temp = np.array([1.0, 0.0, 0.0])
+                else:
+                    temp = np.array([0.0, 1.0, 0.0])
+                u = temp - np.dot(temp, normal) * normal
+                u = u / np.linalg.norm(u)
+                v = np.cross(normal, u)
+                v = v / np.linalg.norm(v)
+                vertex = np.array(vertex)
+                proj_u = np.dot(vertex, u)
+                proj_v = np.dot(vertex, v)
+                return proj_u, proj_v, 0.0
+            for row_idx, v_idx in enumerate(nonzero_row_indices):
+                x, y, z = all_vertices_sorted[v_idx]
+                arr[row_idx, 0:3] = [x, y, z]
+                xp, yp, _ = project_vertex([x, y, z], proj_normal)
+                if view_name == 'Top View':
+                    arr[row_idx, 3] = xp
+                    arr[row_idx, 4] = yp
+                elif view_name == 'Front View':
+                    arr[row_idx, 3] = xp
+                    arr[row_idx, 5] = yp
+                elif view_name == 'Side View':
+                    arr[row_idx, 4] = xp
+                    arr[row_idx, 5] = yp
+                else:
+                    arr[row_idx, 3] = xp
+                    arr[row_idx, 4] = yp
+                arr[row_idx, 6:] = vertex_array[v_idx, nonzero_row_indices]
+            print(f"\n[DEBUG] Summary array for {view_name} (shape: {arr.shape}):")
+            print(arr)
+            print(f"[DEBUG] Finished {view_name} summary array.")
+            return arr
+        except Exception as e:
+            print(f"[ERROR] Exception in make_summary_array for {view_name}: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+    # === Post-processing: Find z-levels from Front_View and build Possible_Vertices ===
+    # This must come after the arrays are created and filled (after plot_four_views)
+    # ENSURE THIS IS AT THE END OF MAIN
+    if 'Vertex_Front_View' in locals() and 'all_vertices_sorted' in locals() and 'Vertex_Top_View' in locals():
+        print("[DEBUG] Extracting z-levels from Front View summary array...")
+        front_view_summary = make_summary_array(Vertex_Front_View, all_vertices_sorted, np.array([0, 1, 0]), 'Front View')
+        if front_view_summary is not None and front_view_summary.shape[0] > 0:
+            z_coords = np.unique(front_view_summary[:, 2])
+            z_coords_sorted = np.sort(z_coords)
+            print(f"[DEBUG] Unique z-levels (sorted): {z_coords_sorted}")
+            top_view_summary = make_summary_array(Vertex_Top_View, all_vertices_sorted, np.array([0, 0, 1]), 'Top View')
+            if top_view_summary is not None and top_view_summary.shape[0] > 0:
+                possible_vertices = []
+                for row in top_view_summary:
+                    x, y = row[0], row[1]
+                    for z in z_coords_sorted:
+                        possible_vertices.append([x, y, z])
+                possible_vertices = np.array(possible_vertices)
+                print("Possible_Vertices array (x, y from Top View, z from z-levels):")
+                print(possible_vertices)
+            else:
+                print("[DEBUG] Top View summary array is empty or None.")
+        else:
+            print("[DEBUG] Front View summary array is empty or None.")
     print("Starting solid projection and polygon visibility analysis...")
     parser = argparse.ArgumentParser(
         description=(
@@ -1792,10 +2132,35 @@ def main():
         help='Random seed for solid generation (int)'
     )
     parser.add_argument(
+        '--config-file', type=str,
+        help='Load configuration from file instead of generating random values'
+    )
+    parser.add_argument(
+        '--save-config', action='store_true',
+        help='Save configuration parameters to file'
+    )
+    parser.add_argument(
         '--quiet', action='store_true',
         help='Suppress verbose output'
     )
     args = parser.parse_args()
+
+    # Handle configuration loading/creation
+    if args.config_file:
+        print(f"Loading configuration from: {args.config_file}")
+        config = load_config(args.config_file)
+        seed = config.seed
+    else:
+        print(f"Creating default configuration with seed: {args.seed}")
+        config = create_default_config(args.seed)
+        seed = args.seed
+
+    # Save configuration if requested
+    if args.save_config:
+        config.save_to_file()
+
+    # Apply seed from configuration
+    config.apply_seed()
 
     print("[DEBUG] Starting main() function.")
     print(f"[DEBUG] CLI args: {sys.argv}")
@@ -1809,6 +2174,8 @@ def main():
         elif arg.startswith('--normal='):
             normal_arg = arg.split('=', 1)[1]
             break
+
+    # Always set projection_normal before use
     if normal_arg is not None:
         try:
             normal_vals = [float(x) for x in normal_arg.split(',')]
@@ -1817,24 +2184,126 @@ def main():
             print(f"[DEBUG] (early) Projection normal: {projection_normal}")
         except Exception as e:
             print(f"[DEBUG] (early) Could not parse projection normal: {normal_arg} ({e})")
-    solid = build_solid_with_polygons_test(seed=args.seed, quiet=args.quiet)
+            projection_normal = np.array([1, 1, 1], dtype=float)
+            projection_normal = projection_normal / np.linalg.norm(projection_normal)
+    else:
+        try:
+            normal_vals = [float(x) for x in args.normal.split(',')]
+            projection_normal = np.array(normal_vals)
+            projection_normal = projection_normal / np.linalg.norm(projection_normal)
+            print(f"[DEBUG] (default) Projection normal: {projection_normal}")
+        except Exception as e:
+            print(f"[DEBUG] (default) Could not parse projection normal: {args.normal} ({e})")
+            projection_normal = np.array([1, 1, 1], dtype=float)
+            projection_normal = projection_normal / np.linalg.norm(projection_normal)
+    solid = build_solid_with_polygons_test(config=config, quiet=args.quiet)
     print(f"[DEBUG] Solid created: {type(solid)}")
     save_solid_as_step(solid, "solid_output.step")
+
+    # Robust extraction of all unique vertices from the solid using TopExp_Explorer
+    print("\n[DEBUG] Extracting all unique vertices from solid using TopExp_Explorer:")
+    vertex_explorer = TopExp_Explorer(solid, TopAbs_VERTEX)
+    unique_vertices = []
+    seen = set()
+    vertex_count = 0
+    while vertex_explorer.More():
+        vertex = topods.Vertex(vertex_explorer.Current())
+        from OCC.Core.BRep import BRep_Tool
+        pnt = BRep_Tool.Pnt(vertex)
+        v = (round(pnt.X(), 6), round(pnt.Y(), 6), round(pnt.Z(), 6))
+        if v not in seen:
+            unique_vertices.append(v)
+            seen.add(v)
+        vertex_explorer.Next()
+        vertex_count += 1
+    # Order vertices by x, then y, then z
+    all_vertices_sorted = sorted(unique_vertices, key=lambda v: (v[0], v[1], v[2]))
+    print(f"Total number of unique vertices in the solid: {len(all_vertices_sorted)} (raw count: {vertex_count})")
+    print("Ordered unique vertices (x, y, z):")
+    for idx, v in enumerate(all_vertices_sorted):
+        print(f"  {idx}: ({v[0]:.6f}, {v[1]:.6f}, {v[2]:.6f})")
+
+    # Create square arrays for each view
+    n_vertices = len(all_vertices_sorted)
+    Vertex_Top_View = np.zeros((n_vertices, n_vertices), dtype=int)
+    Vertex_Front_View = np.zeros((n_vertices, n_vertices), dtype=int)
+    Vertex_Side_View = np.zeros((n_vertices, n_vertices), dtype=int)
+    Vertex_Iso_View = np.zeros((n_vertices, n_vertices), dtype=int)
+
     # Display original polygons in 3D first
     visualize_3d_solid(solid)
-    # Accept comma-separated normal
-    normal_vals = [float(x) for x in args.normal.split(',')]
-    projection_normal = np.array(normal_vals)
-    projection_normal = projection_normal / np.linalg.norm(projection_normal)
-    print(f"[DEBUG] Projection normal: {projection_normal}")
-    visible, hidden = get_visible_hidden_polygons(solid, projection_normal)
-    print(f"[DEBUG] Number of visible polygons: {len(visible)}")
-    print(f"[DEBUG] Number of hidden polygons: {len(hidden)}")
-    # If no switches, default to combined
-    if not (args.show_combined or args.show_visible or args.show_hidden):
-        args.show_combined = True
-    print("[DEBUG] Plotting four views (top, side, front, isometric)")
-    plot_four_views(solid, projection_normal)
+
+    # Pass arrays and ordered vertices to plot_four_views
+    plot_four_views(solid, projection_normal,
+                   all_vertices_sorted,
+                   Vertex_Top_View,
+                   Vertex_Front_View,
+                   Vertex_Side_View,
+                   Vertex_Iso_View)
+
+    # === Post-processing: Find z-levels from Front_View and build Possible_Vertices ===
+    # This must come after the arrays are created and filled (after plot_four_views)
+    # ENSURE THIS IS AT THE END OF MAIN
+    if 'Vertex_Front_View' in locals() and 'all_vertices_sorted' in locals() and 'Vertex_Top_View' in locals():
+        print("[DEBUG] Extracting z-levels from Front View summary array...")
+        front_view_summary = make_summary_array(Vertex_Front_View, all_vertices_sorted, np.array([0, 1, 0]), 'Front View')
+        if front_view_summary is not None and front_view_summary.shape[0] > 0:
+            z_coords = np.unique(front_view_summary[:, 2])
+            z_coords_sorted = np.sort(z_coords)
+            print(f"[DEBUG] Unique z-levels (sorted): {z_coords_sorted}")
+            top_view_summary = make_summary_array(Vertex_Top_View, all_vertices_sorted, np.array([0, 0, 1]), 'Top View')
+            if top_view_summary is not None and top_view_summary.shape[0] > 0:
+                possible_vertices = []
+                for row in top_view_summary:
+                    x, y = row[0], row[1]
+                    for z in z_coords_sorted:
+                        possible_vertices.append([x, y, z])
+                possible_vertices = np.array(possible_vertices)
+                print("Possible_Vertices array (x, y from Top View, z from z-levels):")
+                print(possible_vertices)
+            else:
+                print("[DEBUG] Top View summary array is empty or None.")
+        else:
+            print("[DEBUG] Front View summary array is empty or None.")
+    else:
+        print("[ERROR] Vertex arrays or all_vertices_sorted not defined at summary block!")
+
+
+
+
+    # === Ensure summary arrays and possible vertices are always generated ===
+    # This must come after the arrays are created and after plot_four_views
+    print("[DEBUG] Entering summary array block...")
+    view_normals = [
+        (np.array([0, 0, 1]), 'Top View', Vertex_Top_View),
+        (np.array([0, 1, 0]), 'Front View', Vertex_Front_View),
+        (np.array([1, 0, 0]), 'Side View', Vertex_Side_View),
+        (projection_normal, 'Isometric View', Vertex_Iso_View)
+    ]
+    for normal, name, arr in view_normals:
+        make_summary_array(arr, all_vertices_sorted, normal, name)
+
+    # === Post-processing: Find z-levels from Front_View and build Possible_Vertices ===
+    print("[DEBUG] Extracting z-levels from Front View summary array...")
+    front_view_summary = make_summary_array(Vertex_Front_View, all_vertices_sorted, np.array([0, 1, 0]), 'Front View')
+    if front_view_summary is not None and front_view_summary.shape[0] > 0:
+        z_coords = np.unique(front_view_summary[:, 2])
+        z_coords_sorted = np.sort(z_coords)
+        print(f"[DEBUG] Unique z-levels (sorted): {z_coords_sorted}")
+        top_view_summary = make_summary_array(Vertex_Top_View, all_vertices_sorted, np.array([0, 0, 1]), 'Top View')
+        if top_view_summary is not None and top_view_summary.shape[0] > 0:
+            possible_vertices = []
+            for row in top_view_summary:
+                x, y = row[0], row[1]
+                for z in z_coords_sorted:
+                    possible_vertices.append([x, y, z])
+            possible_vertices = np.array(possible_vertices)
+            print("Possible_Vertices array (x, y from Top View, z from z-levels):")
+            print(possible_vertices)
+        else:
+            print("[DEBUG] Top View summary array is empty or None.")
+    else:
+        print("[DEBUG] Front View summary array is empty or None.")
 
 
 
