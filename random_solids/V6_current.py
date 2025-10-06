@@ -8,6 +8,13 @@ from config_system import ConfigurationManager, create_default_config, load_conf
 
 from OCC.Core.gp import gp_Trsf  # noqa: F401
 from OCC.Core.TopLoc import TopLoc_Location  # noqa: F401
+from OCC.Core.TopExp import TopExp_Explorer
+from OCC.Core.TopoDS import topods
+from opencascade import get_face_normal_from_opencascade, extract_and_visualize_faces, extract_wire_vertices_in_sequence, OPENCASCADE_AVAILABLE
+from edge_reconstruction import reconstruct_edges_from_views
+from unified_summary import (create_unified_summary, print_summary_info,
+                             save_summary_to_file, save_summary_to_numpy,
+                             visualize_adjacency_matrix)
 from OCC.Core.TopAbs import (
     TopAbs_SHELL, TopAbs_EDGE, TopAbs_VERTEX, TopAbs_WIRE
 )  # noqa: F401, E501
@@ -951,8 +958,8 @@ Total Processed: {len(array_B) + len(array_C)} polygons"""
 
 
 
-def visualize_3d_solid(solid_shape, selected_vertices=None):
-    """Display the 3D solid using matplotlib 3D plotting. Optionally highlight selected vertices."""
+def visualize_3d_solid(solid_shape, selected_vertices=None, edges=None):
+    """Display the 3D solid using matplotlib 3D plotting. Optionally highlight selected vertices and edges."""
     if not OPENCASCADE_AVAILABLE or solid_shape is None:
         print("✗ Cannot visualize - OpenCASCADE not available or shape is None")
         return
@@ -1011,12 +1018,27 @@ def visualize_3d_solid(solid_shape, selected_vertices=None):
             for i, vertex in enumerate(selected_vertices):
                 ax.text(vertex[0], vertex[1], vertex[2], f'V{i+1}', 
                        fontsize=10, color='red', ha='center', va='bottom', weight='bold')
+        
+        # Plot edges if provided
+        if edges is not None and len(edges) > 0 and selected_vertices is not None:
+            print(f"  → Plotting {len(edges)} reconstructed edges as black lines")
+            for edge_idx, (v1_idx, v2_idx) in enumerate(edges):
+                v1 = selected_vertices[v1_idx]
+                v2 = selected_vertices[v2_idx]
+                ax.plot([v1[0], v2[0]], [v1[1], v2[1]], [v1[2], v2[2]], 
+                       color='black', linewidth=3, alpha=0.9, zorder=10)
+            # Add label for edges in legend
+            ax.plot([], [], color='black', linewidth=3, alpha=0.9, 
+                   label=f'Reconstructed Edges ({len(edges)})')
+        
         ax.set_xlabel('X Coordinate', fontsize=12, weight='bold')
         ax.set_ylabel('Y Coordinate', fontsize=12, weight='bold')
         ax.set_zlabel('Z Coordinate', fontsize=12, weight='bold')
         title = f'3D Solid Visualization - POLYGON BOUNDARIES ONLY\n{len(all_face_data)} Faces'
         if selected_vertices is not None:
             title += f' + {len(selected_vertices)} Selected Vertices'
+        if edges is not None and len(edges) > 0:
+            title += f' + {len(edges)} Edges'
         ax.set_title(title, fontsize=14, weight='bold')
         all_vertices = np.vstack([face_data['vertices'] for face_data in all_face_data])
         max_range = np.ptp(all_vertices, axis=0).max() / 2.0
@@ -1047,157 +1069,10 @@ def visualize_3d_solid(solid_shape, selected_vertices=None):
         print(f"✓ 3D solid visualization complete - POLYGON BOUNDARIES ONLY")
         if selected_vertices is not None:
             print(f"  → Displayed {len(selected_vertices)} selected vertices as red spheres")
-        else:
+        if edges is not None and len(edges) > 0:
+            print(f"  → Displayed {len(edges)} reconstructed edges as black lines")
+        if selected_vertices is None:
             print(f"  → Displayed {len(all_face_data)} faces as pure polygons")
-    except Exception as e:
-        print(f"✗ 3D matplotlib visualization failed: {e}")
-        print("  → Continuing with array processing...")
-        traceback.print_exc()
-
-
-def visualize_3d_solid(solid_shape, selected_vertices=None):
-    """Display the 3D solid using matplotlib 3D plotting - showing only polygon boundaries."""
-    if not OPENCASCADE_AVAILABLE or solid_shape is None:
-        print("✗ Cannot visualize - OpenCASCADE not available or shape is None")
-        return
-    
-    print("\n" + "="*60)
-    print("3D SOLID VISUALIZATION WITH MATPLOTLIB")
-    print("="*60)
-    
-    try:
-        from mpl_toolkits.mplot3d import Axes3D
-        import matplotlib.pyplot as plt
-        
-        # Extract all face vertices from the solid for visualization
-        print("  → Extracting face vertices for 3D plot...")
-        
-        face_explorer = TopExp_Explorer(solid_shape, TopAbs_FACE)
-        face_count = 0
-        all_face_data = []
-        
-        while face_explorer.More():
-            face_shape = face_explorer.Current()
-            face_count += 1
-            
-            try:
-                face = topods.Face(face_shape)
-                
-                # Extract vertices from this face
-                wire_explorer = TopExp_Explorer(face, TopAbs_WIRE)
-                if wire_explorer.More():
-                    wire = wire_explorer.Current()
-                    vertices = extract_wire_vertices_in_sequence(wire, 1)
-                    
-                    if vertices and len(vertices) >= 3:
-                        all_face_data.append({
-                            'face_id': face_count,
-                            'vertices': vertices,
-                            'vertex_count': len(vertices)
-                        })
-                        print(f"    Face {face_count}: {len(vertices)} vertices extracted")
-                    else:
-                        print(f"    Face {face_count}: Failed to extract enough vertices")
-                
-            except Exception as e:
-                print(f"    Face {face_count}: Error - {e}")
-            
-            face_explorer.Next()
-        
-        print(f"  → Successfully extracted {len(all_face_data)} faces for visualization")
-        
-        if not all_face_data:
-            print("  ✗ No face data available for visualization")
-            return
-        
-        # Create 3D plot
-        fig = plt.figure(figsize=(15, 12))
-        ax = fig.add_subplot(111, projection='3d')
-        
-        # Plot each face - ONLY POLYGON BOUNDARIES, NO TRIANGULATION
-        colors = plt.cm.Set3(np.linspace(0, 1, len(all_face_data)))
-        
-        for i, face_data in enumerate(all_face_data):
-            vertices = np.array(face_data['vertices'])
-            if len(vertices) > 2:
-                vertices_closed = np.vstack([vertices, vertices[0]])
-            ax.plot(vertices_closed[:, 0], vertices_closed[:, 1], vertices_closed[:, 2], 
-                color=colors[i], linewidth=3, alpha=0.9)
-            ax.scatter(vertices[:, 0], vertices[:, 1], vertices[:, 2], 
-                color=colors[i], s=50, alpha=0.8, edgecolors='black', linewidth=1)
-            face_center = np.mean(vertices, axis=0)
-            label_text = f'F{i+1} ({len(vertices)}v)'
-            ax.text(face_center[0], face_center[1], face_center[2], 
-                label_text,
-                fontsize=10, color='black', ha='center', va='center', alpha=0.7)
-            
-            # Set labels and title
-            ax.set_xlabel('X Coordinate', fontsize=12, weight='bold')
-            ax.set_ylabel('Y Coordinate', fontsize=12, weight='bold')
-            ax.set_zlabel('Z Coordinate', fontsize=12, weight='bold')
-            ax.set_title(f'3D Solid Visualization - POLYGON BOUNDARIES ONLY\n{len(all_face_data)} Faces from Boolean CUT Operation\nNo Triangulation - Pure Polygon Display', 
-                        fontsize=14, weight='bold')
-            
-            # Set equal aspect ratio
-            all_vertices = np.vstack([face_data['vertices'] for face_data in all_face_data])
-            max_range = np.ptp(all_vertices, axis=0).max() / 2.0
-            mid_x = np.mean(all_vertices[:, 0])
-            mid_y = np.mean(all_vertices[:, 1])
-            mid_z = np.mean(all_vertices[:, 2])
-            
-            margin = max_range * 0.1  # 10% margin
-            ax.set_xlim(mid_x - max_range - margin, mid_x + max_range + margin)
-            ax.set_ylim(mid_y - max_range - margin, mid_y + max_range + margin)
-            ax.set_zlim(mid_z - max_range - margin, mid_z + max_range + margin)
-            
-            # Add legend (show only first few faces to avoid clutter)
-            handles, labels = ax.get_legend_handles_labels()
-            if len(handles) > 10:
-                ax.legend(handles[:10], labels[:10], loc='upper left', bbox_to_anchor=(0.02, 0.98), fontsize=9)
-            else:
-                ax.legend(loc='upper left', bbox_to_anchor=(0.02, 0.98), fontsize=9)
-            
-            # Add grid for better visualization
-            ax.grid(True, alpha=0.3)
-            
-            # Set viewing angle for better perspective
-            ax.view_init(elev=25, azim=45)
-            
-            # Add information text
-            info_text = f"""PURE POLYGON DISPLAY
-• No triangulation applied
-• All faces shown as true polygons
-• Face 3 should show 5-vertex pentagon
-• Inclined edges clearly visible
-• {len(all_face_data)} faces total"""
-        
-        ax.text2D(0.02, 0.02, info_text, transform=ax.transAxes, 
-                 fontsize=10, verticalalignment='bottom', 
-                 bbox=dict(boxstyle='round', facecolor='lightgray', alpha=0.8),
-                 fontfamily='monospace')
-        
-        # Plot selected vertices if provided
-        if selected_vertices is not None and len(selected_vertices) > 0:
-            selected_vertices = np.array(selected_vertices)
-            print(f"  → Plotting {len(selected_vertices)} selected vertices as large red spheres: {selected_vertices}")
-            ax.scatter(selected_vertices[:, 0], selected_vertices[:, 1], selected_vertices[:, 2], 
-                      color='red', s=200, alpha=1.0, edgecolors='darkred', linewidth=2, 
-                      label=f'Selected Vertices ({len(selected_vertices)})', marker='o')
-            for i, vertex in enumerate(selected_vertices):
-                ax.text(vertex[0], vertex[1], vertex[2], f'V{i+1}', 
-                       fontsize=10, color='red', ha='center', va='bottom', weight='bold')
-        plt.tight_layout()
-        plt.show()
-
-        print(f"✓ 3D solid visualization complete - POLYGON BOUNDARIES ONLY")
-        if selected_vertices is not None and len(selected_vertices) > 0:
-            print(f"  → Displayed {len(selected_vertices)} selected vertices as red spheres")
-        else:
-            print(f"  → Displayed {len(all_face_data)} faces as pure polygons")
-        print(f"  → NO triangulation applied to any face")
-        print(f"  → Face 3 should appear as 5-vertex pentagon with inclined edge")
-        print(f"  → Total vertices plotted: {sum(len(face_data['vertices']) for face_data in all_face_data)}")
-        
     except Exception as e:
         print(f"✗ 3D matplotlib visualization failed: {e}")
         print("  → Continuing with array processing...")
@@ -1951,6 +1826,20 @@ def main():
     print(f"[DEBUG] Solid created: {type(solid)}")
     save_solid_as_step(solid, "solid_output.step")
 
+    # Count total edges in the original solid
+    print("\n" + "="*70)
+    print("ORIGINAL SOLID TOPOLOGY")
+    print("="*70)
+    edge_explorer = TopExp_Explorer(solid, TopAbs_EDGE)
+    total_edges = 0
+    while edge_explorer.More():
+        total_edges += 1
+        edge_explorer.Next()
+    expected_unique_edges = total_edges // 2
+    print(f"  Total edges in original solid: {total_edges}")
+    print("  Note: Each edge appears twice (shared between faces)")
+    print(f"  Expected unique edges: {expected_unique_edges}")
+
     # Robust extraction of all unique vertices from the solid using TopExp_Explorer
     print("\n[DEBUG] Extracting all unique vertices from solid using TopExp_Explorer:")
     vertex_explorer = TopExp_Explorer(solid, TopAbs_VERTEX)
@@ -2355,17 +2244,82 @@ def main():
                     f.write(f"{i+1:2d}: {x:8.3f}, {y:8.3f}, {z:8.3f}\n")
             print(f"[DEBUG] Selected vertices saved to {output_filename}")
             
+            # === EDGE RECONSTRUCTION ===
+            print("\n[DEBUG] Starting edge reconstruction...")
+            print(f"[DEBUG] Target: {expected_unique_edges} unique edges")
+            valid_edges = reconstruct_edges_from_views(
+                selected_vertices,
+                top_view_summary,
+                front_view_summary,
+                side_view_summary,
+                Vertex_Top_View,
+                Vertex_Front_View,
+                Vertex_Side_View,
+                all_vertices_sorted,
+                expected_unique_edges
+            )
+            
+            # Save edges to file
+            if len(valid_edges) > 0:
+                edge_filename = "reconstructed_edges.txt"
+                with open(edge_filename, 'w') as f:
+                    f.write("Reconstructed 3D Solid Edges\n")
+                    f.write("="*50 + "\n")
+                    f.write(f"Total edges: {len(valid_edges)}\n")
+                    f.write("Format: V1_idx -- V2_idx\n\n")
+                    for i, (v1_idx, v2_idx) in enumerate(valid_edges):
+                        v1 = selected_vertices[v1_idx]
+                        v2 = selected_vertices[v2_idx]
+                        f.write(f"Edge {i+1:2d}: V{v1_idx:2d} -- V{v2_idx:2d}\n")
+                        f.write(f"  Start: ({v1[0]:8.3f}, {v1[1]:8.3f}, {v1[2]:8.3f})\n")
+                        f.write(f"  End:   ({v2[0]:8.3f}, {v2[1]:8.3f}, {v2[2]:8.3f})\n")
+                print(f"[DEBUG] Reconstructed edges saved to {edge_filename}")
+            
+            # === CREATE UNIFIED SUMMARY ARRAY ===
+            print("\n" + "="*70)
+            print("CREATING UNIFIED SUMMARY ARRAY")
+            print("="*70)
+            
+            unified_summary = create_unified_summary(
+                selected_vertices,
+                valid_edges
+            )
+            
+            # Print summary information
+            print_summary_info(unified_summary)
+            
+            # Save to text file
+            summary_txt = "unified_summary.txt"
+            save_summary_to_file(unified_summary, summary_txt)
+            print(f"[DEBUG] Unified summary saved to {summary_txt}")
+            
+            # Save to numpy binary file
+            summary_npy = "unified_summary.npy"
+            save_summary_to_numpy(unified_summary, summary_npy)
+            
+            # Visualize adjacency matrix
+            try:
+                visualize_adjacency_matrix(
+                    unified_summary,
+                    "adjacency_matrix.png"
+                )
+            except Exception as e:
+                print(f"[DEBUG] Could not create adjacency "
+                      f"visualization: {e}")
+            
+            print("="*70)
+            
             # Visualize the solid with selected vertices highlighted
             print("\n[DEBUG] Creating 3D visualization...")
-            visualize_3d_solid(solid, selected_vertices)
+            visualize_3d_solid(solid, selected_vertices, valid_edges)
         else:
             print("[WARNING] No vertices selected - showing solid only")
-            visualize_3d_solid_with_selected_vertices(solid, None)
+            visualize_3d_solid(solid, None)
         
     else:
         print("[ERROR] Could not create summary arrays for vertex filtering")
         # Still show the solid even if filtering failed
-        visualize_3d_solid_with_selected_vertices(solid, None)    # ENSURE THIS IS AT THE END OF MAIN
+        visualize_3d_solid(solid, None)
     extract_possible_vertices_from_summaries(Vertex_Front_View, Vertex_Top_View, all_vertices_sorted)
 
 
