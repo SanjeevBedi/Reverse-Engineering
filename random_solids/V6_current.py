@@ -1,49 +1,232 @@
+def print_merged_connectivity_matrix(reconstructed_vertices, front_proj, side_proj, front_conn, side_conn, top_proj=None, top_conn=None):
+    """
+    Build and print the merged connectivity matrix using available projections and connectivity matrices.
+    If top_proj/top_conn are not provided, use zeros.
+    """
+    import numpy as np
+    N = len(reconstructed_vertices)
+    if top_proj is None:
+        top_proj = np.zeros((N, 2))
+    if top_conn is None:
+        top_conn = np.zeros((N, N))
+    merged_matrix = build_merged_connectivity_matrix(
+        reconstructed_vertices, top_proj, front_proj, side_proj,
+        top_conn, front_conn, side_conn
+    )
+    print("\n[MERGED CONNECTIVITY MATRIX]")
+    print(f"Shape: {merged_matrix.shape}")
+    print("Format: V# | TopProj | FrontProj | SideProj | EdgeConnCounts")
+    for i in range(N):
+        vinfo = merged_matrix[i, :7]
+        edge_counts = merged_matrix[i, 7:]
+        print(f"V{i:2d}: Top({vinfo[1]:7.3f},{vinfo[2]:7.3f}) Front({vinfo[3]:7.3f},{vinfo[4]:7.3f}) Side({vinfo[5]:7.3f},{vinfo[6]:7.3f}) | Edges: {edge_counts.astype(int)}")
+import traceback
+import argparse
+# Ensure build_merged_connectivity_matrix is defined
+def build_merged_connectivity_matrix(reconstructed_vertices, top_proj, front_proj, side_proj, top_conn, front_conn, side_conn):
+    """
+    Build merged connectivity matrix from three views.
+    For each pair of reconstructed vertices, count in how many views the edge exists.
+    Robustly matches reconstructed vertices to projections and view connectivity matrices.
+    """
+    import numpy as np
+    N = len(reconstructed_vertices)
+    merged = np.zeros((N, 7 + N))
+    # Fill vertex info
+    for i, v in enumerate(reconstructed_vertices):
+        merged[i, 0] = i
+        merged[i, 1:3] = top_proj[i]
+        merged[i, 3:5] = front_proj[i]
+        merged[i, 5:7] = side_proj[i]
+
+    # Helper to find index in projection list
+    def find_proj_idx(proj_list, target):
+        for idx, p in enumerate(proj_list):
+            if np.allclose(p, target, atol=1e-8):
+                return idx
+        return None
+
+    # For each pair of reconstructed vertices, check edge existence in each view
+    for i in range(N):
+        for j in range(i+1, N):
+            conn_count = 0
+            # Top view
+            idx_top_i = find_proj_idx(top_proj, top_proj[i])
+            idx_top_j = find_proj_idx(top_proj, top_proj[j])
+            if idx_top_i is not None and idx_top_j is not None and idx_top_i < top_conn.shape[0] and idx_top_j < top_conn.shape[1]:
+                if top_conn[idx_top_i, idx_top_j] > 0:
+                    conn_count += 1
+            # Front view
+            idx_front_i = find_proj_idx(front_proj, front_proj[i])
+            idx_front_j = find_proj_idx(front_proj, front_proj[j])
+            if idx_front_i is not None and idx_front_j is not None and idx_front_i < front_conn.shape[0] and idx_front_j < front_conn.shape[1]:
+                if front_conn[idx_front_i, idx_front_j] > 0:
+                    conn_count += 1
+            # Side view
+            idx_side_i = find_proj_idx(side_proj, side_proj[i])
+            idx_side_j = find_proj_idx(side_proj, side_proj[j])
+            if idx_side_i is not None and idx_side_j is not None and idx_side_i < side_conn.shape[0] and idx_side_j < side_conn.shape[1]:
+                if side_conn[idx_side_i, idx_side_j] > 0:
+                    conn_count += 1
+            merged[i, 7 + j] = conn_count
+            merged[j, 7 + i] = conn_count
+    return merged
 
 import os
 import sys
-print("Running file:", os.path.abspath(__file__))
 
-# Import configuration system
-from config_system import ConfigurationManager, create_default_config, load_config
-
+# Example usage after vertex reconstruction:
+# reconstructed_vertices = ... # list of [x, y, z]
+# top_proj = ... # list of [x, y] for each vertex
+# front_proj = ... # list of [y, z] for each vertex
+# side_proj = ... # list of [x, z] for each vertex
+# top_conn = ... # connectivity matrix (NxN or smaller)
+# front_conn = ...
+# side_conn = ...
+# merged_matrix = build_merged_connectivity_matrix(reconstructed_vertices, top_proj, front_proj, side_proj, top_conn, front_conn, side_conn)
+import matplotlib.patches as patches
+from shapely.geometry import Polygon, Point
 from OCC.Core.gp import gp_Trsf  # noqa: F401
 from OCC.Core.TopLoc import TopLoc_Location  # noqa: F401
 from OCC.Core.TopExp import TopExp_Explorer
 from OCC.Core.TopoDS import topods
+from OCC.Core.TopAbs import TopAbs_SHELL, TopAbs_EDGE, TopAbs_VERTEX, TopAbs_WIRE  # noqa: F401, E501
+from OCC.Core.BRep import BRep_Tool
+from OCC.Core.BRepAdaptor import BRepAdaptor_Curve
+from OCC.Core.IFSelect import IFSelect_RetDone
+from Reconstruction.config_system import ConfigurationManager, create_default_config, load_config
+from Reconstruction.edge_reconstruction import reconstruct_edges_from_views
+from Reconstruction.Base_Solid import build_solid_with_polygons
 from opencascade import get_face_normal_from_opencascade, extract_and_visualize_faces, extract_wire_vertices_in_sequence, OPENCASCADE_AVAILABLE
-from edge_reconstruction import reconstruct_edges_from_views
 from unified_summary import (create_unified_summary, print_summary_info,
                              save_summary_to_file, save_summary_to_numpy,
                              visualize_adjacency_matrix)
-from OCC.Core.TopAbs import (
-    TopAbs_SHELL, TopAbs_EDGE, TopAbs_VERTEX, TopAbs_WIRE
-)  # noqa: F401, E501
-from OCC.Core.BRep import BRep_Tool
-from OCC.Core.BRepAdaptor import BRepAdaptor_Curve
-from config_system import ConfigurationManager, create_default_config, load_config
-from OCC.Core.IFSelect import IFSelect_RetDone
-# V5_current.py
-# Saved version of Polgon Boolean Ops from shapely.py as of July 28, 2025
-# Includes corrected plotting order: array_C first (dashed light gray), array_B second (solid black)
-import argparse
-
-from shapely.geometry import Polygon, Point
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import numpy as np
-import traceback
-from V6_cleaned import build_solid_with_polygons_test
 from V6_Sept_25 import save_solid_as_step
 
+# ...existing code...
 
-# OpenCASCADE imports
-OPENCASCADE_AVAILABLE = False
+if __name__ == "__main__":
+    pass  # Main block intentionally left empty until workflow variables are set
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.widgets import CheckButtons
+
+def plot_merged_connectivity(reconstructed_vertices, merged_matrix, original_polygon=None):
+    """
+    Plot reconstructed vertices and edges from merged connectivity matrix.
+    Toggle edges by connectivity (1, 2, 3) with color coding.
+    Optionally plot original polygon.
+    """
+    fig, ax = plt.subplots(figsize=(10, 8))
+    ax.set_title('Merged Connectivity Matrix: Reconstructed Vertices and Edges')
+    ax.set_aspect('equal')
+    ax.grid(True, alpha=0.3)
+
+    # Plot original polygon if provided
+    if original_polygon is not None:
+        if hasattr(original_polygon, 'exterior'):
+            x, y = original_polygon.exterior.xy
+            ax.plot(x, y, color='gray', linewidth=2, label='Original Polygon')
+    # Plot reconstructed vertices
+    verts = np.array(reconstructed_vertices)
+    ax.scatter(verts[:, 0], verts[:, 1], color='red', s=60, label='Reconstructed Vertices', zorder=3)
+    for i, v in enumerate(verts):
+        ax.text(v[0], v[1], f'V{i}', fontsize=9, color='darkred', ha='right', va='bottom')
+    # Prepare edge lines by connectivity
+    N = len(reconstructed_vertices)
+    edge_lines = {1: [], 2: [], 3: []}
+    colors = {1: 'yellow', 2: 'gray', 3: 'black'}
+    for i in range(N):
+        for j in range(N):
+            conn = int(merged_matrix[i, 7 + j])
+            if conn in edge_lines and i < j and conn > 0:
+                edge_lines[conn].append(((verts[i, 0], verts[i, 1]), (verts[j, 0], verts[j, 1])))
+    # Plot all edges, store line objects for toggling
+    line_objs = {1: [], 2: [], 3: []}
+    for conn in [1, 2, 3]:
+        for seg in edge_lines[conn]:
+            line, = ax.plot([seg[0][0], seg[1][0]], [seg[0][1], seg[1][1]],
+                            color=colors[conn], linewidth=2, alpha=0.8, label=f'Conn {conn}')
+            line_objs[conn].append(line)
+    # Remove duplicate legend entries
+    handles, labels = ax.get_legend_handles_labels()
+    unique = dict(zip(labels, handles))
+    ax.legend(unique.values(), unique.keys(), loc='upper left')
+    # Add toggle buttons for edge classes
+    button_ax = plt.axes([0.01, 0.7, 0.15, 0.15], facecolor='lightgoldenrodyellow')
+    button_labels = ['Conn 1 (Yellow)', 'Conn 2 (Gray)', 'Conn 3 (Black)']
+    initial_states = [True, True, True]
+    check = CheckButtons(button_ax, button_labels, initial_states)
+    def toggle_visibility(label):
+        idx = button_labels.index(label)
+        conn = idx + 1
+        for line in line_objs[conn]:
+            line.set_visible(not line.get_visible())
+        plt.draw()
+    check.on_clicked(toggle_visibility)
+    plt.tight_layout()
+    # plt.show()  # Removed to prevent empty plot
+
+    # Build merged matrix and plot
+    merged_matrix = build_merged_connectivity_matrix(
+        reconstructed_vertices, top_proj, front_proj, side_proj,
+        top_conn, front_conn, side_conn
+    )
+    plot_merged_connectivity(reconstructed_vertices, merged_matrix, original_polygon=original_polygon)
+    # Plot original polygon if provided
+    if original_polygon is not None:
+        if hasattr(original_polygon, 'exterior'):
+            x, y = original_polygon.exterior.xy
+            ax.plot(x, y, color='gray', linewidth=2, label='Original Polygon')
+    # Plot reconstructed vertices
+    verts = np.array(reconstructed_vertices)
+    ax.scatter(verts[:, 0], verts[:, 1], color='red', s=60, label='Reconstructed Vertices', zorder=3)
+    for i, v in enumerate(verts):
+        ax.text(v[0], v[1], f'V{i}', fontsize=9, color='darkred', ha='right', va='bottom')
+    # Prepare edge lines by connectivity
+    N = len(reconstructed_vertices)
+    edge_lines = {1: [], 2: [], 3: []}
+    colors = {1: 'yellow', 2: 'gray', 3: 'black'}
+    for i in range(N):
+        for j in range(N):
+            conn = int(merged_matrix[i, 7 + j])
+            if conn in edge_lines and i < j and conn > 0:
+                edge_lines[conn].append(((verts[i, 0], verts[i, 1]), (verts[j, 0], verts[j, 1])))
+    # Plot all edges, store line objects for toggling
+    line_objs = {1: [], 2: [], 3: []}
+    for conn in [1, 2, 3]:
+        for seg in edge_lines[conn]:
+            line, = ax.plot([seg[0][0], seg[1][0]], [seg[0][1], seg[1][1]],
+                            color=colors[conn], linewidth=2, alpha=0.8, label=f'Conn {conn}')
+            line_objs[conn].append(line)
+    # Remove duplicate legend entries
+    handles, labels = ax.get_legend_handles_labels()
+    unique = dict(zip(labels, handles))
+    ax.legend(unique.values(), unique.keys(), loc='upper left')
+    # Add toggle buttons for edge classes
+    button_ax = plt.axes([0.01, 0.7, 0.15, 0.15], facecolor='lightgoldenrodyellow')
+    button_labels = ['Conn 1 (Yellow)', 'Conn 2 (Gray)', 'Conn 3 (Black)']
+    initial_states = [True, True, True]
+    check = CheckButtons(button_ax, button_labels, initial_states)
+    def toggle_visibility(label):
+        idx = button_labels.index(label)
+        conn = idx + 1
+        for line in line_objs[conn]:
+            line.set_visible(not line.get_visible())
+        plt.draw()
+    check.on_clicked(toggle_visibility)
+    plt.tight_layout()
+    # plt.show()  # Removed to prevent empty plot
+
+
 try:
     from OCC.Core.gp import gp_Vec
     from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox
     from OCC.Core.TopExp import TopExp_Explorer
     from OCC.Core.TopAbs import TopAbs_FACE
     from OCC.Core.TopoDS import topods
+    from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Transform
+    from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Cut
     OPENCASCADE_AVAILABLE = True
     # Try to import TopExp for vertex extraction
     try:
@@ -53,6 +236,82 @@ try:
         TOPEXP_AVAILABLE = False
 except Exception:
     OPENCASCADE_AVAILABLE = False
+
+def build_solid_with_polygons_test(config, quiet=False):
+    from Reconstruction.Base_Solid import build_solid_with_polygons
+    seed = config.seed
+    print(f"[DEBUG] Calling build_solid_with_polygons(config, seed={seed}, quiet={quiet}) as test...")
+    original = build_solid_with_polygons(seed, quiet)
+    # (You can add your custom boolean operations here if needed)
+    #return original
+    # Create box at (0,0,0) of size (60,50,60)
+    box = BRepPrimAPI_MakeBox(55, 25, 35).Shape()
+    # Move box to (10,0,0)
+    trsf = gp_Trsf()
+    trsf.SetTranslation(gp_Vec(10, 35, 0))
+    moved_box = BRepBuilderAPI_Transform(box, trsf, True).Shape()
+
+    # Subtract box from original
+    cut = BRepAlgoAPI_Cut(original, moved_box)
+    cut_shape = cut.Shape()
+
+    # Create box at (0,0,0) of size (60,50,60)
+    box = BRepPrimAPI_MakeBox(30, 27, 45).Shape()
+    # Move box to (10,0,0)
+    trsf = gp_Trsf()
+    trsf.SetTranslation(gp_Vec(35, 0, 0))
+    moved_box = BRepBuilderAPI_Transform(box, trsf, True).Shape()
+
+    # Subtract box from original
+    cut = BRepAlgoAPI_Cut(cut_shape, moved_box)
+    cut_shape1 = cut.Shape()
+
+    # Create box at (0,0,0) of size (60,50,60)
+    box = BRepPrimAPI_MakeBox(55, 10, 15).Shape()
+    # Move box to (10,25,0)
+    trsf = gp_Trsf()
+    trsf.SetTranslation(gp_Vec(10, 25, 0))
+    moved_box = BRepBuilderAPI_Transform(box, trsf, True).Shape()
+
+    # Subtract box from original
+    cut = BRepAlgoAPI_Cut(cut_shape1, moved_box)
+    cut_shape2 = cut.Shape()
+
+    # Create box at (0,0,0) of size (60,50,60)
+    box = BRepPrimAPI_MakeBox(20, 10, 35).Shape()
+    # Move box to (10,25,0)
+    trsf = gp_Trsf()
+    trsf.SetTranslation(gp_Vec(45, 25, 10))
+    moved_box = BRepBuilderAPI_Transform(box, trsf, True).Shape()
+
+    # Subtract box from original
+    cut = BRepAlgoAPI_Cut(cut_shape2, moved_box)
+    cut_shape1 = cut.Shape()
+
+    # Create box at (0,0,0) of size (60,50,60)
+    box = BRepPrimAPI_MakeBox(25, 10, 25).Shape()
+    # Move box to (10,25,0)
+    trsf = gp_Trsf()
+    trsf.SetTranslation(gp_Vec(10, 27, 10))
+    moved_box = BRepBuilderAPI_Transform(box, trsf, True).Shape()
+
+    # Subtract box from original
+    cut = BRepAlgoAPI_Cut(cut_shape1, moved_box)
+    cut_shape2 = cut.Shape()
+
+    # Create box at (0,0,0) of size (60,50,60)
+    box = BRepPrimAPI_MakeBox(20, 10, 25).Shape()
+    # Move box to (10,25,0)
+    trsf = gp_Trsf()
+    trsf.SetTranslation(gp_Vec(30, 27, 29))
+    moved_box = BRepBuilderAPI_Transform(box, trsf, True).Shape()
+
+    # Subtract box from original
+    cut = BRepAlgoAPI_Cut(cut_shape2, moved_box)
+    cut_shape1 = cut.Shape()
+
+    return cut_shape1
+
 
 # --- OpenCASCADE face extraction helpers ---
 
@@ -160,35 +419,6 @@ def get_face_normal_from_opencascade(face):
         print(f"        CRITICAL ERROR: Could not extract OpenCASCADE normal: {e}")
         traceback.print_exc()
         return None
-
-
-def extract_and_visualize_faces(solid_shape):
-    """Extract faces and visualize them from an OpenCASCADE solid shape."""
-    if not OPENCASCADE_AVAILABLE or solid_shape is None:
-        print("✗ Cannot visualize - OpenCASCADE not available or shape is None")
-        return []
-    face_explorer = TopExp_Explorer(solid_shape, TopAbs_FACE)
-    face_data = []
-    face_count = 0
-    while face_explorer.More():
-        face_shape = face_explorer.Current()
-        face_count += 1
-        try:
-            face = topods.Face(face_shape)
-            wire_explorer = TopExp_Explorer(face, TopAbs_WIRE)
-            if wire_explorer.More():
-                wire = topods.Wire(wire_explorer.Current())
-                vertices = extract_wire_vertices_in_sequence(wire, face_count)
-                if vertices and len(vertices) >= 3:
-                    face_data.append({
-                        'face_id': face_count,
-                        'vertices': vertices
-                    })
-        except Exception as e:
-            print(f"    Face {face_count}: Error - {e}")
-        face_explorer.Next()
-    print(f"  → Successfully extracted {len(face_data)} faces for visualization")
-    return face_data
 
 
 def extract_wire_vertices_in_sequence(wire, wire_id):
@@ -674,52 +904,49 @@ def create_polygon_from_projection(projected_vertices, allow_invalid=False):
     try:
         polygon = Polygon(projected_vertices)
 
-        if allow_invalid:
-            # Return the raw polygon, even if invalid
-            if not polygon.is_valid:
-                from shapely.validation import explain_validity
-                reason = explain_validity(polygon)
-                print(f"    → Polygon is invalid, but allow_invalid=True: storing as-is")
-                print(f"      Reason: {reason}")
-                if 'Self-intersection' in reason:
-                    print(f"      [INVESTIGATE] Polygon vertices: {projected_vertices}")
-                    print(f"      [INVESTIGATE] Polygon WKT: {polygon.wkt}")
-            else:
-                print(f"    → Valid polygon created with {len(polygon.exterior.coords)-1} vertices")
-            return polygon
-
-        # Default: only return valid polygons
+        # Check if polygon is valid
         if polygon.is_valid and hasattr(polygon, 'area') and polygon.area > 1e-6:
             print(f"    → Valid polygon created with {len(polygon.exterior.coords)-1} vertices")
             return polygon
 
-        # For invalid polygons, try to fix
+        # For invalid polygons, always try to fix first
         if not polygon.is_valid:
             from shapely.validation import explain_validity
             reason = explain_validity(polygon)
             print(f"    → Invalid polygon detected: {reason}")
             print(f"    → Original vertices: {original_vertex_count}, coords in polygon: {len(polygon.exterior.coords)-1}")
 
+            # Attempt 1: buffer(0) fix
             try:
                 fixed_polygon = polygon.buffer(0)
                 if fixed_polygon.is_valid and hasattr(fixed_polygon, 'area') and fixed_polygon.area > 1e-6:
                     if hasattr(fixed_polygon, 'exterior'):
                         fixed_vertex_count = len(fixed_polygon.exterior.coords) - 1
-                        print(f"    → Fixed with buffer(0): {original_vertex_count} → {fixed_vertex_count} vertices")
+                        print(f"    → ✓ Fixed with buffer(0): {original_vertex_count} → {fixed_vertex_count} vertices")
                     return fixed_polygon
             except Exception as e:
                 print(f"    → Buffer(0) fix failed: {e}")
 
+            # Attempt 2: convex_hull fix
             try:
                 hull_polygon = Polygon(projected_vertices).convex_hull
                 if hull_polygon.is_valid and hasattr(hull_polygon, 'area') and hull_polygon.area > 1e-6:
                     if hasattr(hull_polygon, 'exterior'):
                         hull_vertex_count = len(hull_polygon.exterior.coords) - 1
-                        print(f"    → Fixed with convex_hull: {original_vertex_count} → {hull_vertex_count} vertices")
+                        print(f"    → ✓ Fixed with convex_hull: {original_vertex_count} → {hull_vertex_count} vertices")
                     return hull_polygon
             except Exception as e:
                 print(f"    → Convex hull fix failed: {e}")
 
+            # Last resort: if allow_invalid=True, store the invalid polygon
+            if allow_invalid:
+                print(f"    → All fixes failed, but allow_invalid=True: storing invalid polygon")
+                print(f"      [WARNING] Invalid polygon stored: {reason}")
+                if 'Self-intersection' in reason:
+                    print(f"      [INVESTIGATE] Polygon WKT: {polygon.wkt}")
+                return polygon
+
+        # If we reach here: polygon is invalid and allow_invalid=False
         print(f"    → All polygon fixes failed, returning empty polygon")
         return Polygon()
 
@@ -949,7 +1176,7 @@ Total Processed: {len(array_B) + len(array_C)} polygons"""
                 pass
     
     plt.tight_layout()
-    plt.show()
+    # plt.show()  # Removed to prevent empty plot
     
     print(f"✓ Array visualization complete")
     print(f"  → Array B: {len(array_B)} visible faces")
@@ -958,124 +1185,145 @@ Total Processed: {len(array_B) + len(array_C)} polygons"""
 
 
 
-def visualize_3d_solid(solid_shape, selected_vertices=None, edges=None):
-    """Display the 3D solid using matplotlib 3D plotting. Optionally highlight selected vertices and edges."""
+def visualize_3d_solid(solid_shape, selected_vertices=None, edges=None, edges_with_class=None):
+    """
+    Display the 3D solid using matplotlib 3D plotting.
+    Optionally highlight selected vertices and edges with color-coding.
+    
+    Args:
+        solid_shape: The solid shape to visualize
+        selected_vertices: Array of selected 3D vertices
+        edges: List of edge tuples (v1_idx, v2_idx) - for backward compat
+        edges_with_class: List of tuples (v1_idx, v2_idx, classification)
+                         Classifications: 1=yellow, 2=gray, 3=black
+    """
     if not OPENCASCADE_AVAILABLE or solid_shape is None:
         print("✗ Cannot visualize - OpenCASCADE not available or shape is None")
         return
+    if (selected_vertices is None or len(selected_vertices) == 0) and (edges is None or len(edges) == 0):
+        print("✓ Skipping empty 3D plot: no vertices or edges to display.")
+        return
+    # --- Plot original solid polygons (faces) in a dedicated figure ---
+    import matplotlib.pyplot as plt
+    import numpy as np
+    face_polygons = extract_and_visualize_faces(solid_shape, visualize=True)
+    print(f"[DIAG] Number of face polygons extracted: {len(face_polygons)}")
+    for idx, poly_data in enumerate(face_polygons):
+        verts = np.array(poly_data.get('outer_boundary', []))
+        print(f"[DIAG] Face {idx+1}: {verts.shape[0]} vertices: {verts}")
+    if face_polygons:
+        first_verts = np.array(face_polygons[0].get('outer_boundary', []))
+        print(f"[DEBUG] First face polygon before plotting: {first_verts}")
+    # Removed fig1 and ax1: all polygons will be shown in the interactive plot below
     print("\n" + "="*60)
     print("3D SOLID VISUALIZATION WITH MATPLOTLIB")
     print("="*60)
     try:
+        import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
-        print("  → Extracting face vertices for 3D plot...")
-        face_explorer = TopExp_Explorer(solid_shape, TopAbs_FACE)
-        face_count = 0
-        all_face_data = []
-        while face_explorer.More():
-            face_shape = face_explorer.Current()
-            face_count += 1
-            try:
-                face = topods.Face(face_shape)
-                wire_explorer = TopExp_Explorer(face, TopAbs_WIRE)
-                if wire_explorer.More():
-                    wire = wire_explorer.Current()
-                    vertices = extract_wire_vertices_in_sequence(wire, 1)
-                    if vertices and len(vertices) >= 3:
-                        all_face_data.append({
-                            'face_id': face_count,
-                            'vertices': vertices
-                        })
-            except Exception as e:
-                print(f"    Face {face_count}: Error - {e}")
-            face_explorer.Next()
-        print(f"  → Successfully extracted {len(all_face_data)} faces for visualization")
-        if not all_face_data:
-            print("  ✗ No face data available for visualization")
-            return
-        fig = plt.figure(figsize=(16, 12))
+        from matplotlib.widgets import CheckButtons
+        import numpy as np
+        import inspect
+
+        fig = plt.figure(figsize=(10, 8))
         ax = fig.add_subplot(111, projection='3d')
-        colors = plt.cm.Set3(np.linspace(0, 1, len(all_face_data)))
-        for i, face_data in enumerate(all_face_data):
-            vertices = np.array(face_data['vertices'])
-            if len(vertices) > 2:
-                vertices_closed = np.vstack([vertices, vertices[0]])
-                ax.plot(vertices_closed[:, 0], vertices_closed[:, 1], vertices_closed[:, 2], 
-                        color=colors[i], linewidth=2.5, alpha=0.8)
-                ax.scatter(vertices[:, 0], vertices[:, 1], vertices[:, 2], 
-                          color=colors[i], s=30, alpha=0.6, edgecolors='black', linewidth=0.5)
-                face_center = np.mean(vertices, axis=0)
-                label_text = f'F{i+1}'
-                ax.text(face_center[0], face_center[1], face_center[2], 
-                       label_text, fontsize=9, color='black', ha='center', va='center', alpha=0.7)
-        # Plot selected vertices if provided
+
+        # Plot original solid polygons (faces) using cached face_polygons
+        face_handles = []
+        for idx, poly_data in enumerate(face_polygons):
+            verts = poly_data.get('outer_boundary', [])
+            verts = np.array(verts)
+            print(f"[DIAG] Face {idx+1}: verts type={type(verts)}, shape={getattr(verts, 'shape', None)}")
+            if idx == 0:
+                print(f"[DEBUG] First face polygon in plotting call: {verts}")
+            # Only plot if verts is a 2D array with shape (N, 3)
+            if isinstance(verts, np.ndarray) and verts.ndim == 2 and verts.shape[1] == 3 and verts.shape[0] >= 3:
+                try:
+                    handle = ax.plot(verts[:, 0], verts[:, 1], verts[:, 2], color='gray', alpha=0.5, linewidth=2)[0]
+                    face_handles.append(handle)
+                except Exception as plot_err:
+                    print(f"[ERROR] Failed to plot Face {idx+1}: verts={verts}, error={plot_err}")
+
+        # Plot reconstructed vertices
+        vertex_handle = None
         if selected_vertices is not None and len(selected_vertices) > 0:
             selected_vertices = np.array(selected_vertices)
-            print(f"  → Plotting {len(selected_vertices)} selected vertices as large red spheres: {selected_vertices}")
-            ax.scatter(selected_vertices[:, 0], selected_vertices[:, 1], selected_vertices[:, 2], 
-                      color='red', s=200, alpha=1.0, edgecolors='darkred', linewidth=2, 
-                      label=f'Selected Vertices ({len(selected_vertices)})', marker='o')
-            for i, vertex in enumerate(selected_vertices):
-                ax.text(vertex[0], vertex[1], vertex[2], f'V{i+1}', 
-                       fontsize=10, color='red', ha='center', va='bottom', weight='bold')
-        
-        # Plot edges if provided
+            print(f"[DIAG] selected_vertices type={type(selected_vertices)}, shape={getattr(selected_vertices, 'shape', None)}")
+            if selected_vertices.ndim == 2 and selected_vertices.shape[1] == 3:
+                vertex_handle = ax.scatter(selected_vertices[:, 0], selected_vertices[:, 1], selected_vertices[:, 2], color='blue', s=60, label='Reconstructed Vertices')
+
+        # Plot edges by connectivity index
+        edge_handles_1 = []
+        edge_handles_2 = []
+        edge_handles_3 = []
+        merged_conn = None
+        frame = inspect.currentframe().f_back
+        merged_conn = frame.f_locals.get('merged_conn', None)
         if edges is not None and len(edges) > 0 and selected_vertices is not None:
-            print(f"  → Plotting {len(edges)} reconstructed edges as black lines")
-            for edge_idx, (v1_idx, v2_idx) in enumerate(edges):
-                v1 = selected_vertices[v1_idx]
-                v2 = selected_vertices[v2_idx]
-                ax.plot([v1[0], v2[0]], [v1[1], v2[1]], [v1[2], v2[2]], 
-                       color='black', linewidth=3, alpha=0.9, zorder=10)
-            # Add label for edges in legend
-            ax.plot([], [], color='black', linewidth=3, alpha=0.9, 
-                   label=f'Reconstructed Edges ({len(edges)})')
-        
-        ax.set_xlabel('X Coordinate', fontsize=12, weight='bold')
-        ax.set_ylabel('Y Coordinate', fontsize=12, weight='bold')
-        ax.set_zlabel('Z Coordinate', fontsize=12, weight='bold')
-        title = f'3D Solid Visualization - POLYGON BOUNDARIES ONLY\n{len(all_face_data)} Faces'
-        if selected_vertices is not None:
-            title += f' + {len(selected_vertices)} Selected Vertices'
-        if edges is not None and len(edges) > 0:
-            title += f' + {len(edges)} Edges'
-        ax.set_title(title, fontsize=14, weight='bold')
-        all_vertices = np.vstack([face_data['vertices'] for face_data in all_face_data])
-        max_range = np.ptp(all_vertices, axis=0).max() / 2.0
-        mid_x = np.mean(all_vertices[:, 0])
-        mid_y = np.mean(all_vertices[:, 1])
-        mid_z = np.mean(all_vertices[:, 2])
-        margin = max_range * 0.15
-        ax.set_xlim(mid_x - max_range - margin, mid_x + max_range + margin)
-        ax.set_ylim(mid_y - max_range - margin, mid_y + max_range + margin)
-        ax.set_zlim(mid_z - max_range - margin, mid_z + max_range + margin)
-        if selected_vertices is not None and len(selected_vertices) > 0:
-            ax.legend(loc='upper left', bbox_to_anchor=(0.02, 0.98), fontsize=10)
-        else:
-            handles, labels = ax.get_legend_handles_labels()
-            if len(handles) > 10:
-                ax.legend(handles[:10], labels[:10], loc='upper left', bbox_to_anchor=(0.02, 0.98), fontsize=9)
-            else:
-                ax.legend(loc='upper left', bbox_to_anchor=(0.02, 0.98), fontsize=9)
-        ax.grid(True, alpha=0.3)
-        ax.view_init(elev=25, azim=45)
-        info_text = f"""PURE POLYGON DISPLAY\n• No triangulation applied\n• All faces shown as true polygons\n• Face 3 should show 5-vertex pentagon\n• Inclined edges clearly visible\n• {len(all_face_data)} faces total"""
-        ax.text2D(0.02, 0.02, info_text, transform=ax.transAxes, 
-                 fontsize=10, verticalalignment='bottom', 
-                 bbox=dict(boxstyle='round', facecolor='lightgray', alpha=0.8),
-                 fontfamily='monospace')
-        plt.tight_layout()
+            for (i, j) in edges:
+                conn_val = None
+                if merged_conn is not None:
+                    conn_val = merged_conn[i, j]
+                if conn_val == 3:
+                    color = 'red'
+                    lw = 3
+                    handle = ax.plot([selected_vertices[i, 0], selected_vertices[j, 0]],
+                                    [selected_vertices[i, 1], selected_vertices[j, 1]],
+                                    [selected_vertices[i, 2], selected_vertices[j, 2]],
+                                    color=color, linewidth=lw)[0]
+                    edge_handles_3.append(handle)
+                elif conn_val == 2:
+                    color = 'orange'
+                    lw = 2.5
+                    handle = ax.plot([selected_vertices[i, 0], selected_vertices[j, 0]],
+                                    [selected_vertices[i, 1], selected_vertices[j, 1]],
+                                    [selected_vertices[i, 2], selected_vertices[j, 2]],
+                                    color=color, linewidth=lw)[0]
+                    edge_handles_2.append(handle)
+                elif conn_val == 1:
+                    color = 'green'
+                    lw = 2
+                    handle = ax.plot([selected_vertices[i, 0], selected_vertices[j, 0]],
+                                    [selected_vertices[i, 1], selected_vertices[j, 1]],
+                                    [selected_vertices[i, 2], selected_vertices[j, 2]],
+                                    color=color, linewidth=lw)[0]
+                    edge_handles_1.append(handle)
+
+        # Set up interactive check buttons
+        rax = plt.axes([0.82, 0.3, 0.15, 0.3])
+        labels = ['Polygons', 'Vertices', 'Edges conn=3', 'Edges conn=2', 'Edges conn=1']
+        visibility = [True, True, True, True, True]
+        check = CheckButtons(rax, labels, visibility)
+
+        def update_visibility(label):
+            idx = labels.index(label)
+            if idx == 0:
+                for h in face_handles:
+                    h.set_visible(not h.get_visible())
+            elif idx == 1 and vertex_handle is not None:
+                vertex_handle.set_visible(not vertex_handle.get_visible())
+            elif idx == 2:
+                for h in edge_handles_3:
+                    h.set_visible(not h.get_visible())
+            elif idx == 3:
+                for h in edge_handles_2:
+                    h.set_visible(not h.get_visible())
+            elif idx == 4:
+                for h in edge_handles_1:
+                    h.set_visible(not h.get_visible())
+            fig.canvas.draw_idle()
+
+        check.on_clicked(update_visibility)
+
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_title('3D Solid Reconstruction')
         plt.show()
-        print(f"✓ 3D solid visualization complete - POLYGON BOUNDARIES ONLY")
-        if selected_vertices is not None:
-            print(f"  → Displayed {len(selected_vertices)} selected vertices as red spheres")
-        if edges is not None and len(edges) > 0:
-            print(f"  → Displayed {len(edges)} reconstructed edges as black lines")
-        if selected_vertices is None:
-            print(f"  → Displayed {len(all_face_data)} faces as pure polygons")
     except Exception as e:
         print(f"✗ 3D matplotlib visualization failed: {e}")
         print("  → Continuing with array processing...")
+        import traceback
         traceback.print_exc()
 
 def analyze_face_colinearity(face_vertices, face_id):
@@ -1104,51 +1352,14 @@ def analyze_face_colinearity(face_vertices, face_id):
         if cross_magnitude < 1e-6:  # Very small cross product = co-linear
             colinear_groups.append([i, (i+1)%len(face_vertices), (i+2)%len(face_vertices)])
     # ...existing code...
-    # def extract_wire_vertices_in_sequence(wire, face_id=None):
-    #     """Extract vertices from a TopoDS_Wire in sequence as a list of [x, y, z] coordinates."""
-    #     vertices = []
-    #     vertex_explorer = TopExp_Explorer(wire, TopAbs_VERTEX)
-    #     while vertex_explorer.More():
-    #         vertex = topods.Vertex(vertex_explorer.Current())
-    #         pnt = BRep_Tool.Pnt(vertex)
-    #         vertices.append([pnt.X(), pnt.Y(), pnt.Z()])
-    #         vertex_explorer.Next()
-    #     return vertices
-
-    def extract_and_visualize_faces(solid_shape):
-        """Extract face polygons and normals from a TopoDS_Shape solid for visualization."""
-        face_explorer = TopExp_Explorer(solid_shape, TopAbs_FACE)
-        face_polygons = []
-        face_count = 0
-        while face_explorer.More():
-            face_shape = face_explorer.Current()
-            face_count += 1
-            try:
-                face = topods.Face(face_shape)
-                wire_explorer = TopExp_Explorer(face, TopAbs_WIRE)
-                if wire_explorer.More():
-                    wire = topods.Wire(wire_explorer.Current())
-                    vertices = extract_wire_vertices_in_sequence(wire, face_count)
-                    if vertices and len(vertices) >= 3:
-                        # Compute face normal
-                        v0, v1, v2 = np.array(vertices[0]), np.array(vertices[1]), np.array(vertices[2])
-                        normal = np.cross(v1 - v0, v2 - v0)
-                        normal = normal / np.linalg.norm(normal)
-                        face_polygons.append({
-                            'face_id': face_count,
-                            'outer_boundary': vertices,
-                            'normal': normal
-                        })
-            except Exception as e:
-                print(f"    Face {face_count}: Error - {e}")
-            face_explorer.Next()
-        return face_polygons
+   
 
 def classify_faces_by_projection(face_polygons, unit_projection_normal):
+    """Enhanced face classification with historic polygon classification algorithm."""
     if face_polygons is None:
         print("Warning: face_polygons is None. Returning empty arrays.")
         return [], [], []
-    """Enhanced face classification with historic polygon classification algorithm."""
+        
     print("\n" + "="*60)
     print("ENHANCED FACE CLASSIFICATION WITH HISTORIC ALGORITHM")
     print("="*60)
@@ -1198,7 +1409,12 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal):
                     polygon = polygon.buffer(0)
             else:
                 polygon = create_polygon_from_projection(projected_outer, allow_invalid=True)
-            if polygon.area > 1e-6:
+            
+            # CRITICAL: Include ALL faces with valid 3D parent_face data,
+            # even if 2D projection is degenerate (zero area)
+            # The 3D edges are still real and must be captured for vertex reconstruction
+            # NOTE: A face may be degenerate in one view but not in others!
+            if outer_boundary and len(outer_boundary) >= 3:
                 polygon_data_enhanced = {
                     'polygon': polygon,
                     'name': f"Face_{face_id}",
@@ -1206,12 +1422,18 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal):
                     'parent_face': np.array(outer_boundary),  # 3D vertices
                     'original_index': i,
                     'dot_product': dot_product,
-                    'has_holes': len(projected_holes) > 0
+                    'has_holes': len(projected_holes) > 0,
+                    # REMOVED: Don't store is_degenerate flag - check per view!
                 }
                 valid_polygons.append(polygon_data_enhanced)
                 array_A_initial.append(polygon_data_enhanced)
+                
+                # Report polygon status
                 hole_info = f" with {len(projected_holes)} holes" if projected_holes else ""
-                print(f"  → Added Face_{face_id} (area: {polygon.area:.2f}){hole_info}")
+                if polygon.area < 1e-6:
+                    print(f"  → Added Face_{face_id} (DEGENERATE in this view: area={polygon.area:.2e}){hole_info} [3D edges will be extracted]")
+                else:
+                    print(f"  → Added Face_{face_id} (area: {polygon.area:.2f}){hole_info}")
                 print(f"      [DEBUG] Face_{face_id} dot_product: {dot_product:.6f} {'(visible)' if dot_product > 0 else '(hidden)'}")
         except Exception as e:
             print(f"Face F{face_id}: Projection error - {e}")
@@ -1223,7 +1445,8 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal):
         name = poly_data['name']
         dot_product = poly_data['dot_product']
         area = poly_data['polygon'].area
-        print(f"  A{i+1}: {name} (dot={dot_product:.3f}, area={area:.2f})")
+        is_degen = " (DEGENERATE)" if poly_data.get('is_degenerate', False) else ""
+        print(f"  A{i+1}: {name} (dot={dot_product:.3f}, area={area:.2f}){is_degen}")
 
     # Print summary of hidden polygons for top view
     if np.allclose(unit_projection_normal, [0, 0, 1], atol=1e-3):
@@ -1302,9 +1525,21 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal):
             Pi = Pi_data['polygon']
             Pi_name = Pi_data['name']
             Pi_parent_face = Pi_data['parent_face']
+            # Check if polygon is degenerate in THIS view
+            Pi_is_degenerate = (Pi.area < 1e-6)
+            
+            # CRITICAL: Degenerate polygons (zero area) cannot intersect
+            # with other polygons, so add them directly to array_C
+            # to ensure their 3D edges are extracted
+            # NOTE: Same face may be non-degenerate in other views!
+            if Pi_is_degenerate:
+                array_C.append(Pi_data)
+                print(f"[DEBUG] {Pi_name} is degenerate in this view (area={Pi.area:.2e}) → array_C")
+                continue  # Skip intersection testing for degenerate polygons
             
             # Test intersection with all polygons in array_B
             # Iterate in reverse order to avoid index issues when modifying array_B
+            has_intersection = False
             for j in reversed(range(len(array_B))):
                 Pj_data = array_B[j]
                 Pj = Pj_data['polygon']
@@ -1404,6 +1639,15 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal):
     for poly_data in array_C:
         print(f"  {poly_data['name']}: area={poly_data['polygon'].area:.2f}, dot={poly_data.get('dot_product', 'N/A')}")
     print(f"[DEBUG] classify_faces_by_projection: A={len(array_A_initial)}, B={len(array_B)}, C={len(array_C)}")
+
+    # if np.allclose(unit_projection_normal, [1, 0, 0], atol=1e-3):
+    #     print("\nSUMMARY: Plot of Array_B and Array_C for Side View:")
+    #     plot_arrays_visualization(
+    #         array_A_initial,
+    #         array_B,
+    #         array_C,
+    #         unit_projection_normal
+    #     )
     return [], array_B, array_C
 
 
@@ -1488,12 +1732,172 @@ def project_face_to_projection_plane(face_vertices, projection_normal):
 
 
 #def plot_polygons(visible, hidden, show_combined, show_visible, show_hidden):
+def create_view_connectivity_matrix(face_polygons, projection_normal, view_name, all_vertices_3d=None):
+    """
+    Create connectivity matrix for a view with unique projected vertices.
+    
+    Args:
+        face_polygons: List of face polygon data from the solid
+        projection_normal: Normal vector for the projection
+        view_name: Name of the view for debugging
+        all_vertices_3d: List of ALL vertices from solid (for reverse engineering completeness)
+    
+    Returns:
+        numpy array: [vertex_index, proj_x, proj_y, connectivity_matrix...]
+        where connectivity_matrix is n×n showing which vertices are connected
+    """
+    
+    def project_vertex_to_plane(vertex, normal):
+        """Project a 3D vertex to 2D plane using coordinate dropping for orthogonal views"""
+        vertex = np.array(vertex)
+        normal = np.array(normal, dtype=float)
+        normal = normal / np.linalg.norm(normal)
+        
+        # Use coordinate dropping for standard orthogonal engineering views
+        # This matches the edge reconstruction method for consistency
+        if np.allclose(normal, [0, 0, 1], atol=1e-3):  # Top view
+            return np.array([vertex[0], vertex[1]])  # Drop Z, keep X,Y
+        elif np.allclose(normal, [0, -1, 0], atol=1e-3):  # Front view
+            return np.array([vertex[0], vertex[2]])  # Drop Y, keep X,Z
+        elif np.allclose(normal, [1, 0, 0], atol=1e-3):  # Side view
+            return np.array([vertex[1], vertex[2]])  # Drop X, keep Y,Z
+        else:
+            # For non-orthogonal views (like isometric), use basis vector method
+            # Create orthogonal basis vectors for the projection plane
+            if abs(normal[0]) < 0.9:
+                temp = np.array([1.0, 0.0, 0.0])
+            else:
+                temp = np.array([0.0, 1.0, 0.0])
+            u = temp - np.dot(temp, normal) * normal
+            u = u / np.linalg.norm(u)
+            v = np.cross(normal, u)
+            v = v / np.linalg.norm(v)
+            
+            proj_u = np.dot(vertex, u)
+            proj_v = np.dot(vertex, v)
+            return np.array([proj_u, proj_v])
+    
+    print(f"\n[DEBUG] Creating connectivity matrix for {view_name}")
+    print(f"[DEBUG] Using projection normal: {projection_normal}")
+    
+    # Step 1: Extract all projected vertices from polygons for all views
+    projected_vertices = []
+    vertex_to_index = {}
+    tolerance = 1e-6
+    _, visible_polygons, hidden_polygons = classify_faces_by_projection(face_polygons, projection_normal)
+    all_polygons = visible_polygons + hidden_polygons
+    print(f"[DEBUG] Extracting projected vertices from polygons for {view_name}")
+    for poly_data in all_polygons:
+        parent_face = poly_data.get('parent_face', None)
+        if parent_face is None:
+            continue
+        if hasattr(parent_face, 'tolist'):
+            vertices_3d = parent_face.tolist()
+        else:
+            vertices_3d = parent_face
+        if not isinstance(vertices_3d, (list, tuple)) or len(vertices_3d) < 3:
+            continue
+        for vertex_3d in vertices_3d:
+            proj_2d = project_vertex_to_plane(vertex_3d, projection_normal)
+            found_existing = False
+            for existing_proj in projected_vertices:
+                if np.allclose(proj_2d, existing_proj, atol=tolerance):
+                    found_existing = True
+                    break
+            if not found_existing:
+                vertex_index = len(projected_vertices)
+                projected_vertices.append(proj_2d)
+                vertex_to_index[tuple(proj_2d)] = vertex_index
+    print(f"[DEBUG] Found {len(projected_vertices)} unique projected vertices from polygons for {view_name}")
+    
+    print(f"[DEBUG] Processing {len(all_polygons)} polygons ({len(visible_polygons)} visible, {len(hidden_polygons)} hidden)")
+    
+    n_vertices = len(projected_vertices)
+    print(f"[DEBUG] Found {n_vertices} unique projected vertices")
+    
+    if n_vertices == 0:
+        print(f"[WARNING] No vertices found for {view_name}")
+        return None
+    
+    # Step 2: Create connectivity matrix structure
+    # Format: [vertex_index, proj_x, proj_y, connectivity_matrix...]
+    matrix_size = 3 + n_vertices  # index + x + y + n×n connectivity
+    result_matrix = np.zeros((n_vertices, matrix_size))
+    
+    # Fill vertex indices and projected coordinates
+    for i, proj_vertex in enumerate(projected_vertices):
+        result_matrix[i, 0] = i  # vertex index
+        result_matrix[i, 1] = proj_vertex[0]  # projected x
+        result_matrix[i, 2] = proj_vertex[1]  # projected y
+    
+    # Step 3: Populate connectivity matrix from polygon edges
+    edges_found = 0
+    
+    for poly_data in all_polygons:
+        parent_face = poly_data.get('parent_face', None)
+        if parent_face is None:
+            continue
+            
+        if hasattr(parent_face, 'tolist'):
+            vertices_3d = parent_face.tolist()
+        else:
+            vertices_3d = parent_face
+            
+        if not isinstance(vertices_3d, (list, tuple)) or len(vertices_3d) < 3:
+            continue
+        
+        # Process edges in this polygon
+        for i in range(len(vertices_3d)):
+            v1_3d = vertices_3d[i]
+            v2_3d = vertices_3d[(i + 1) % len(vertices_3d)]
+            
+            # Project both vertices
+            v1_proj = project_vertex_to_plane(v1_3d, projection_normal)
+            v2_proj = project_vertex_to_plane(v2_3d, projection_normal)
+            
+            # Find indices in our unique vertex list
+            v1_idx = None
+            v2_idx = None
+            
+            for idx, existing_proj in enumerate(projected_vertices):
+                if np.allclose(v1_proj, existing_proj, atol=tolerance):
+                    v1_idx = idx
+                if np.allclose(v2_proj, existing_proj, atol=tolerance):
+                    v2_idx = idx
+            
+            # Add edge to connectivity matrix
+            if v1_idx is not None and v2_idx is not None and v1_idx != v2_idx:
+                # Determine visibility value (1=hidden, 2=visible)
+                visibility_value = 2 if poly_data in visible_polygons else 1
+                
+                # Add connection in both directions
+                result_matrix[v1_idx, 3 + v2_idx] = visibility_value
+                result_matrix[v2_idx, 3 + v1_idx] = visibility_value
+                edges_found += 1
+    
+    print(f"[DEBUG] {view_name}: Added {edges_found} edges to connectivity matrix")
+    print(f"[DEBUG] {view_name}: Matrix shape: {result_matrix.shape}")
+    # Ensure connectivity part is symmetric (mirrored about the diagonal)
+    # n_vertices = result_matrix.shape[0]
+    # if result_matrix.shape[1] > 3:
+    #     conn = result_matrix[:, 3:]
+    #     for i in range(n_vertices):
+    #         for j in range(n_vertices):
+    #             # Mirror connectivity: if either [i, j] or [j, i] is set, set both
+    #             if conn[i, j] > 0 or conn[j, i] > 0:
+    #                 conn[i, j] = conn[j, i] = max(conn[i, j], conn[j, i])
+    #     result_matrix[:, 3:] = conn
+
+    return result_matrix
+
+
 def plot_four_views(solid, user_normal,
     ordered_vertices,
     Vertex_Top_View,
     Vertex_Front_View,
     Vertex_Side_View,
-    Vertex_Iso_View):
+    Vertex_Iso_View,
+    pdf_dir="PDFfiles"):
     import matplotlib.pyplot as plt
     import numpy as np
 
@@ -1526,78 +1930,65 @@ def plot_four_views(solid, user_normal,
     face_polygons = extract_and_visualize_faces(solid)
     print(f"[DEBUG] plot_four_views: extracted {len(face_polygons) if face_polygons else 0} face polygons")
     print(f"[DEBUG] plot_four_views: face_polygons type = {type(face_polygons)}")
-    # Store visible/hidden polygons for each view
+    
+    # Create connectivity matrices for each view using new approach
+    view_connectivity_matrices = {}
     view_polygons = []
+    
     for normal, label, vertex_array in view_configs:
         normal = normal / np.linalg.norm(normal)
-        print(f"[DEBUG] get_visible_hidden_polygons: Using projection normal: [{normal[0]:.6f}, {normal[1]:.6f}, {normal[2]:.6f}]")
-        # Use the already extracted face_polygons, do not re-extract
+        print(f"[DEBUG] Creating connectivity matrix for {label}")
+        
+        # Create connectivity matrix for this view
+        connectivity_matrix = create_view_connectivity_matrix(face_polygons, normal, label, ordered_vertices)
+        view_connectivity_matrices[label] = connectivity_matrix
+        
+        # Get visible/hidden polygons for plotting
         _, array_B, array_C = classify_faces_by_projection(face_polygons, normal)
         visible = [data['polygon'] for data in array_B if 'polygon' in data]
         hidden = [data['polygon'] for data in array_C if 'polygon' in data]
-        # POPULATE VERTEX ARRAY: Extract edges from face polygons
-        print(f"[DEBUG] Populating {label} vertex array...")
         
-        def find_3d_vertex_index(vertex_3d, tol=1e-6):
-            """Find index of 3D vertex in ordered_vertices list"""
-            for idx, v in enumerate(ordered_vertices):
-                if np.allclose(vertex_3d, v, atol=tol):
-                    return idx
-            return None
+        # For backwards compatibility, update the old vertex_array if needed
+        # (This section can be removed once the downstream code is updated)
+        if connectivity_matrix is not None:
+            # Clear the old vertex array
+            vertex_array.fill(0)
+            print(f"[DEBUG] {label}: Updated connectivity matrix with {connectivity_matrix.shape[0]} vertices")
         
-        # Extract edges from face polygons - use original 3D face data
-        edges_found = 0
-        vertices_used = set()
-        
-        # Build vertex_array using only visible and hidden polygons
-        print(f"[DEBUG] Processing {len(array_B)} visible and {len(array_C)} hidden polygons for edge extraction...")
-
-        def process_polygon_edges(polygon_data, visibility_value):
-            # Try to recover original 3D vertices from parent_face
-            outer_boundary = polygon_data.get('parent_face', None)
-            if outer_boundary is None:
-                return
-            if hasattr(outer_boundary, 'tolist'):
-                outer_boundary = outer_boundary.tolist()
-            if not isinstance(outer_boundary, (list, tuple)) or len(outer_boundary) < 3:
-                return
-
-            edges_found = 0
-            vertices_used = set()
-            for i in range(len(outer_boundary)):
-                v1_3d = outer_boundary[i]
-                v2_3d = outer_boundary[(i + 1) % len(outer_boundary)]
-                idx1 = find_3d_vertex_index(v1_3d)
-                idx2 = find_3d_vertex_index(v2_3d)
-                if (idx1 is not None and idx2 is not None and idx1 != idx2):
-                    vertex_array[idx1, idx2] = visibility_value
-                    vertex_array[idx2, idx1] = visibility_value
-                    edges_found += 1
-                    vertices_used.add(idx1)
-                    vertices_used.add(idx2)
-
-        # Visible polygons (array_B): visibility_value = 2
-        for poly_data in array_B:
-            process_polygon_edges(poly_data, 2)
-
-        # Hidden polygons (array_C): visibility_value = 1
-        for poly_data in array_C:
-            process_polygon_edges(poly_data, 1)
-        
-        print(f"[DEBUG] {label}: Found {edges_found} edges "
-              f"connecting {len(vertices_used)} vertices")
-        print(f"[DEBUG] {label}: Vertex array non-zero entries: "
-              f"{np.count_nonzero(vertex_array)}")
-
-        print("\n" + "="*60)
-        print(f"{label} Vertex Array (1=hidden, 2=visible):")
-        print(np.array2string(vertex_array, separator=', '))
-        print("="*60)
         # Store polygons for this view
         view_polygons.append((visible, hidden))
-        
-    # ...existing code...
-    # Swap side and isometric views, and fix front view orientation
+    
+    # Print summary of connectivity matrices
+    print("\n" + "="*60)
+    print("CONNECTIVITY MATRICES SUMMARY")
+    print("="*60)
+    for view_name, matrix in view_connectivity_matrices.items():
+        if matrix is not None:
+            print(f"{view_name}:")
+            print(f"  - {matrix.shape[0]} unique projected vertices")
+            print(f"  - Matrix shape: {matrix.shape}")
+            print(f"  - Connectivity entries: {np.count_nonzero(matrix[:, 3:])}")
+            # Show first few vertices as sample
+            print(f"  - Sample vertices (index, proj_x, proj_y):")
+            for i in range(min(3, matrix.shape[0])):
+                print(f"    V{int(matrix[i,0])}: ({matrix[i,1]:.3f}, {matrix[i,2]:.3f})")
+        else:
+            print(f"{view_name}: No connectivity matrix created")
+    print("="*60)
+    
+    # Save connectivity matrices to files for analysis
+    for view_name, matrix in view_connectivity_matrices.items():
+        if matrix is not None:
+            filename = f"{view_name.lower().replace(' ', '_')}_connectivity.npy"
+            # Save to current directory since output_dir not available here
+            filepath = filename
+            try:
+                np.save(filepath, matrix)
+                print(f"[DEBUG] Saved {view_name} connectivity matrix to {filepath}")
+            except Exception as e:
+                print(f"[WARNING] Could not save {view_name} matrix: {e}")
+    
+    # Plotting code continues...
     
     def plot_polygons_on_ax(ax, visible, hidden, label, flip_y=False):
         coords_x = []
@@ -1738,8 +2129,15 @@ def plot_four_views(solid, user_normal,
         print(f"[DEBUG] {label}: {len(visible)} visible, {len(hidden)} hidden polygons")
         plot_polygons_on_ax(ax, visible, hidden, label, flip_y)
     plt.tight_layout()
-    plt.savefig("four_views.pdf", format="pdf")
-    plt.show()
+    
+    # Create PDFfiles directory if it doesn't exist
+    os.makedirs(pdf_dir, exist_ok=True)
+    pdf_path = os.path.join(pdf_dir, "four_views.pdf")
+    plt.savefig(pdf_path, format="pdf")
+    # plt.show()  # Removed to prevent empty plot
+    
+    # Return connectivity matrices for use in main function
+    return view_connectivity_matrices
 
 
 from Vertex_selection import extract_possible_vertices_from_summaries, project_to_view, filter_possible_vertices, make_summary_array
@@ -1774,6 +2172,10 @@ def main():
     parser.add_argument(
         '--seed', type=int, default=47315,
         help='Random seed for solid generation (int)'
+    )
+    parser.add_argument(
+        '--rotate', type=str, default='0,0,0',
+        help='Rotate solid before processing: angles in degrees as "x,y,z"'
     )
     parser.add_argument(
         '--config-file', type=str,
@@ -1824,7 +2226,51 @@ def main():
         projection_normal = projection_normal / np.linalg.norm(projection_normal)
     solid = build_solid_with_polygons_test(config=config, quiet=args.quiet)
     print(f"[DEBUG] Solid created: {type(solid)}")
-    save_solid_as_step(solid, "solid_output.step")
+    
+    # Parse and apply rotation if requested
+    try:
+        rotation_angles = [float(x) for x in args.rotate.split(',')]
+        if len(rotation_angles) != 3:
+            raise ValueError("Need 3 angles")
+        rx, ry, rz = rotation_angles
+        
+        if rx != 0 or ry != 0 or rz != 0:
+            print(f"\n[DEBUG] Applying rotation: X={rx}°, Y={ry}°, Z={rz}°")
+            from OCC.Core.gp import gp_Trsf, gp_Ax1, gp_Pnt, gp_Dir
+            from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Transform
+            import math
+            
+            # Create transformation
+            trsf = gp_Trsf()
+            
+            # Apply rotations in order: X, then Y, then Z
+            if rx != 0:
+                axis_x = gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(1, 0, 0))
+                trsf_x = gp_Trsf()
+                trsf_x.SetRotation(axis_x, math.radians(rx))
+                trsf.Multiply(trsf_x)
+            
+            if ry != 0:
+                axis_y = gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 1, 0))
+                trsf_y = gp_Trsf()
+                trsf_y.SetRotation(axis_y, math.radians(ry))
+                trsf.Multiply(trsf_y)
+            
+            if rz != 0:
+                axis_z = gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1))
+                trsf_z = gp_Trsf()
+                trsf_z.SetRotation(axis_z, math.radians(rz))
+                trsf.Multiply(trsf_z)
+            
+            # Apply transformation to solid
+            transform = BRepBuilderAPI_Transform(solid, trsf, True)
+            transform.Build()
+            solid = transform.Shape()
+            print(f"[DEBUG] Solid rotated successfully")
+    except Exception as e:
+        print(f"[DEBUG] Could not parse/apply rotation: {args.rotate} ({e})")
+    
+    save_solid_as_step(solid, "STEPfiles/solid_output.step")
 
     # Count total edges in the original solid
     print("\n" + "="*70)
@@ -1871,131 +2317,71 @@ def main():
     Vertex_Iso_View = np.zeros((n_vertices, n_vertices), dtype=int)
 
     # Display original polygons in 3D first
-    visualize_3d_solid(solid)
+    visualize_3d_solid(solid, all_vertices_sorted)
+
+    # Create directories for output files (relative to script location)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_dir = os.path.join(script_dir, "Output")
+    pdf_dir = os.path.join(script_dir, "PDFfiles")
+    
+    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(pdf_dir, exist_ok=True)
 
     # Pass arrays and ordered vertices to plot_four_views
-    plot_four_views(solid, projection_normal,
+    view_connectivity_matrices = plot_four_views(solid, projection_normal,
                    all_vertices_sorted,
                    Vertex_Top_View,
                    Vertex_Front_View,
                    Vertex_Side_View,
-                   Vertex_Iso_View)
+                   Vertex_Iso_View,
+                   pdf_dir)
 
     # === Post-processing: Find z-levels from Front_View and build Possible_Vertices ===
     # This must come after the arrays are created and filled (after plot_four_views)
-    print("\n[DEBUG] Creating summary arrays for vertex filtering...")
+    print("\n[DEBUG] Using new connectivity matrices for vertex filtering...")
 
-    # Create summary arrays for Front and Top views
-    front_view_summary = make_summary_array(Vertex_Front_View, all_vertices_sorted, np.array([0, -1, 0]), 'Front View')
-    top_view_summary = make_summary_array(Vertex_Top_View, all_vertices_sorted, np.array([0, 0, 1]), 'Top View')
+    # Use the new connectivity matrices instead of make_summary_array
+    front_view_matrix = view_connectivity_matrices.get('Front View')
+    top_view_matrix = view_connectivity_matrices.get('Top View')
+    side_view_matrix = view_connectivity_matrices.get('Side View')
+    
+    # Save connectivity matrices for debugging
+    if front_view_matrix is not None:
+        np.save(os.path.join(output_dir, 'front_view_connectivity.npy'), front_view_matrix)
+        print(f"[DEBUG] Saved front_view_connectivity.npy")
+    if top_view_matrix is not None:
+        np.save(os.path.join(output_dir, 'top_view_connectivity.npy'), top_view_matrix)
+        print(f"[DEBUG] Saved top_view_connectivity.npy")
+    if side_view_matrix is not None:
+        np.save(os.path.join(output_dir, 'side_view_connectivity.npy'), side_view_matrix)
+        print(f"[DEBUG] Saved side_view_connectivity.npy")
 
-
-    if front_view_summary is not None and top_view_summary is not None:
-        print(f"[DEBUG] Front view summary shape: {front_view_summary.shape}")
-        print(f"[DEBUG] Top view summary shape: {top_view_summary.shape}")
+    # Check if we have the necessary connectivity matrices
+    if front_view_matrix is not None and top_view_matrix is not None:
+        print(f"[DEBUG] Front view matrix shape: {front_view_matrix.shape}")
+        print(f"[DEBUG] Top view matrix shape: {top_view_matrix.shape}")
         print(f"\n[DEBUG] CONSERVATIVE APPROACH: Only use vertices that appear in actual edges")
         print(f"[DEBUG] Step 1: Extract vertices that participate in edges from each view")
 
-        # Step 1: Extract unique (x, y) from top view summary
+        # Step 1: Extract unique (x, y) from top view matrix
         top_xy_coords = set()
-        for i in range(top_view_summary.shape[0]):
-            x_proj, y_proj = top_view_summary[i, 3], top_view_summary[i, 4]
-            top_xy_coords.add((round(x_proj, 6), round(y_proj, 6)))
+        for i in range(top_view_matrix.shape[0]):
+            x_proj, y_proj = top_view_matrix[i, 1], top_view_matrix[i, 2]
+            top_xy_coords.add((x_proj, y_proj))  # Use exact coordinates
 
-        # Step 1: Extract unique z-levels from front view summary
+        # Step 1: Extract unique z-levels from front view matrix
         z_levels = set()
-        for i in range(front_view_summary.shape[0]):
-            z_world = front_view_summary[i, 2]
-            z_levels.add(round(z_world, 6))
+        for i in range(front_view_matrix.shape[0]):
+            z_world = round(front_view_matrix[i, 2], 5)
+            z_levels.add(z_world)  # Use rounded coordinates
 
         # Step 2: Generate candidate vertices (x, y, z)
         candidate_vertices = []
+
         for x, y in top_xy_coords:
             for z in z_levels:
                 candidate_vertices.append([x, y, z])
         candidate_vertices = np.array(candidate_vertices)
-    if front_view_summary is not None and top_view_summary is not None:
-        print(f"[DEBUG] Front view summary shape: {front_view_summary.shape}")
-        print(f"[DEBUG] Top view summary shape: {top_view_summary.shape}")
-        
-        print(f"\n[DEBUG] CONSERVATIVE APPROACH: Only use vertices that appear in actual edges")
-        print(f"[DEBUG] Step 1: Extract vertices that participate in edges from each view")
-        
-        # More conservative approach: only consider vertices that are actually connected
-        # in the vertex arrays (i.e., have non-zero entries indicating edges)
-        
-        # Get vertices that actually participate in edges in top view
-        top_view_edge_vertices = set()
-        n = top_view_summary.shape[0]
-        for i in range(n):
-            for j in range(n):
-                # Check if there's an edge between vertex i and j in the original vertex arrays
-                vertex_i_idx = None
-                vertex_j_idx = None
-                
-                # Find vertex indices in the original sorted list
-                for idx, orig_vertex in enumerate(all_vertices_sorted):
-                    if (abs(orig_vertex[0] - top_view_summary[i, 0]) < 1e-6 and
-                        abs(orig_vertex[1] - top_view_summary[i, 1]) < 1e-6 and 
-                        abs(orig_vertex[2] - top_view_summary[i, 2]) < 1e-6):
-                        vertex_i_idx = idx
-                        break
-                
-                for idx, orig_vertex in enumerate(all_vertices_sorted):
-                    if (abs(orig_vertex[0] - top_view_summary[j, 0]) < 1e-6 and
-                        abs(orig_vertex[1] - top_view_summary[j, 1]) < 1e-6 and 
-                        abs(orig_vertex[2] - top_view_summary[j, 2]) < 1e-6):
-                        vertex_j_idx = idx
-                        break
-                
-                # Check if there's an actual edge in the top view vertex array
-                if (vertex_i_idx is not None and vertex_j_idx is not None and 
-                    vertex_i_idx < Vertex_Top_View.shape[0] and vertex_j_idx < Vertex_Top_View.shape[1] and
-                    Vertex_Top_View[vertex_i_idx, vertex_j_idx] > 0):
-                    # Add both vertices as they participate in edges
-                    top_view_edge_vertices.add((top_view_summary[i, 0], top_view_summary[i, 1], top_view_summary[i, 2]))
-                    if j < top_view_summary.shape[0]:
-                        top_view_edge_vertices.add((top_view_summary[j, 0], top_view_summary[j, 1], top_view_summary[j, 2]))
-        
-        # Get vertices that actually participate in edges in front view  
-        front_view_edge_vertices = set()
-        n = front_view_summary.shape[0]
-        for i in range(n):
-            for j in range(n):
-                # Find vertex indices in the original sorted list
-                vertex_i_idx = None
-                vertex_j_idx = None
-                
-                for idx, orig_vertex in enumerate(all_vertices_sorted):
-                    if (abs(orig_vertex[0] - front_view_summary[i, 0]) < 1e-6 and
-                        abs(orig_vertex[1] - front_view_summary[i, 1]) < 1e-6 and 
-                        abs(orig_vertex[2] - front_view_summary[i, 2]) < 1e-6):
-                        vertex_i_idx = idx
-                        break
-                        
-                for idx, orig_vertex in enumerate(all_vertices_sorted):
-                    if (abs(orig_vertex[0] - front_view_summary[j, 0]) < 1e-6 and
-                        abs(orig_vertex[1] - front_view_summary[j, 1]) < 1e-6 and 
-                        abs(orig_vertex[2] - front_view_summary[j, 2]) < 1e-6):
-                        vertex_j_idx = idx
-                        break
-                
-                # Check if there's an actual edge in the front view vertex array
-                if (vertex_i_idx is not None and vertex_j_idx is not None and 
-                    vertex_i_idx < Vertex_Front_View.shape[0] and vertex_j_idx < Vertex_Front_View.shape[1] and
-                    Vertex_Front_View[vertex_i_idx, vertex_j_idx] > 0):
-                    # Add both vertices as they participate in edges
-                    front_view_edge_vertices.add((front_view_summary[i, 0], front_view_summary[i, 1], front_view_summary[i, 2]))
-                    if j < front_view_summary.shape[0]:
-                        front_view_edge_vertices.add((front_view_summary[j, 0], front_view_summary[j, 1], front_view_summary[j, 2]))
-        
-        print(f"[DEBUG] Top view has {len(top_view_edge_vertices)} vertices in edges")
-        print(f"[DEBUG] Front view has {len(front_view_edge_vertices)} vertices in edges")
-        
-        # Find intersection: vertices that appear in BOTH views' edge sets
-        common_vertices = top_view_edge_vertices.intersection(front_view_edge_vertices)
-        
-        selected_vertices = np.array(list(common_vertices))
         
         print(f"\n" + "="*60)
         print(f"TRUE REVERSE ENGINEERING - STEP-BY-STEP VERTEX RECONSTRUCTION")
@@ -2003,49 +2389,49 @@ def main():
         
         # TRUE REVERSE ENGINEERING APPROACH: Your specified logic
         # Step 1 - Extract coordinates from top and front views
-        print("\nStep 1: Extracting coordinates from view summaries...")
+        print("\nStep 1: Extracting coordinates from connectivity matrices...")
         print("Method: (x,y) from top view, z-levels from front view")
         print("Goal: Create all combinations to find real vertices via filtering")
         
-        # Extract unique (x,y) coordinates from top view summary (projected coordinates)
+        # Extract unique (x,y) coordinates from top view matrix (projected coordinates)
         top_xy_coords = set()
-        print(f"DEBUG: Top view summary has {top_view_summary.shape[0]} rows")
-        for i in range(top_view_summary.shape[0]):
-            x_proj, y_proj = top_view_summary[i, 3], top_view_summary[i, 4]
-            top_xy_coords.add((round(x_proj, 6), round(y_proj, 6)))
-        
-        # Extract unique z-levels from front view summary (world z coordinates from column 2)
+        print(f"DEBUG: Top view matrix has {top_view_matrix.shape[0]} rows")
+        for i in range(top_view_matrix.shape[0]):
+            x_proj, y_proj = top_view_matrix[i, 1], top_view_matrix[i, 2]
+            top_xy_coords.add((x_proj, y_proj))  # Use exact coordinates
+
+        # Extract unique z-levels from front view matrix (world z coordinates from column 2)
         # Note: In reverse engineering, we extract z from front view world coords 
         # since front view projection normal [0,1,0] preserves z-coordinate information
-        z_levels = set()
-        print(f"DEBUG: Front view summary has {front_view_summary.shape[0]} rows")
-        for i in range(front_view_summary.shape[0]):
-            z_world = front_view_summary[i, 2]  # World z-coordinate
-            z_levels.add(round(z_world, 6))
-            
+        raw_z = [round(front_view_matrix[i, 2], 6) for i in range(front_view_matrix.shape[0])]
+        z_levels = sorted(set(raw_z))
+        print(f"DEBUG: Front view matrix has {front_view_matrix.shape[0]} rows")
+
         print(f"Extracted (x,y) from top view: {len(top_xy_coords)} coordinates")
         print(f"Extracted z-levels from front view: {len(z_levels)} levels")
-        
-        # Step 2 - Generate candidate vertices: (x,y) × z-levels
-        print("\nStep 2: Generating candidate vertices...")
-        print("Method: Every (x,y) from top view at every z-level from front view")
-        print("Note: Creates many 'fake' vertices - filtering identifies real ones")
-        
-        # Create candidate vertices: every (x,y) at every z-level
-        candidate_vertices = []
-        for x, y in top_xy_coords:
-            for z in z_levels:
-                candidate_vertices.append([x, y, z])
-        
-        candidate_vertices = np.array(candidate_vertices)
-        expected_count = len(top_xy_coords) * len(z_levels)
-        print(f"Total candidate vertices: {len(candidate_vertices)}")
-        print(f"Expected: {len(top_xy_coords)} × {len(z_levels)} = {expected_count}")
-        
-        # Show sample candidates
-        if len(candidate_vertices) > 0:
-            print("Sample candidate vertices:")
-            for i in range(min(5, len(candidate_vertices))):
+        print(f"z_levels: {z_levels}")
+
+    # Step 2 - Generate candidate vertices: (x,y) × z-levels
+    print("\nStep 2: Generating candidate vertices...")
+    print("Method: Every (x,y) from top view at every z-level from front view")
+    print("Note: Creates many 'fake' vertices - filtering identifies real ones")
+
+    # Create candidate vertices: every (x,y) at every z-level
+    candidate_vertices = []
+    candidate_vertices = []
+    for x, y in top_xy_coords:
+        for z in z_levels:
+            candidate_vertices.append([x, y, z])
+
+    candidate_vertices = np.array(candidate_vertices)
+    expected_count = len(top_xy_coords) * len(z_levels)
+    print(f"Total candidate vertices: {len(candidate_vertices)}")
+    print(f"Expected: {len(top_xy_coords)} × {len(z_levels)} = {expected_count}")
+
+    # Show sample candidates
+    if len(candidate_vertices) > 0:
+        print("Sample candidate vertices:")
+        for i in range(min(5, len(candidate_vertices))):
                 x, y, z = candidate_vertices[i]
                 print(f"  Candidate {i+1}: ({x:8.3f}, {y:8.3f}, {z:8.3f})")
         
@@ -2054,37 +2440,77 @@ def main():
         print("Method: Project candidates to FRONT and SIDE views for validation")
         print("Logic: Candidates from top view data, validated by other views")
         
-        # Create side view summary first
-        side_view_summary = make_summary_array(Vertex_Side_View,
-                                               all_vertices_sorted,
-                                               np.array([1, 0, 0]),
-                                               'Side View')
+        # Use the existing side view connectivity matrix
+        if side_view_matrix is not None:
+            print(f"\n[DEBUG] SIDE VIEW CONNECTIVITY MATRIX")
+            print(f"Side view matrix shape: {side_view_matrix.shape}")
+            print(f"Number of vertices in side view: {side_view_matrix.shape[0]}")
+            if side_view_matrix.shape[1] > 3:
+                print(f"Connectivity matrix columns: {side_view_matrix.shape[1] - 3}")
+                # Print ALL vertices in side view
+                print(f"\nALL {side_view_matrix.shape[0]} vertices in side view:")
+                print(f"Format: V# | Index | 2D proj (y,z) | connections")
+                for i in range(side_view_matrix.shape[0]):
+                    vertex_idx = int(side_view_matrix[i, 0])
+                    # Side view projects (y, z) from 3D (x, y, z)
+                    proj_2d = (side_view_matrix[i, 1], side_view_matrix[i, 2])
+                    connectivity = side_view_matrix[i, 3:]
+                    connected_to = [j for j, val in enumerate(connectivity) if val > 0]
+                    print(f"  V{i:2d}: Idx{vertex_idx} -> proj({proj_2d[0]:7.3f}, {proj_2d[1]:7.3f}) -> conn {connected_to}")
         
-        if side_view_summary is None:
-            print("[ERROR] Could not create side view summary")
+        if front_view_matrix is not None:
+            print(f"\n[DEBUG] FRONT VIEW CONNECTIVITY MATRIX")
+            print(f"Front view matrix shape: {front_view_matrix.shape}")
+            print(f"Number of vertices in front view: {front_view_matrix.shape[0]}")
+            if front_view_matrix.shape[1] > 3:
+                print(f"Connectivity matrix columns: {front_view_matrix.shape[1] - 3}")
+                # Print ALL vertices in front view
+                print(f"\nALL {front_view_matrix.shape[0]} vertices in front view:")
+                print(f"Format: V# | Index | 2D proj (x,z) | connections")
+                for i in range(min(10, front_view_matrix.shape[0])):
+                    vertex_idx = int(front_view_matrix[i, 0])
+                    # Front view projects (x, z) from 3D (x, y, z)
+                    proj_2d = (front_view_matrix[i, 1], front_view_matrix[i, 2])
+                    connectivity = front_view_matrix[i, 3:]
+                    connected_to = [j for j, val in enumerate(connectivity) if val > 0]
+                    print(f"  V{i:2d}: Idx{vertex_idx} -> proj({proj_2d[0]:7.3f}, {proj_2d[1]:7.3f}) -> conn {connected_to}")
+        
+        if side_view_matrix is None:
+            print("[ERROR] Could not create side view matrix")
             selected_vertices = np.array([])
         else:
-            print(f"[DEBUG] Side view shape: {side_view_summary.shape}")
+            print(f"[DEBUG] Side view matrix shape: {side_view_matrix.shape}")
             
             def project_vertex_to_view_reverse_eng(vertex, normal):
-                """Project a 3D vertex to 2D view coordinates for reverse engineering"""
+                """Project a 3D vertex to 2D view coordinates using coordinate dropping for orthogonal views"""
+                vertex = np.array(vertex)
                 normal = np.array(normal)
                 normal = normal / np.linalg.norm(normal)
                 
-                if abs(normal[0]) < 0.9:
-                    temp = np.array([1.0, 0.0, 0.0])
+                # Use coordinate dropping for standard orthogonal engineering views
+                # This matches both connectivity matrix and edge reconstruction methods
+                if np.allclose(normal, [0, 0, 1], atol=1e-3):  # Top view
+                    return vertex[0], vertex[1]  # Drop Z, keep X,Y
+                elif np.allclose(normal, [0, -1, 0], atol=1e-3):  # Front view
+                    return vertex[0], vertex[2]  # Drop Y, keep X,Z
+                elif np.allclose(normal, [1, 0, 0], atol=1e-3):  # Side view
+                    return vertex[1], vertex[2]  # Drop X, keep Y,Z
                 else:
-                    temp = np.array([0.0, 1.0, 0.0])
-                
-                u = temp - np.dot(temp, normal) * normal
-                u = u / np.linalg.norm(u)
-                v = np.cross(normal, u)
-                v = v / np.linalg.norm(v)
-                
-                vertex = np.array(vertex)
-                proj_u = np.dot(vertex, u)
-                proj_v = np.dot(vertex, v)
-                return proj_u, proj_v
+                    # For non-orthogonal views, use basis vector method
+                    # Create orthogonal basis vectors for the projection plane
+                    if abs(normal[0]) < 0.9:
+                        temp = np.array([1.0, 0.0, 0.0])
+                    else:
+                        temp = np.array([0.0, 1.0, 0.0])
+                    
+                    u = temp - np.dot(temp, normal) * normal
+                    u = u / np.linalg.norm(u)
+                    v = np.cross(normal, u)
+                    v = v / np.linalg.norm(v)
+                    
+                    proj_u = np.dot(vertex, u)
+                    proj_v = np.dot(vertex, v)
+                    return proj_u, proj_v
             
             # Extract projected coordinates from view summaries for filtering
             # Front view summary: columns 3,5 are the projected (u,v) coordinates  
@@ -2092,13 +2518,13 @@ def main():
             tolerance = 1.0e-4
             
             front_view_coords = []
-            for i in range(front_view_summary.shape[0]):
-                u_proj, v_proj = front_view_summary[i, 3], front_view_summary[i, 5]
+            for i in range(front_view_matrix.shape[0]):
+                u_proj, v_proj = front_view_matrix[i, 1], front_view_matrix[i, 2]
                 front_view_coords.append((u_proj, v_proj))
             
             side_view_coords = []
-            for i in range(side_view_summary.shape[0]):
-                u_proj, v_proj = side_view_summary[i, 4], side_view_summary[i, 5]
+            for i in range(side_view_matrix.shape[0]):
+                u_proj, v_proj = side_view_matrix[i, 1], side_view_matrix[i, 2]
                 side_view_coords.append((u_proj, v_proj))
                 
             print(f"Available front view coordinates: {len(front_view_coords)}")
@@ -2134,24 +2560,38 @@ def main():
                 side_u, side_v = project_vertex_to_view_reverse_eng(candidate_proj, [1, 0, 0])
                 
                 # Debug first few projections
-                if idx < 3:
-                    print(f"DEBUG: Candidate {idx+1}: ({candidate[0]:.3f}, {candidate[1]:.3f}, {candidate[2]:.3f})")
+                if idx < 5:
+                    print(f"\nDEBUG: Candidate {idx+1}: ({candidate[0]:.3f}, {candidate[1]:.3f}, {candidate[2]:.3f})")
                     print(f"  Front proj: ({front_u:.6f}, {front_v:.6f})")
                     print(f"  Side proj: ({side_u:.6f}, {side_v:.6f})")
                 
                 # Check if front projection matches any front view coordinate within tolerance
                 front_match = False
+                best_front_dist = float('inf')
                 for fu, fv in front_view_coords:
+                    dist = abs(front_u - fu) + abs(front_v - fv)
+                    if dist < best_front_dist:
+                        best_front_dist = dist
                     if abs(front_u - fu) < tolerance and abs(front_v - fv) < tolerance:
                         front_match = True
                         break
                 
                 # Check if side projection matches any side view coordinate within tolerance
                 side_match = False
+                best_side_dist = float('inf')
                 for su, sv in side_view_coords:
+                    dist = abs(side_u - su) + abs(side_v - sv)
+                    if dist < best_side_dist:
+                        best_side_dist = dist
                     if abs(side_u - su) < tolerance and abs(side_v - sv) < tolerance:
                         side_match = True
                         break
+                
+                # Debug first few candidates in detail
+                if idx < 5:
+                    print(f"  Front match: {front_match} (best dist: {best_front_dist:.6f})")
+                    print(f"  Side match: {side_match} (best dist: {best_side_dist:.6f})")
+                    print(f"  Tolerance: {tolerance}")
                 
                 if front_match:
                     front_matches += 1
@@ -2167,154 +2607,133 @@ def main():
             print(f"Candidates matching front view: {front_matches}")
             print(f"Candidates matching side view: {side_matches}")
             print(f"Candidates matching BOTH views: {dual_matches}")
-            print(f"Selected vertices: {len(selected_vertices)}")
+            print(f"Selected vertices (before edge validation): {len(selected_vertices)}")
             
-        print(f"Original solid vertices: {len(all_vertices_sorted)}")
-        
-        print(f"\n" + "="*60)
-        print(f"TRUE REVERSE ENGINEERING RESULTS")
-        print(f"="*60)
-        
-        print(f"\nReconstructed vertices (x, y, z):")
-        
-        # Sort for consistent output
-        if len(selected_vertices) > 0:
-            selected_vertices = selected_vertices[np.lexsort((selected_vertices[:, 2], selected_vertices[:, 1], selected_vertices[:, 0]))]
-            for i, vertex in enumerate(selected_vertices):
-                x, y, z = vertex
-                print(f"  Vertex {i+1:2d}: ({x:8.3f}, {y:8.3f}, {z:8.3f})")
-        
-        print(f"="*60)
-        
-        # ANALYSIS: Compare reconstructed vs actual vertices
-        print("\n" + "="*60)
-        print("TRUE REVERSE ENGINEERING COMPARISON")
-        print("="*60)
-        
-        # Convert actual vertices to same format for comparison
-        actual_vertices = np.array(all_vertices_sorted)
-        print(f"Actual vertices from solid: {len(actual_vertices)}")
-        print(f"Reconstructed vertices: {len(selected_vertices)}")
-        
-        # Find which actual vertices are found in our reconstruction
-        found_vertices = []
-        tolerance = 1e-3  # Use slightly larger tolerance for comparison
-        
-        for actual_vertex in actual_vertices:
-            found = False
-            for reconstructed_vertex in selected_vertices:
-                if np.allclose(actual_vertex, reconstructed_vertex, atol=tolerance):
-                    found = True
-                    found_vertices.append(actual_vertex)
-                    break
-            if not found:
-                pass  # Will count below
-        
-        missing_count = len(actual_vertices) - len(found_vertices)
-        print(f"Missing vertices: {missing_count}")
-        
-        # Summary statement
-        if len(actual_vertices) > 0:
-            detection_rate = (len(found_vertices) / len(actual_vertices) * 100)
-        else:
-            detection_rate = 0
-        print(f"\nTRUE REVERSE ENGINEERING DETECTION SUMMARY:")
-        print(f"Found {len(found_vertices)} out of {len(actual_vertices)} vertices")
-        print(f"Success rate: {detection_rate:.1f}%")
-        
-        # Report false positives
-        false_positives = len(selected_vertices) - len(found_vertices)
-        if false_positives > 0:
-            print(f"False positives: {false_positives} extra vertices detected")
-        
-        print(f"Total reconstructed: {len(selected_vertices)} vertices")
-        
-        print(f"="*60)
-        
-        # Save to file for further analysis
-        if len(selected_vertices) > 0:
-            output_filename = "selected_vertices.txt"
-            with open(output_filename, 'w') as f:
-                f.write("Selected 3D Solid Vertices - TRUE REVERSE ENGINEERING\n")
-                f.write("="*50 + "\n")
-                f.write(f"Total vertices: {len(selected_vertices)}\n")
-                f.write("Format: x, y, z\n\n")
-                for i, vertex in enumerate(selected_vertices):
+            # Store the Step 3 results for visualization (21 vertices)
+                # Deduplicate step3_vertices using np.unique with rounding for floating point tolerance
+                # (fix indentation)
+                # Store the Step 3 results for visualization (21 vertices)
+                # Deduplicate step3_vertices using np.unique with rounding for floating point tolerance
+                # Deduplicate selected vertices
+            # Deduplicate selected vertices
+            step3_vertices = np.unique(np.round(selected_vertices, decimals=6), axis=0)
+            
+            print(f"Original solid vertices: {len(all_vertices_sorted)}")
+            
+            print(f"\n" + "="*60)
+            print(f"TRUE REVERSE ENGINEERING RESULTS")
+            print(f"="*60)
+            
+            print(f"\nReconstructed vertices (x, y, z):")
+            
+            # Sort for consistent output
+            if len(step3_vertices) > 0:
+                step3_vertices = step3_vertices[np.lexsort((step3_vertices[:, 2], step3_vertices[:, 1], step3_vertices[:, 0]))]
+                for i, vertex in enumerate(step3_vertices):
                     x, y, z = vertex
-                    f.write(f"{i+1:2d}: {x:8.3f}, {y:8.3f}, {z:8.3f}\n")
-            print(f"[DEBUG] Selected vertices saved to {output_filename}")
-            
-            # === EDGE RECONSTRUCTION ===
-            print("\n[DEBUG] Starting edge reconstruction...")
-            print(f"[DEBUG] Target: {expected_unique_edges} unique edges")
-            valid_edges = reconstruct_edges_from_views(
-                selected_vertices,
-                top_view_summary,
-                front_view_summary,
-                side_view_summary,
-                Vertex_Top_View,
-                Vertex_Front_View,
-                Vertex_Side_View,
-                all_vertices_sorted,
-                expected_unique_edges
-            )
-            
-            # Save edges to file
-            if len(valid_edges) > 0:
-                edge_filename = "reconstructed_edges.txt"
-                with open(edge_filename, 'w') as f:
-                    f.write("Reconstructed 3D Solid Edges\n")
-                    f.write("="*50 + "\n")
-                    f.write(f"Total edges: {len(valid_edges)}\n")
-                    f.write("Format: V1_idx -- V2_idx\n\n")
-                    for i, (v1_idx, v2_idx) in enumerate(valid_edges):
-                        v1 = selected_vertices[v1_idx]
-                        v2 = selected_vertices[v2_idx]
-                        f.write(f"Edge {i+1:2d}: V{v1_idx:2d} -- V{v2_idx:2d}\n")
-                        f.write(f"  Start: ({v1[0]:8.3f}, {v1[1]:8.3f}, {v1[2]:8.3f})\n")
-                        f.write(f"  End:   ({v2[0]:8.3f}, {v2[1]:8.3f}, {v2[2]:8.3f})\n")
-                print(f"[DEBUG] Reconstructed edges saved to {edge_filename}")
-            
-            # === CREATE UNIFIED SUMMARY ARRAY ===
-            print("\n" + "="*70)
-            print("CREATING UNIFIED SUMMARY ARRAY")
-            print("="*70)
-            
-            unified_summary = create_unified_summary(
-                selected_vertices,
-                valid_edges
-            )
-            
-            # Print summary information
-            print_summary_info(unified_summary)
-            
-            # Save to text file
-            summary_txt = "unified_summary.txt"
-            save_summary_to_file(unified_summary, summary_txt)
-            print(f"[DEBUG] Unified summary saved to {summary_txt}")
-            
-            # Save to numpy binary file
-            summary_npy = "unified_summary.npy"
-            save_summary_to_numpy(unified_summary, summary_npy)
-            
-            # Visualize adjacency matrix
-            try:
-                visualize_adjacency_matrix(
-                    unified_summary,
-                    "adjacency_matrix.png"
-                )
-            except Exception as e:
-                print(f"[DEBUG] Could not create adjacency "
-                      f"visualization: {e}")
-            
-            print("="*70)
-            
-            # Visualize the solid with selected vertices highlighted
-            print("\n[DEBUG] Creating 3D visualization...")
-            visualize_3d_solid(solid, selected_vertices, valid_edges)
-        else:
-            print("[WARNING] No vertices selected - showing solid only")
-            visualize_3d_solid(solid, None)
+                    print(f"  Vertex {i+1:2d}: ({x:8.3f}, {y:8.3f}, {z:8.3f})")
+                print(f"="*60)
+
+                # === Extract projections and connectivity matrices for merged matrix ===
+                print("\n[DEBUG] Extracting projections and connectivity matrices for merged matrix...")
+                def find_matching_row(proj, matrix, tol=1e-5):
+                    for i in range(matrix.shape[0]):
+                        if np.allclose(proj, matrix[i, 1:3], atol=tol):
+                            return i
+                    return None
+
+
+                N = step3_vertices.shape[0]
+                top_proj = np.zeros((N, 2))
+                front_proj = np.zeros((N, 2))
+                side_proj = np.zeros((N, 2))
+                top_conn = np.zeros((N, N))
+                front_conn = np.zeros((N, N))
+                side_conn = np.zeros((N, N))
+
+                def project_vertex_to_view_reverse_eng(vertex, normal):
+                    vertex = np.array(vertex)
+                    normal = np.array(normal)
+                    normal = normal / np.linalg.norm(normal)
+                    if np.allclose(normal, [0, 0, 1], atol=1e-3):
+                        return vertex[0], vertex[1]
+                    elif np.allclose(normal, [0, -1, 0], atol=1e-3):
+                        return vertex[0], vertex[2]
+                    elif np.allclose(normal, [1, 0, 0], atol=1e-3):
+                        return vertex[1], vertex[2]
+                    else:
+                        if abs(normal[0]) < 0.9:
+                            temp = np.array([1.0, 0.0, 0.0])
+                        else:
+                            temp = np.array([0.0, 1.0, 0.0])
+                        u = temp - np.dot(temp, normal) * normal
+                        u = u / np.linalg.norm(u)
+                        v = np.cross(normal, u)
+                        v = v / np.linalg.norm(v)
+                        proj_u = np.dot(vertex, u)
+                        proj_v = np.dot(vertex, v)
+                        return proj_u, proj_v
+
+                # Build projection arrays
+                for idx, vertex in enumerate(step3_vertices):
+                    top_proj[idx] = project_vertex_to_view_reverse_eng(vertex, [0, 0, 1])
+                    front_proj[idx] = project_vertex_to_view_reverse_eng(vertex, [0, -1, 0])
+                    side_proj[idx] = project_vertex_to_view_reverse_eng(vertex, [1, 0, 0])
+
+                # Build square connectivity matrices
+                for i in range(N):
+                    # For each reconstructed vertex i
+                    tp_i = top_proj[i]
+                    fp_i = front_proj[i]
+                    sp_i = side_proj[i]
+                    top_idx_i = find_matching_row(tp_i, top_view_matrix)
+                    front_idx_i = find_matching_row(fp_i, front_view_matrix)
+                    side_idx_i = find_matching_row(sp_i, side_view_matrix)
+                    for j in range(N):
+                        tp_j = top_proj[j]
+                        fp_j = front_proj[j]
+                        sp_j = side_proj[j]
+                        top_idx_j = find_matching_row(tp_j, top_view_matrix)
+                        front_idx_j = find_matching_row(fp_j, front_view_matrix)
+                        side_idx_j = find_matching_row(sp_j, side_view_matrix)
+                        # Top view
+                        if top_idx_i is not None and top_idx_j is not None:
+                            top_conn[i, j] = top_view_matrix[top_idx_i, 3 + top_idx_j]
+                        else:
+                            top_conn[i, j] = 0
+                        # Front view
+                        if front_idx_i is not None and front_idx_j is not None:
+                            front_conn[i, j] = front_view_matrix[front_idx_i, 3 + front_idx_j]
+                        else:
+                            front_conn[i, j] = 0
+                        # Side view
+                        if side_idx_i is not None and side_idx_j is not None:
+                            side_conn[i, j] = side_view_matrix[side_idx_i, 3 + side_idx_j]
+                        else:
+                            side_conn[i, j] = 0
+
+                print("[DEBUG] TOP VIEW PROJECTIONS:\n", top_proj)
+                print("[DEBUG] TOP VIEW CONNECTIVITY MATRIX:\n", top_conn)
+                print("[DEBUG] FRONT VIEW PROJECTIONS:\n", front_proj)
+                print("[DEBUG] FRONT VIEW CONNECTIVITY MATRIX:\n", front_conn)
+                print("[DEBUG] SIDE VIEW PROJECTIONS:\n", side_proj)
+                print("[DEBUG] SIDE VIEW CONNECTIVITY MATRIX:\n", side_conn)
+
+                # === Build and print merged connectivity matrix ===
+                print("\n[DEBUG] Building merged connectivity matrix (sum of top, front, and side)...")
+                N = step3_vertices.shape[0]
+                merged_conn = top_conn + front_conn + side_conn
+                print("[DEBUG] Merged connectivity matrix (top + front + side):")
+                print(merged_conn)
+
+                # Visualize 3D solid with edges from merged_conn
+                print("\n[DEBUG] Visualizing 3D solid with reconstructed edges from merged connectivity matrix...")
+                edges = []
+                for j in range(N):
+                    for k in range(j+1, N):
+                        if merged_conn[j, k] > 0:
+                            edges.append((j, k))
+                visualize_3d_solid(solid_shape=solid, selected_vertices=step3_vertices, edges=edges)
         
     else:
         print("[ERROR] Could not create summary arrays for vertex filtering")
