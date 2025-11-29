@@ -7,16 +7,7 @@ This module handles:
 2. Extracting face polygons from the solid
 3. Creating engineering views (Top, Front, Side, Isometric)
 4. Generating connectivity matrices for each view
-5. Saving all data to f    # Volume check
-    try:
-        props = GProp_GProps()
-        brepgprop_VolumeProperties(fixed_solid, props)
-        volume = props.Mass()
-        print(f"[SOLID CHECK] Solid volume: {volume:.6f}")
-    except Exception as e:
-        print(f"[EXCEPTION] Volume computation failed: {e}")
-    print(f"[FACE CHECK] Areas of all faces: {[f'{a:.4f}' for a in face_areas]}")
-    return fixed_solidater reconstruction
+5. Saving all data to files for later reconstruction
 
 Output files (named with seed value):
 - solid_faces_seed_XXXXX.npy: Face polygon vertices
@@ -27,21 +18,27 @@ import os
 import sys
 import numpy as np
 import argparse
+
+# Check for --no-graphics flag BEFORE importing matplotlib
+# This allows us to set the backend before matplotlib is initialized
+if '--no-graphics' in sys.argv:
+    import matplotlib
+    matplotlib.use('Agg')  # Non-interactive backend
+
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.widgets import CheckButtons
 from shapely.geometry import Polygon
 
 # Import OpenCASCADE and reconstruction modules
 from OCC.Core.TopExp import TopExp_Explorer
 from OCC.Core.TopoDS import topods
-from OCC.Core.TopAbs import TopAbs_EDGE, TopAbs_VERTEX, TopAbs_FACE, TopAbs_SHELL
+from OCC.Core.TopAbs import TopAbs_EDGE, TopAbs_VERTEX
 from OCC.Core.BRep import BRep_Tool
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeEdge
 from OCC.Core.BRepOffsetAPI import BRepOffsetAPI_Sewing
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeSolid
-from OCC.Core.ShapeFix import ShapeFix_Solid, ShapeFix_Shell
-from OCC.Core.BRepClass3d import BRepClass3d_SolidClassifier
 
 import sys
 import os
@@ -126,7 +123,7 @@ def save_connectivity_matrices(view_matrices, all_vertices, seed, output_dir="Ou
     return filename
 
 
-def make_face_with_holes(exterior, holes, normal=None):
+def make_face_with_holes(exterior, holes):
     """Create an OpenCASCADE face from an exterior polygon and holes."""
     import numpy as np
     from shapely.geometry import Polygon
@@ -150,44 +147,8 @@ def make_face_with_holes(exterior, holes, normal=None):
     if len(unique_points) < 3:
         print(f"[WIRE CHECK] Exterior wire has <3 unique points: {filtered_exterior}")
         return None
-    # Project to plane using explicit normal for Shapely validity check
-    def project_to_plane(points, normal):
-        import numpy as np
-        normal = np.array(normal)
-        normal = normal / np.linalg.norm(normal)
-        # Find a vector not parallel to normal
-        if abs(normal[0]) < 0.9:
-            v = np.array([1, 0, 0])
-        else:
-            v = np.array([0, 1, 0])
-        u = np.cross(normal, v)
-        u = u / np.linalg.norm(u)
-        w = np.cross(normal, u)
-        w = w / np.linalg.norm(w)
-        proj = np.dot(points, np.vstack([u, w]).T)
-        return proj
-    if normal is None:
-        raise ValueError("Explicit normal must be provided to make_face_with_holes for projection.")
-    normal = np.asarray(normal)
-    norm_val = np.linalg.norm(normal)
-    print(f"[DEBUG] Using explicit normal for projection: {normal}, norm={norm_val}")
-    # Check for degenerate normal
-    if norm_val < 1e-6 or np.allclose(normal, 0):
-        print(f"[WARNING] Degenerate normal detected: {normal}. Falling back to computed normal from exterior vertices.")
-        unique_points = np.unique(filtered_exterior, axis=0)
-        if unique_points.shape[0] >= 3:
-            v1 = unique_points[1] - unique_points[0]
-            v2 = unique_points[2] - unique_points[0]
-            computed_normal = np.cross(v1, v2)
-            computed_normal = computed_normal / np.linalg.norm(computed_normal)
-            print(f"[DEBUG] Computed fallback normal: {computed_normal}")
-            normal = computed_normal
-        else:
-            print(f"[ERROR] Not enough unique points to compute fallback normal. Using default [0,0,1].")
-            normal = np.array([0,0,1])
-    proj_exterior = project_to_plane(filtered_exterior, normal)
-    poly2d = Polygon(proj_exterior)
-    print(f"[WIRE CHECK] Exterior wire Shapely valid: {poly2d.is_valid} (projected using explicit normal {normal})")
+    poly2d = Polygon(filtered_exterior[:, :2])
+    print(f"[WIRE CHECK] Exterior wire Shapely valid: {poly2d.is_valid}")
     if not poly2d.is_valid:
         print(f"[WIRE CHECK] Exterior wire is self-intersecting (Shapely invalid): {poly2d.wkt}")
         return None
@@ -226,10 +187,7 @@ def make_face_with_holes(exterior, holes, normal=None):
             hole_wire_builder.Add(edge)
         wire_builder.Add(hole_wire_builder.Wire())
     try:
-        wire = wire_builder.Wire()
-        # Try reversing the wire to flip the face orientation
-        wire.Reverse()
-        face = BRepBuilderAPI_MakeFace(wire).Face()
+        face = BRepBuilderAPI_MakeFace(wire_builder.Wire()).Face()
         analyzer = BRepCheck_Analyzer(face)
         print(f"[FACE CHECK] OCC face valid: {analyzer.IsValid()}")
         if not analyzer.IsValid():
@@ -246,143 +204,55 @@ def build_solid_from_faces(face_polygons):
     from OCC.Core.BRepGProp import brepgprop_SurfaceProperties, brepgprop_VolumeProperties
     sewing = BRepOffsetAPI_Sewing()
     face_areas = []
-    valid_face_count = 0
     for idx, face in enumerate(face_polygons):
         exterior = face['outer_boundary']
         holes = face.get('holes', [])
-        # Step 8: Trust that validation was done in Step 7, just build OCC faces
+        # Skip degenerate faces
+        exterior_np = np.array(exterior)
+        unique_points = {tuple(np.round(pt, 8)) for pt in exterior_np}
+        print(f"[FACE CHECK] Face {idx} unique points: {len(unique_points)}")
+        if len(unique_points) < 3:
+            print(f"[SKIP] Face {idx} skipped: <3 unique points in exterior.")
+            continue
+        poly2d = Polygon(exterior_np[:, :2])
+        print(f"[FACE CHECK] Face {idx} Shapely valid: {poly2d.is_valid}")
+        if not poly2d.is_valid:
+            print(f"[SKIP] Face {idx} skipped: exterior is self-intersecting (Shapely invalid).")
+            continue
         try:
-            occ_face = make_face_with_holes(exterior, holes, normal=face.get('normal', None))
+            occ_face = make_face_with_holes(exterior, holes)
             if occ_face is None:
                 print(f"[ERROR] OCC face creation failed for face {idx}")
                 continue
-            # Area check for diagnostics
+            analyzer = BRepCheck_Analyzer(occ_face)
+            print(f"[FACE CHECK] OCC face valid: {analyzer.IsValid()}")
+            if not analyzer.IsValid():
+                print(f"[FACE CHECK] OCC face {idx} is INVALID. Vertices: {exterior}")
+            # Area check
             props = GProp_GProps()
             brepgprop_SurfaceProperties(occ_face, props)
             area = props.Mass()
             face_areas.append(area)
-            print(f"[STEP 8] Face {idx}: Area = {area:.4f}")
+            print(f"[FACE CHECK] Face {idx}: Area = {area:.4f}")
             sewing.Add(occ_face)
-            valid_face_count += 1
         except Exception as e:
             print(f"[EXCEPTION] Error in face {idx}: {e}\n  Vertices: {exterior}\n  Holes: {holes}")
-    if valid_face_count == 0:
-        print("[ERROR] No valid faces to sew. Skipping OCC sewing operation.")
-        return None
-    
-    print("[SEWING] Performing sewing operation...")
+    sewing.Perform()
+    print("[SEWING] Dumping sewing report:")
     try:
-        sewing.Perform()
-        print("[SEWING] Sewing complete. Dumping sewing report:")
-        shell_shape = sewing.SewedShape()
-        # Check for None/null shell before OCC diagnostics
-        if shell_shape is None or (hasattr(shell_shape, 'IsNull') and shell_shape.IsNull()):
-            print("[ERROR] Sewed shell is None or NULL. Plotting polygons and skipping OCC solid construction.")
-            import matplotlib.pyplot as plt
-            print("[INFO] OCC shell construction failed. Skipping bottom 2D polygon plot.")
-            return None
-        # Diagnostics and OCC validity checks
-        analyzer = BRepCheck_Analyzer(shell_shape)
-        print(f"[SOLID CHECK] Sewed shell valid: {analyzer.IsValid()}")
-        if not analyzer.IsValid():
-            print(f"[ERROR] Sewed shell is INVALID. Plotting polygons and skipping OCC solid construction.")
-            import matplotlib.pyplot as plt
-            for idx, face in enumerate(face_polygons):
-                exterior = np.array(face['outer_boundary'])
-                plt.plot(exterior[:,0], exterior[:,1], label=f'Face {idx} exterior')
-                for hidx, hole in enumerate(face.get('holes', [])):
-                    hole_np = np.array(hole)
-                    plt.plot(hole_np[:,0], hole_np[:,1], '--', label=f'Face {idx} hole {hidx}')
-            plt.axis('equal')
-            plt.legend()
-            plt.title('Polygons (OCC shell construction failed)')
-            plt.show()
-            return None
-        # Extract shell from sewed shape
-        print(f"[DEBUG] shell_shape type: {type(shell_shape)} class: {getattr(shell_shape, '__class__', None)}")
-        try:
-            shape_type = shell_shape.ShapeType()
-            if shape_type == 2:  # 2 = TopAbs_SHELL
-                print("[DEBUG] shell_shape is already a TopoDS_Shell. Using it directly.")
-                shell_found = topods.Shell(shell_shape)
-            elif shape_type == 0:  # 0 = TopAbs_COMPOUND
-                print("[DEBUG] shell_shape is a TopoDS_Compound. Extracting shell from compound...")
-                shell_explorer = TopExp_Explorer(shell_shape, TopAbs_SHELL)
-                if shell_explorer.More():
-                    shell_found = topods.Shell(shell_explorer.Current())
-                else:
-                    print("[ERROR] No shell found in compound. Cannot build solid.")
-                    return None
-            else:
-                print(f"[WARNING] shell_shape has unexpected type: {shape_type}. Attempting to use as shell...")
-                shell_found = topods.Shell(shell_shape)
-        except Exception as e:
-            print(f"[EXCEPTION] Error extracting shell: {e}")
-            raise
+        sewing.Dump()
     except Exception as e:
-        print(f"[EXCEPTION] Error in sewing operation: {e}")
-        raise
-    
-    if shell_found is None:
-        print("[ERROR] No shell found in sewed shape. Cannot build solid.")
-        return None
-    shell_analyzer = BRepCheck_Analyzer(shell_found)
+        print(f"[SEWING] Dump failed: {e}")
+    shell = sewing.SewedShape()
+    shell_analyzer = BRepCheck_Analyzer(shell)
     print(f"[SHELL CHECK] Shell valid: {shell_analyzer.IsValid()}")
     if not shell_analyzer.IsValid():
         print("[SHELL CHECK] Shell is INVALID!")
-    
-    # Try to fix shell orientation
-    print("[SHELL FIX] Attempting to fix shell orientation...")
-    shell_fixer = ShapeFix_Shell(shell_found)
-    shell_fixer.Perform()
-    fixed_shell = shell_fixer.Shell()
-    
-    print("[SOLID] Creating solid from shell...")
-    solid = BRepBuilderAPI_MakeSolid(fixed_shell).Solid()
-    
-    # Try to fix solid orientation
-    print("[SOLID FIX] Attempting to fix solid orientation...")
-    solid_fixer = ShapeFix_Solid(solid)
-    solid_fixer.Perform()
-    fixed_solid = solid_fixer.Solid()
-    
-    solid_analyzer = BRepCheck_Analyzer(fixed_solid)
+    solid = BRepBuilderAPI_MakeSolid(shell).Solid()
+    solid_analyzer = BRepCheck_Analyzer(solid)
     print(f"[SOLID CHECK] Solid valid: {solid_analyzer.IsValid()}")
     if not solid_analyzer.IsValid():
         print("[SOLID CHECK] Solid is INVALID!")
-        # Check if shell is closed
-        from OCC.Core.BRepCheck import BRepCheck_Shell
-        shell_check = BRepCheck_Shell(fixed_shell)
-        print(f"[SHELL CHECK] Shell closed: {shell_check.Closed()}")
-        
-        # Count edges and check if manifold
-        from OCC.Core.TopExp import TopExp_Explorer
-        from OCC.Core.TopAbs import TopAbs_EDGE
-        from OCC.Core.TopTools import TopTools_IndexedDataMapOfShapeListOfShape
-        from OCC.Core.TopExp import topexp
-        
-        edge_face_map = TopTools_IndexedDataMapOfShapeListOfShape()
-        topexp.MapShapesAndAncestors(fixed_shell, TopAbs_EDGE, TopAbs_FACE, edge_face_map)
-        
-        non_manifold_edges = 0
-        boundary_edges = 0
-        total_edges = edge_face_map.Size()
-        
-        for i in range(1, total_edges + 1):
-            face_list = edge_face_map.FindFromIndex(i)
-            num_faces = face_list.Size()
-            if num_faces == 1:
-                boundary_edges += 1
-            elif num_faces > 2:
-                non_manifold_edges += 1
-        
-        print(f"[SHELL CHECK] Total edges: {total_edges}")
-        print(f"[SHELL CHECK] Boundary edges (only 1 face): {boundary_edges}")
-        print(f"[SHELL CHECK] Non-manifold edges (>2 faces): {non_manifold_edges}")
-        
-        if boundary_edges > 0:
-            print("[SHELL CHECK] Shell is NOT closed - has boundary edges!")
-    
     # Volume check
     try:
         props = GProp_GProps()
@@ -436,8 +306,16 @@ def main():
         '--output-dir', type=str, default='Output',
         help='Directory to save output files'
     )
+    parser.add_argument(
+        '--no-graphics', action='store_true',
+        help='Save graphics to PDF instead of displaying interactively'
+    )
     
     args = parser.parse_args()
+    
+    # Turn off interactive mode if no-graphics is requested
+    if args.no_graphics:
+        plt.ioff()  # Turn off interactive mode
     
     # Handle configuration
     if args.config_file:
@@ -588,7 +466,9 @@ def main():
         Vertex_Front_View,
         Vertex_Side_View,
         Vertex_Iso_View,
-        pdf_dir
+        pdf_dir,
+        no_graphics=args.no_graphics,
+        seed=seed
     )
     
     # Save data files
@@ -608,13 +488,29 @@ def main():
     print(f"  python Reconstruct_Solid.py --seed {seed}")
     print("="*70)
     
-    # Show all plots
-    print("[DEBUG] About to call plt.show() for four-view plot...")
-    try:
-        plt.show()
-        print("[DEBUG] plt.show() completed successfully.")
-    except Exception as e:
-        print(f"[ERROR] Exception during plt.show(): {e}")
+    # Handle graphics display or save to PDF
+    if args.no_graphics:
+        # Create PDFfiles directory if it doesn't exist
+        pdf_output_dir = "PDFfiles"
+        os.makedirs(pdf_output_dir, exist_ok=True)
+        pdf_filename = os.path.join(pdf_output_dir, f"build_solid_seed_{seed}.pdf")
+        print(f"[STEP 7] Saving all graphics to {pdf_filename}...")
+        try:
+            with PdfPages(pdf_filename) as pdf:
+                for fig_num in plt.get_fignums():
+                    pdf.savefig(plt.figure(fig_num))
+            print(f"[STEP 7] Graphics saved to PDF: {pdf_filename}")
+            plt.close('all')
+        except Exception as e:
+            print(f"[ERROR] Exception during PDF save: {e}")
+    else:
+        # Show all plots
+        print("[DEBUG] About to call plt.show() for four-view plot...")
+        try:
+            plt.show()
+            print("[DEBUG] plt.show() completed successfully.")
+        except Exception as e:
+            print(f"[ERROR] Exception during plt.show(): {e}")
     
     # Debug: Check validity of original and rebuilt solids
     print("\n[DEBUG] Checking original solid...")
