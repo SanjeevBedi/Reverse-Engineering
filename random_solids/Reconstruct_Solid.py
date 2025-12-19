@@ -52,6 +52,34 @@ def load_connectivity_matrices(seed, input_dir="Output"):
     front_view_matrix = data['front_view_matrix']
     side_view_matrix = data['side_view_matrix']
     
+    # Validate matrix shapes
+    print(f"\n[DEBUG] Validating connectivity matrix shapes...")
+    print(f"  - all_vertices shape: {all_vertices.shape}")
+    print(f"  - top_view_matrix shape: {top_view_matrix.shape}")
+    print(f"  - front_view_matrix shape: {front_view_matrix.shape}")
+    print(f"  - side_view_matrix shape: {side_view_matrix.shape}")
+    
+    # Check if matrices are valid (should be 2D with at least 3 columns)
+    if len(top_view_matrix.shape) != 2 or top_view_matrix.shape[1] < 3:
+        raise ValueError(
+            f"\nERROR: Invalid top_view_matrix shape: {top_view_matrix.shape}\n"
+            f"Expected 2D array with at least 3 columns [connectivity, x, y]\n"
+            f"The build process likely failed to generate connectivity matrices.\n"
+            f"Check the build output: txtFiles/output_build_{seed}.txt\n"
+            f"This usually means no faces were visible in the top view projection.")
+    if len(front_view_matrix.shape) != 2 or front_view_matrix.shape[1] < 3:
+        raise ValueError(
+            f"\nERROR: Invalid front_view_matrix shape: {front_view_matrix.shape}\n"
+            f"Expected 2D array with at least 3 columns [connectivity, x, y]\n"
+            f"The build process likely failed to generate connectivity matrices.\n"
+            f"Check the build output: txtFiles/output_build_{seed}.txt")
+    if len(side_view_matrix.shape) != 2 or side_view_matrix.shape[1] < 3:
+        raise ValueError(
+            f"\nERROR: Invalid side_view_matrix shape: {side_view_matrix.shape}\n"
+            f"Expected 2D array with at least 3 columns [connectivity, x, y]\n"
+            f"The build process likely failed to generate connectivity matrices.\n"
+            f"Check the build output: txtFiles/output_build_{seed}.txt")
+    
     # Load unit conversion parameters (with defaults for backward compatibility)
     # Handle both regular strings and numpy strings
     try:
@@ -140,6 +168,9 @@ def process_boundary_edges(extracted_faces, selected_vertices, merged_conn,
     """
     print("\n[BOUNDARY] Starting boundary edge processing...")
     
+    # Track edges from rejected interior polygons that should be removed
+    rejected_polygon_edges = []
+    
     # Step 1: Build edge-to-face mapping from current extracted faces
     edge_face_map = {}
     for face_idx, face in enumerate(extracted_faces):
@@ -174,10 +205,19 @@ def process_boundary_edges(extracted_faces, selected_vertices, merged_conn,
             boundary_edges.append(edge)
     
     print(f"[BOUNDARY] Found {len(boundary_edges)} boundary edges")
+    if len(boundary_edges) > 0:
+        print("[BOUNDARY] Boundary edge details:")
+        for i, edge in enumerate(boundary_edges, 1):
+            v1, v2 = edge
+            coord1 = selected_vertices[v1]
+            coord2 = selected_vertices[v2]
+            print(f"[BOUNDARY]   Edge {i}: v{v1}-v{v2} "
+                  f"({coord1[0]:.1f},{coord1[1]:.1f},{coord1[2]:.1f}) <-> "
+                  f"({coord2[0]:.1f},{coord2[1]:.1f},{coord2[2]:.1f})")
     
     if len(boundary_edges) == 0:
         print("[BOUNDARY] No boundary edges to process")
-        return extracted_faces
+        return extracted_faces, []
     
     # Step 3: Build connectivity graph from boundary edges
     boundary_graph = {}
@@ -245,20 +285,37 @@ def process_boundary_edges(extracted_faces, selected_vertices, merged_conn,
     
     # Step 5: Process closed polygons
     for poly_verts in closed_polygons:
-        process_closed_polygon(poly_verts, extracted_faces,
-                               selected_vertices, tolerance)
+        rejected_edges = process_closed_polygon(poly_verts, extracted_faces,
+                                               selected_vertices, tolerance)
+        if rejected_edges:
+            rejected_polygon_edges.extend(rejected_edges)
     
     # Step 6: Process unclosed chains (find pairs and complete them)
     if len(unclosed_chains) > 0:
         process_unclosed_chains(unclosed_chains, extracted_faces,
                                 selected_vertices, merged_conn, tolerance)
     
-    return extracted_faces
+    # Step 7: Remove rejected polygon edges from all faces
+    # Note: Rejected edges represent interior faces that were correctly not created
+    # We store them to filter out from "free edge" warnings during sewing
+    if rejected_polygon_edges:
+        print(f"\n[BOUNDARY] Storing {len(rejected_polygon_edges)} edges "
+              f"from rejected interior polygons for filtering...")
+        # Store in a format accessible later during sewing
+        # Add as a return value or store globally
+    
+    # Return both the faces and the rejected edges
+    return extracted_faces, rejected_polygon_edges
 
 
 def process_closed_polygon(poly_verts, extracted_faces, selected_vertices,
                            tolerance=1e-6):
-    """Process a closed polygon found in boundary edges"""
+    """
+    Process a closed polygon found in boundary edges.
+    
+    Returns:
+        List of rejected edges if polygon is interior, empty list otherwise
+    """
     from shapely.geometry import Polygon as ShapelyPolygon
     
     print(f"\n[BOUNDARY] Processing closed polygon with " +
@@ -272,7 +329,7 @@ def process_closed_polygon(poly_verts, extracted_faces, selected_vertices,
     
     if poly_normal is None:
         print("[BOUNDARY] Could not fit plane to polygon")
-        return
+        return []
     
     # Find matching face by comparing normals and d values
     best_match_idx = None
@@ -302,11 +359,14 @@ def process_closed_polygon(poly_verts, extracted_faces, selected_vertices,
         process_polygon_on_existing_face(poly_verts, best_match_idx,
                                         extracted_faces, selected_vertices,
                                         tolerance)
+        return []
     else:
         # Create new face for this polygon
         print("[BOUNDARY] Creating new face for polygon")
-        create_new_face_from_polygon(poly_verts, poly_normal, poly_d,
-                                     extracted_faces, selected_vertices)
+        rejected_edges = create_new_face_from_polygon(
+            poly_verts, poly_normal, poly_d,
+            extracted_faces, selected_vertices)
+        return rejected_edges if rejected_edges else []
 
 
 def process_polygon_on_existing_face(poly_verts, face_idx, extracted_faces,
@@ -490,19 +550,299 @@ def project_to_2d(points_3d, normal):
     return np.array(points_2d)
 
 
+def ray_intersects_polygon(ray_origin, ray_direction, polygon_coords,
+                           polygon_holes=None, epsilon=1e-8,
+                           return_t=False):
+    """
+    Check if a ray intersects a polygon using plane intersection +
+    point-in-polygon test.
+    
+    Args:
+        ray_origin: 3D point where ray starts
+        ray_direction: 3D normalized direction vector
+        polygon_coords: Nx3 array of polygon vertex coordinates
+        polygon_holes: List of hole polygons (each is Mx3 array), or None
+        epsilon: Tolerance for geometric tests
+        return_t: If True, return (bool, t_value) instead of just bool
+        
+    Returns:
+        bool: True if ray intersects polygon (inside boundary, outside holes)
+        OR (bool, t_value) if return_t=True
+    """
+    from shapely.geometry import Polygon as ShapelyPolygon, Point
+    
+    if len(polygon_coords) < 3:
+        return (False, None) if return_t else False
+    
+    # Step 1: Compute plane of polygon
+    v0 = polygon_coords[0]
+    v1 = polygon_coords[1]
+    v2 = polygon_coords[2]
+    
+    # Polygon normal
+    edge1 = v1 - v0
+    edge2 = v2 - v0
+    poly_normal = np.cross(edge1, edge2)
+    norm = np.linalg.norm(poly_normal)
+    if norm < epsilon:
+        return (False, None) if return_t else False
+    poly_normal = poly_normal / norm
+    
+    # Plane equation: n·p + d = 0
+    poly_d = -np.dot(poly_normal, v0)
+    
+    # Step 2: Find intersection of ray with plane
+    denom = np.dot(poly_normal, ray_direction)
+    if abs(denom) < epsilon:
+        # Ray parallel to plane
+        return (False, None) if return_t else False
+    
+    t = -(np.dot(poly_normal, ray_origin) + poly_d) / denom
+    
+    # Only consider intersections in positive ray direction
+    if t <= epsilon:
+        return (False, None) if return_t else False
+    
+    # Intersection point
+    intersection_point = ray_origin + t * ray_direction
+    
+    # Step 3: Check if intersection point is inside polygon boundary
+    # Project polygon and intersection point to 2D
+    poly_2d = project_to_2d(polygon_coords, poly_normal)
+    
+    # Project intersection point to 2D
+    # Find dominant axis
+    abs_normal = np.abs(poly_normal)
+    dominant_idx = np.argmax(abs_normal)
+    
+    if dominant_idx == 0:  # x is dominant, use y-z plane
+        int_2d = Point(intersection_point[1], intersection_point[2])
+    elif dominant_idx == 1:  # y is dominant, use x-z plane
+        int_2d = Point(intersection_point[0], intersection_point[2])
+    else:  # z is dominant, use x-y plane
+        int_2d = Point(intersection_point[0], intersection_point[1])
+    
+    # Create polygon boundary
+    boundary_poly = ShapelyPolygon(poly_2d)
+    
+    # Check if point is inside boundary
+    if not boundary_poly.contains(int_2d):
+        return (False, None) if return_t else False
+    
+    # Step 4: Check if point is outside all holes
+    if polygon_holes is not None and len(polygon_holes) > 0:
+        for hole_coords in polygon_holes:
+            hole_2d = project_to_2d(hole_coords, poly_normal)
+            hole_poly = ShapelyPolygon(hole_2d)
+            if hole_poly.contains(int_2d):
+                # Point is inside a hole
+                return (False, None) if return_t else False
+    
+    return (True, t) if return_t else True
+
+
 def create_new_face_from_polygon(poly_verts, normal, d, extracted_faces,
                                  selected_vertices):
-    """Create a new face from a polygon"""
+    """
+    Create a new face from a polygon with ray-casting validation.
+    Uses bounding-box strategy: fire ray from bbox to polygon interior,
+    count intersections before and after the polygon.
+    
+    Returns:
+        List of rejected edges if polygon is interior, empty list otherwise
+    """
+    from shapely.geometry import Polygon as ShapelyPolygon, Point
+    
+    # Step 1: Get interior point of the polygon
+    print(f"[BOUNDARY] Validating new face with {len(poly_verts)} vertices "
+          f"using ray-casting...")
+    
+    # Get 3D coordinates
+    poly_coords_3d = np.array([selected_vertices[v] for v in poly_verts])
+    
+    # Project to 2D to find interior point
+    poly_coords_2d = project_to_2d(poly_coords_3d, normal)
+    poly_shapely = ShapelyPolygon(poly_coords_2d)
+    
+    if not poly_shapely.is_valid:
+        print("[BOUNDARY] ✗ Invalid polygon geometry - skipping")
+        return []
+    
+    # Get interior point in 2D
+    interior_2d = poly_shapely.representative_point()
+    
+    # Project interior point back to 3D on the face plane
+    poly_normal = np.array(normal)
+    
+    # Find which component of normal is dominant
+    abs_normal = np.abs(poly_normal)
+    dominant_idx = np.argmax(abs_normal)
+    
+    if dominant_idx == 2:  # z is dominant
+        interior_3d = np.array([interior_2d.x, interior_2d.y, 0.0])
+        interior_3d[2] = (-(poly_normal[0] * interior_2d.x +
+                            poly_normal[1] * interior_2d.y + d) /
+                          poly_normal[2])
+    elif dominant_idx == 1:  # y is dominant
+        interior_3d = np.array([interior_2d.x, 0.0, interior_2d.y])
+        interior_3d[1] = (-(poly_normal[0] * interior_2d.x +
+                            poly_normal[2] * interior_2d.y + d) /
+                          poly_normal[1])
+    else:  # x is dominant
+        interior_3d = np.array([0.0, interior_2d.x, interior_2d.y])
+        interior_3d[0] = (-(poly_normal[1] * interior_2d.x +
+                            poly_normal[2] * interior_2d.y + d) /
+                          poly_normal[0])
+    
+    polygon_interior = interior_3d
+    
+    # Step 2: Find bounding box of all vertices
+    # selected_vertices is already a numpy array
+    bbox_min = np.min(selected_vertices, axis=0)
+    bbox_max = np.max(selected_vertices, axis=0)
+    
+    # Step 3: Find point on bounding box in the direction of polygon normal
+    # We want to shoot from outside the bbox along the normal direction
+    # Choose the bbox face that is most aligned with the polygon normal
+    abs_normal = np.abs(poly_normal)
+    dominant_axis = np.argmax(abs_normal)
+    
+    # Start from bbox face perpendicular to dominant axis
+    bbox_point = polygon_interior.copy()
+    if poly_normal[dominant_axis] > 0:
+        # Normal points in positive direction, shoot from negative bbox face
+        bbox_point[dominant_axis] = bbox_min[dominant_axis]
+        offset = (bbox_max[dominant_axis] - bbox_min[dominant_axis]) * 0.01
+        bbox_point[dominant_axis] -= offset
+    else:
+        # Normal points in negative direction, shoot from positive bbox face
+        bbox_point[dominant_axis] = bbox_max[dominant_axis]
+        offset = (bbox_max[dominant_axis] - bbox_min[dominant_axis]) * 0.01
+        bbox_point[dominant_axis] += offset
+    
+    # Step 4: Cast ray from bbox point along polygon normal direction
+    ray_origin = bbox_point
+    ray_direction = poly_normal / np.linalg.norm(poly_normal)
+    # Make sure ray points towards polygon interior
+    if np.dot(polygon_interior - bbox_point, ray_direction) < 0:
+        ray_direction = -ray_direction
+    
+    print(f"[BOUNDARY]   Ray origin (bbox): [{ray_origin[0]:.2f}, {ray_origin[1]:.2f}, {ray_origin[2]:.2f}]")
+    print(f"[BOUNDARY]   Polygon interior: [{polygon_interior[0]:.2f}, {polygon_interior[1]:.2f}, {polygon_interior[2]:.2f}]")
+    print(f"[BOUNDARY]   Ray direction: [{ray_direction[0]:.3f}, {ray_direction[1]:.3f}, {ray_direction[2]:.3f}]")
+    
+    # Step 5: Collect all intersections with parameter t
+    intersections = []  # List of (t, face_idx, is_target_polygon)
+    
+    # First, find intersection with our target polygon
+    target_t = None
+    # Ray-plane intersection for target polygon
+    denom = np.dot(ray_direction, poly_normal)
+    print(f"[BOUNDARY]   Ray·Normal = {denom:.6f}")
+    if abs(denom) > 1e-9:
+        v0 = poly_coords_3d[0]
+        t = np.dot(v0 - ray_origin, poly_normal) / denom
+        print(f"[BOUNDARY]   Computed t = {t:.2f}")
+        if t > 0:
+            # Verify intersection is inside polygon
+            int_point = ray_origin + t * ray_direction
+            print(f"[BOUNDARY]   Intersection point: [{int_point[0]:.2f}, {int_point[1]:.2f}, {int_point[2]:.2f}]")
+            # Check if intersection point is inside polygon (project to 2D)
+            int_2d = project_to_2d([int_point], poly_normal)[0]
+            int_pt_shapely = Point(int_2d)
+            if poly_shapely.contains(int_pt_shapely) or poly_shapely.touches(int_pt_shapely):
+                target_t = t
+                intersections.append((t, -1, True))  # -1 = target polygon
+    
+    if target_t is None:
+        print("[BOUNDARY]   ✗ Ray does not intersect polygon - skipping")
+        return []
+    
+    # Now test against all existing faces
+    for face_idx, face in enumerate(extracted_faces):
+        if not isinstance(face, dict) or 'vertices' not in face:
+            continue
+        
+        face_verts = face['vertices']
+        if len(face_verts) < 3:
+            continue
+        
+        # Get face vertices
+        face_coords = np.array([selected_vertices[v] for v in face_verts])
+        
+        # Get face holes if any
+        face_holes = None
+        if 'holes' in face and len(face['holes']) > 0:
+            face_holes = [
+                np.array([selected_vertices[v] for v in hole])
+                for hole in face['holes']
+            ]
+        
+        # Check if ray intersects this face
+        result, t_val = ray_intersects_polygon(ray_origin, ray_direction,
+                                               face_coords, face_holes,
+                                               return_t=True)
+        if result and t_val > 0:
+            intersections.append((t_val, face_idx, False))
+    
+    # Step 6: Sort intersections by parameter t
+    intersections.sort(key=lambda x: x[0])
+    
+    # Step 7: Count total intersections (including target polygon)
+    total_intersections = len(intersections)
+    
+    print(f"[BOUNDARY]   Ray from bbox through solid")
+    print(f"[BOUNDARY]   Target polygon at t={target_t:.4f}")
+    print(f"[BOUNDARY]   Total intersections (including target): {total_intersections}")
+    
+    # Print details of each intersection
+    if total_intersections > 0:
+        print(f"[BOUNDARY]   Intersection details:")
+        for i, (t, face_idx, is_target) in enumerate(intersections):
+            if is_target:
+                print(f"[BOUNDARY]     #{i+1}: t={t:.4f} - TARGET POLYGON")
+            else:
+                face_verts = extracted_faces[face_idx]['vertices']
+                print(f"[BOUNDARY]     #{i+1}: t={t:.4f} - Face {face_idx} (verts: {face_verts})")
+    
+    # Step 8: Determine if polygon is interior or exterior based on total count
+    # Ray from outside bbox should hit solid even number of times (enter/exit pairs)
+    # If total is EVEN: target polygon is on the BOUNDARY (exterior)
+    # If total is ODD: target polygon is INTERIOR (inside solid)
+
+    if total_intersections % 2 == 0:
+        # Even total: target polygon is on boundary (exterior surface)
+        print("[BOUNDARY]   ✓ Even intersections - polygon is on boundary (exterior)")
+        print("[BOUNDARY]   → Creating face")
+    else:
+        # Odd total: target polygon is interior
+        print("[BOUNDARY]   ✗ Odd intersections - polygon is interior")
+        print("[BOUNDARY]   → NOT creating face")
+
+        # Return edges from this rejected polygon so they can be removed
+        rejected_edges = []
+        for i in range(len(poly_verts)):
+            v1 = poly_verts[i]
+            v2 = poly_verts[(i + 1) % len(poly_verts)]
+            edge = tuple(sorted([v1, v2]))
+            rejected_edges.append(edge)
+
+        print(f"[BOUNDARY]   Marking {len(rejected_edges)} edges for removal")
+        return rejected_edges
+
+    # Step 9: Create the face
     new_face = {
         'vertices': poly_verts,
         'normal': tuple(normal),
         'd': d,
         'holes': []
     }
-    
+
     extracted_faces.append(new_face)
     print(f"[BOUNDARY] Created new face {len(extracted_faces)} with " +
           f"{len(poly_verts)} vertices")
+
+    return []  # No rejected edges
 
 
 def find_faces_containing_vertex(v_idx, extracted_faces):
@@ -535,11 +875,33 @@ def load_face_polygons(seed, input_dir="Output",
     
     if not os.path.exists(filename):
         print(f"[LOAD] Warning: Face polygon file not found: {filename}")
-        return None
+        return None, None
     
     print(f"[LOAD] Loading face polygons from: {filename}")
-    face_data = np.load(filename, allow_pickle=True)
-    print(f"       - Loaded {len(face_data)} faces")
+    loaded_data = np.load(filename, allow_pickle=True)
+    
+    # Handle both old format (just array) and new format (dict with metadata)
+    original_volume_raw = None
+    if isinstance(loaded_data, np.ndarray):
+        # Check if it's a 0-d array containing a dict (new format)
+        if loaded_data.shape == () and isinstance(loaded_data.item(), dict):
+            # New format: dictionary with 'faces' and 'volume'
+            data_dict = loaded_data.item()
+            face_data = data_dict.get('faces', [])
+            original_volume_raw = data_dict.get('volume', None)
+            print(f"       - Loaded {len(face_data)} faces (new format)")
+            if original_volume_raw is not None:
+                print(f"       - Original volume: {original_volume_raw:.6f}")
+        else:
+            # Old format: just face array
+            face_data = loaded_data
+            original_volume_raw = None
+            print(f"       - Loaded {len(face_data)} faces (old format)")
+    else:
+        # Fallback
+        face_data = loaded_data
+        original_volume_raw = None
+        print(f"       - Loaded data (unknown format)")
     
     # Apply same unit conversion as vertices
     unit_to_mm = {
@@ -554,6 +916,13 @@ def load_face_polygons(seed, input_dir="Output",
     
     conversion = unit_to_mm.get(units.lower(), 1.0)
     scale_factor = conversion * (drawing_scale_real / drawing_scale_drawing)
+    volume_scale = scale_factor ** 3
+    
+    # Scale volume if available
+    original_volume_scaled = None
+    if original_volume_raw is not None:
+        original_volume_scaled = original_volume_raw * volume_scale
+        print(f"       - Scaled volume: {original_volume_scaled:.6f} mm³")
     
     # Scale all vertices in all faces
     scaled_face_data = []
@@ -596,7 +965,7 @@ def load_face_polygons(seed, input_dir="Output",
                 print(f"       - First face has 'outer_boundary' with "
                       f"{len(first_face['outer_boundary'])} vertices")
     
-    return np.array(scaled_face_data, dtype=object)
+    return np.array(scaled_face_data, dtype=object), original_volume_scaled
 
 
 def project_vertex_to_view(vertex, normal):
@@ -921,13 +1290,13 @@ def build_square_connectivity_matrices(
             # Add connectivity for vertices at same 2D position in one view
             # if connected in other two views
             if (np.allclose(tp_i, tp_j, atol=1e-6) and 
-                    front_conn[i, j] == 1 and side_conn[i, j] == 1):
+                    front_conn[i, j] > 0 and side_conn[i, j] > 0):
                 top_conn[i, j] = 1
             if (np.allclose(fp_i, fp_j, atol=1e-6) and 
-                    top_conn[i, j] == 1 and side_conn[i, j] == 1):
+                    top_conn[i, j] > 0 and side_conn[i, j] > 0):
                 front_conn[i, j] = 1
             if (np.allclose(sp_i, sp_j, atol=1e-6) and 
-                    front_conn[i, j] == 1 and top_conn[i, j] == 1):
+                    front_conn[i, j] > 0 and top_conn[i, j] > 0):
                 side_conn[i, j] = 1
     
     print(f"Built connectivity matrices:")
@@ -957,8 +1326,8 @@ def main():
         help='Directory containing saved connectivity matrices'
     )
     parser.add_argument(
-        '--tolerance', type=float, default=1e-6,
-        help='Tolerance for face coplanarity detection'
+        '--tolerance', type=float, default=0.05,
+        help='Tolerance for dimensional comparisons (mm). Normals use 1e-6.'
     )
     parser.add_argument(
         '--save-plot', action='store_true',
@@ -982,14 +1351,27 @@ def main():
         (all_vertices, top_matrix, front_matrix, side_matrix,
          units, drawing_scale_real, drawing_scale_drawing) = \
             load_connectivity_matrices(args.seed, args.input_dir)
-        face_polygons = load_face_polygons(args.seed, args.input_dir,
-                                           units, drawing_scale_real, 
-                                           drawing_scale_drawing)
+        face_polygons, original_volume_from_file = load_face_polygons(
+            args.seed, args.input_dir,
+            units, drawing_scale_real, 
+            drawing_scale_drawing)
         
         # Ensure face_polygons is a list, not None
         if face_polygons is None:
-            print("[LOAD] Warning: No original face polygons available for comparison")
+            print("[LOAD] Warning: No original face polygons available")
             face_polygons = []
+            original_volume_from_file = None
+        else:
+            # Debug: Print original faces for comparison
+            print("\n" + "="*70)
+            print("ORIGINAL FACES FROM BUILD_SOLID")
+            print("="*70)
+            for idx, face in enumerate(face_polygons):
+                outer = face.get('outer_boundary', [])
+                holes = face.get('holes', [])
+                print(f"Original Face {idx}: {len(outer)} vertices, "
+                      f"{len(holes)} holes")
+            print("="*70)
     except FileNotFoundError as e:
         print(f"\n[ERROR] {e}")
         return
@@ -1020,9 +1402,13 @@ def main():
             selected_vertices, top_matrix, front_matrix, side_matrix
         )
     
-    # Build merged connectivity matrix
+    # Build merged connectivity matrix (binary: counts number of views)
+    # Convert visibility matrices (1=solid, 2=dashed) to binary (1=exists)
     print("\n[STEP 4] Building merged connectivity matrix...")
-    merged_conn = top_conn + front_conn + side_conn
+    top_conn_binary = (top_conn > 0).astype(int)
+    front_conn_binary = (front_conn > 0).astype(int)
+    side_conn_binary = (side_conn > 0).astype(int)
+    merged_conn = top_conn_binary + front_conn_binary + side_conn_binary
     
     total_edges = np.sum(merged_conn > 0) // 2
     edges_conn3 = np.sum(merged_conn == 3) // 2
@@ -1035,8 +1421,10 @@ def main():
     print(f"  - Edges with conn=2 (two views): {edges_conn2}")
     print(f"  - Edges with conn=1 (one view): {edges_conn1}")
     
-    print(f"\n[DEBUG] merged_conn has {np.sum(merged_conn == 3)} edges with conn=3 BEFORE rounding")
-    print(f"[DEBUG] Sample merged_conn values (rows 0-5, cols 0-5):")
+    print(f"\n[DEBUG] BEFORE deduplication:")
+    print(f"[DEBUG]   Vertices: {len(selected_vertices)}")
+    print(f"[DEBUG]   Edges conn=3: {edges_conn3}")
+    print(f"[DEBUG]   Sample merged_conn values (rows 0-5, cols 0-5):")
     print(merged_conn[:5, :5])
     
     # Visualize reconstructed edges
@@ -1054,224 +1442,96 @@ def main():
     # )
     
     # =========================================================================
-    # STEP 5.5: Round vertex coordinates to 0.1 mm precision
+    # STEP 5.5: Vertex rounding (NOW DONE IN BUILD_SOLID.PY)
     # =========================================================================
-    print("\n[STEP 5.5] Rounding vertex coordinates to 0.1 mm precision...")
-    print("   This is done AFTER building connectivity but BEFORE polygon extraction")
+    # NOTE: Rounding is now performed at solid creation time in Base_Solid.py
+    # and Lettering_solid.py using make_rounded_pnt() helper function.
+    # This ensures all geometry is created with 0.1mm precision from the start,
+    # preventing vertices from collapsing during reconstruction.
+    #
+    # The old approach of rounding AFTER reconstruction caused problems:
+    # - Created vertices with sub-0.1mm differences during reconstruction
+    # - Rounding collapsed distinct vertices to identical coordinates
+    # - Deduplication then lost edges between collapsed vertices
+    # - Result: Missing faces in reconstruction (e.g., only 11/18 faces)
+    #
+    # With source-level rounding, vertices naturally have 0.1mm precision
+    # throughout the entire pipeline without needing post-processing.
     
-    # Store original vertices before rounding
-    original_vertices = selected_vertices.copy()
+    print("\n[STEP 5.5] Vertex coordinate precision check...")
+    print("   NOTE: Vertices should already be at 0.1mm precision from Build_Solid")
+    print("   (Rounding now happens at solid creation time, not during reconstruction)")
     
-    # Round the vertex array
-    selected_vertices = np.round(selected_vertices, 1)
-    
-    print(f"   Rounded {len(selected_vertices)} vertices to 1 decimal place")
-    
-    # Check for duplicate vertices after rounding
-    print("\n   Checking for duplicate vertices after rounding...")
-    duplicates_found = []
-    for i in range(len(selected_vertices)):
-        for j in range(i+1, len(selected_vertices)):
-            if np.allclose(selected_vertices[i], selected_vertices[j], atol=1e-6):
-                duplicates_found.append((i, j, selected_vertices[i]))
-    
-    if duplicates_found:
-        print(f"   WARNING: Found {len(duplicates_found)} duplicate vertex pairs:")
-        for i, j, v in duplicates_found[:10]:  # Show first 10
-            print(f"      Vertices {i} and {j} are both at {v}")
-        if len(duplicates_found) > 10:
-            print(f"      ... and {len(duplicates_found) - 10} more duplicates")
-        print(f"   Note: Deduplication will be performed in Step 5.7 after connectivity rebuild")
-    else:
-        print(f"   ✓ All {len(selected_vertices)} vertices are unique")
-    
-    # Display sample vertices to confirm rounding
-    print("\n   Sample vertices (first 5, after rounding):")
+    # Display sample vertices to confirm they're already rounded
+    print("\n   Sample vertices (first 5):")
     for idx in range(min(5, len(selected_vertices))):
         v = selected_vertices[idx]
         print(f"      Vertex {idx}: [{v[0]:.1f}, {v[1]:.1f}, {v[2]:.1f}] mm")
     
     # =========================================================================
-    # STEP 5.6: Rebuild connectivity matrices for deduplicated vertices
+    # STEP 5.6: Connectivity remapping (NOT NEEDED WITH SOURCE-LEVEL ROUNDING)
     # =========================================================================
-    print("\n[STEP 5.6] Rebuilding connectivity matrices for deduplicated vertices...")
-    print("   Mapping old vertices to deduplicated rounded vertices (tolerance ±0.05mm)")
+    # NOTE: This step was previously needed to remap connectivity matrices
+    # after rounding vertices in Step 5.5. Since we now round at the source
+    # (in Build_Solid.py), vertices already have 0.1mm precision and no
+    # remapping is needed. The merged_conn matrix from Step 4 is used as-is.
     
-    # Helper function to remap connectivity matrix with tolerance
-    def remap_connectivity_matrix(old_matrix, old_vertices, new_vertices, 
-                                   view_name, x_idx, y_idx):
-        """
-        Remap connectivity from old matrix to new deduplicated vertices.
-        Uses ±0.05mm tolerance when matching old vertices to new vertices.
-        """
-        N_old = old_matrix.shape[0]
-        N_new = len(new_vertices)
-        
-        print(f"   {view_name}: Remapping {N_old} vertices to {N_new} vertices")
-        
-        # Create new connectivity matrix [N_new x (N_new + 3)]
-        new_matrix = np.zeros((N_new, N_new + 3), dtype=float)
-        
-        # Fill vertex indices and 2D coordinates
-        for i in range(N_new):
-            new_matrix[i, 0] = i
-            new_matrix[i, 1] = new_vertices[i, x_idx]
-            new_matrix[i, 2] = new_vertices[i, y_idx]
-        
-        # Create mapping: old_vertex_index -> list of new_vertex_indices
-        # Use ±0.05mm tolerance for matching 2D coordinates
-        old_to_new_vertex_map = {}
-        for old_idx in range(N_old):
-            old_coord_2d = old_matrix[old_idx, 1:3]
-            matches = []
-            for new_idx in range(N_new):
-                new_coord_2d = np.array([new_vertices[new_idx, x_idx],
-                                          new_vertices[new_idx, y_idx]])
-                # Use ±0.05mm tolerance (but compare with rounded coordinates)
-                # The old matrix coords may not be rounded, so we need tolerance
-                if np.allclose(old_coord_2d, new_coord_2d, atol=0.1):
-                    matches.append(new_idx)
-            if matches:
-                old_to_new_vertex_map[old_idx] = matches
-        
-        print(f"      Mapped {len(old_to_new_vertex_map)} old vertices to new vertices")
-        
-        # Debug: Check for unmapped vertices
-        unmapped = N_old - len(old_to_new_vertex_map)
-        if unmapped > 0:
-            print(f"      WARNING: {unmapped} old vertices had no match in new vertices!")
-        
-        # Map connectivity values
-        # Only process upper triangle (old_col_idx > old_row_idx) to avoid double counting
-        # since connectivity matrices are symmetric
-        edges_mapped = 0
-        for old_row_idx in range(N_old):
-            new_row_indices = old_to_new_vertex_map.get(old_row_idx, [])
-            if not new_row_indices:
-                continue
-            
-            # Only process upper triangle: old_col_idx > old_row_idx
-            for old_col_idx in range(old_row_idx + 1, N_old):
-                conn_col = 3 + old_col_idx
-                if conn_col >= old_matrix.shape[1]:
-                    continue
-                
-                conn_value = old_matrix[old_row_idx, conn_col]
-                if conn_value == 1:
-                    new_col_indices = old_to_new_vertex_map.get(old_col_idx, [])
-                    
-                    # Update ALL combinations of mapped vertices
-                    for new_row in new_row_indices:
-                        for new_col in new_col_indices:
-                            if new_row != new_col:
-                                # Update both (new_row, new_col) and (new_col, new_row) for symmetry
-                                dest_col_forward = 3 + new_col
-                                dest_col_reverse = 3 + new_row
-                                
-                                if dest_col_forward < new_matrix.shape[1]:
-                                    new_matrix[new_row, dest_col_forward] = 1
-                                    edges_mapped += 1
-                                
-                                if dest_col_reverse < new_matrix.shape[1]:
-                                    new_matrix[new_col, dest_col_reverse] = 1
-        
-        print(f"      Mapped {edges_mapped} edge connections (symmetric pairs)")
-        return new_matrix
-    
-    # Rebuild each view's connectivity matrix
-    print("\n   Remapping top view matrix...")
-    new_top_matrix = remap_connectivity_matrix(
-        top_matrix, original_vertices, selected_vertices,
-        "Top view", x_idx=0, y_idx=1
-    )
-    
-    print("\n   Remapping front view matrix...")
-    new_front_matrix = remap_connectivity_matrix(
-        front_matrix, original_vertices, selected_vertices,
-        "Front view", x_idx=0, y_idx=2
-    )
-    
-    print("\n   Remapping side view matrix...")
-    new_side_matrix = remap_connectivity_matrix(
-        side_matrix, original_vertices, selected_vertices,
-        "Side view", x_idx=1, y_idx=2
-    )
-    
-    # Replace old matrices
-    top_matrix = new_top_matrix
-    front_matrix = new_front_matrix
-    side_matrix = new_side_matrix
-    
-    # Rebuild merged connectivity matrix
-    print("\n   Rebuilding merged connectivity matrix...")
-    N = len(selected_vertices)
-    merged_conn = np.zeros((N, N), dtype=int)
-    
-    # Merge connectivity from all three views
-    for i in range(N):
-        for j in range(N):
-            col_idx = 3 + j
-            top_conn = int(top_matrix[i, col_idx]) if col_idx < top_matrix.shape[1] else 0
-            front_conn = int(front_matrix[i, col_idx]) if col_idx < front_matrix.shape[1] else 0
-            side_conn = int(side_matrix[i, col_idx]) if col_idx < side_matrix.shape[1] else 0
-            merged_conn[i, j] = top_conn + front_conn + side_conn
-    
-    # Upgrade conn=2 to conn=3 for edges perpendicular to one view
-    # (edges where vertices share two coincident coordinates)
-    print("\n   Upgrading conn=2 edges where vertices share 2 coordinates...")
-    upgraded_count = 0
-    for i in range(N):
-        for j in range(i+1, N):  # Only process upper triangle
-            if merged_conn[i, j] == 2:
-                v_i = selected_vertices[i]
-                v_j = selected_vertices[j]
-                
-                # Count how many coordinates are coincident (within tolerance)
-                coincident_coords = 0
-                if np.abs(v_i[0] - v_j[0]) < 0.15:  # X coordinate
-                    coincident_coords += 1
-                if np.abs(v_i[1] - v_j[1]) < 0.15:  # Y coordinate
-                    coincident_coords += 1
-                if np.abs(v_i[2] - v_j[2]) < 0.15:  # Z coordinate
-                    coincident_coords += 1
-                
-                # If 2 coordinates are coincident, the edge is perpendicular to one view
-                if coincident_coords == 2:
-                    merged_conn[i, j] = 3
-                    merged_conn[j, i] = 3  # Update symmetric cell
-                    upgraded_count += 1
-    
-    print(f"   Upgraded {upgraded_count} edges from conn=2 to conn=3")
-    
-    # Report final connectivity stats
-    edges_conn3 = np.sum(merged_conn == 3) // 2
-    edges_conn2 = np.sum(merged_conn == 2) // 2
-    edges_conn1 = np.sum(merged_conn == 1) // 2
-    print(f"   Final connectivity: {edges_conn3} edges with conn=3, {edges_conn2} with conn=2, {edges_conn1} with conn=1")
+    print("\n[STEP 5.6] Connectivity matrix status...")
+    print("   NOTE: Using merged_conn from Step 4 without remapping")
+    print("   (Vertices already have 0.1mm precision from source)")
     
     # =========================================================================
     # STEP 5.7: Deduplicate vertices after remapping
     # =========================================================================
-    print("\n[STEP 5.7] Deduplicating vertices (merging vertices closer than 0.05mm)...")
+    print("\n[STEP 5.7] Deduplicating vertices (merging vertices closer than 0.1mm)...")
     
     unique_vertices = []
     vertex_mapping = {}  # Maps old index -> new index
+    merge_groups = []  # Track which old vertices map to each new vertex
     
     for i in range(len(selected_vertices)):
         v = selected_vertices[i]
         # Check if this vertex is close to any existing unique vertex
         found_match = False
         for j, uv in enumerate(unique_vertices):
-            if np.allclose(v, uv, atol=0.05):  # Within 0.05mm
+            if np.allclose(v, uv, atol=0.1):  # Within 0.1mm
                 vertex_mapping[i] = j
+                merge_groups[j].append(i)
                 found_match = True
                 break
         
         if not found_match:
             vertex_mapping[i] = len(unique_vertices)
             unique_vertices.append(v)
+            merge_groups.append([i])
     
     print(f"   Reduced from {len(selected_vertices)} to {len(unique_vertices)} unique vertices")
+    
+    # Debug: Show which vertices merged and what edges were lost
+    edges_lost = 0
+    for new_idx, old_indices in enumerate(merge_groups):
+        if len(old_indices) > 1:
+            print(f"\n   [MERGE] New vertex {new_idx} merges {len(old_indices)} old vertices:")
+            print(f"           Result: [{unique_vertices[new_idx][0]:.4f}, {unique_vertices[new_idx][1]:.4f}, {unique_vertices[new_idx][2]:.4f}]")
+            print(f"           Old vertices being merged:")
+            for old_i in old_indices:
+                old_v = selected_vertices[old_i]
+                print(f"             {old_i:3d}: [{old_v[0]:.4f}, {old_v[1]:.4f}, {old_v[2]:.4f}]")
+            
+            # Check if any edges existed between the merged vertices
+            edges_in_group = 0
+            for i in range(len(old_indices)):
+                for j in range(i+1, len(old_indices)):
+                    old_i = old_indices[i]
+                    old_j = old_indices[j]
+                    if merged_conn[old_i, old_j] > 0:
+                        edges_lost += 1
+                        edges_in_group += 1
+            if edges_in_group > 0:
+                print(f"           --> LOST {edges_in_group} edges between these vertices")
+    
+    if edges_lost > 0:
+        print(f"   [WARNING] Lost {edges_lost} edges due to vertex merging!")
     
     # Update vertices and merge connectivity
     if len(unique_vertices) < len(selected_vertices):
@@ -1282,16 +1542,21 @@ def main():
         new_merged_conn = np.zeros((N_unique, N_unique), dtype=int)
         
         # Map old connectivity to new connectivity
+        # When multiple old vertices map to the same new vertex,
+        # we combine their connectivity using MAX (strongest connection)
         for i in range(len(selected_vertices)):
             for j in range(len(selected_vertices)):
                 if merged_conn[i, j] > 0:
                     new_i = vertex_mapping[i]
                     new_j = vertex_mapping[j]
                     if new_i != new_j:  # No self-edges
+                        # Take the maximum connectivity value
                         new_merged_conn[new_i, new_j] = max(
                             new_merged_conn[new_i, new_j],
                             merged_conn[i, j]
                         )
+                    # NOTE: Edges between vertices that merge into the same vertex
+                    # are lost. This is expected when vertices have identical coordinates.
         
         # Update arrays
         selected_vertices = np.array(unique_vertices)
@@ -1328,206 +1593,34 @@ def main():
     print(merged_conn[:5, :5])
     
     extracted_faces = extract_polygon_faces_from_connectivity(
-        selected_vertices, merged_conn, tolerance=args.tolerance)
+        selected_vertices, merged_conn,
+        top_conn=top_conn, front_conn=front_conn, side_conn=side_conn,
+        tolerance=args.tolerance)
     
     print(f"\n[CRITICAL] Extracted {len(extracted_faces)} faces")
     
-    # =========================================================================
-    # STEP 6.1: Process boundary edges to find missing polygons/holes
-    # =========================================================================
+    # Debug: Print detailed face information
     print("\n" + "="*70)
-    print("[STEP 6.1] PROCESSING BOUNDARY EDGES")
+    print("EXTRACTED FACES DETAIL")
+    print("="*70)
+    for idx, face in enumerate(extracted_faces):
+        num_verts = len(face['vertices'])
+        num_holes = len(face.get('holes', []))
+        normal = face['normal']
+        d = face['d']
+        print(f"Face {idx}: {num_verts} vertices, {num_holes} holes")
+        print(f"  Normal: [{normal[0]:.6f}, {normal[1]:.6f}, {normal[2]:.6f}], d={d:.6f}")
+        print(f"  Vertices: {face['vertices'][:10]}{'...' if num_verts > 10 else ''}")
     print("="*70)
     
-    extracted_faces = process_boundary_edges(
-        extracted_faces, selected_vertices, merged_conn,
-        tolerance=args.tolerance)
-    
-    print(f"\n[CRITICAL] After boundary processing: " +
-          f"{len(extracted_faces)} faces")
-    
     # =========================================================================
-    # STEP 6.2: Check for and split non-planar polygons
+    # NOTE: STEP 6.1 (Non-planar polygon check) moved to after free edge analysis
     # =========================================================================
-    print("\n" + "="*70)
-    print("[STEP 6.2] CHECKING FOR NON-PLANAR POLYGONS")
-    print("="*70)
-    
-    split_faces = []
-    faces_to_remove = []
-    
-    for face_idx, face in enumerate(extracted_faces):
-        if not isinstance(face, dict) or 'vertices' not in face:
-            continue
-        
-        polygon = face['vertices']
-        if len(polygon) < 3:
-            continue
-        
-        outer_verts_3d = [selected_vertices[v_idx] for v_idx in polygon]
-        
-        # Fit plane to polygon vertices using SVD
-        centroid = np.mean(outer_verts_3d, axis=0)
-        centered = np.array(outer_verts_3d) - centroid
-        _, _, Vt = np.linalg.svd(centered)
-        computed_normal = Vt[-1]
-        computed_d = -np.dot(computed_normal, centroid)
-        
-        # Check planarity - max distance from best-fit plane
-        max_dist = 0.0
-        for v in outer_verts_3d:
-            dist = abs(np.dot(computed_normal, v) + computed_d)
-            max_dist = max(max_dist, dist)
-        
-        # Check if polygon is non-planar beyond tolerance (0.1mm)
-        if max_dist > 0.1:
-            print(f"\n   Face {face_idx + 1}: NON-PLANAR polygon detected, " +
-                  f"max dist = {max_dist:.6f}mm")
-            print(f"      Original polygon: {polygon}")
-            
-            # Find alternate edges from connectivity matrix
-            alternate_edges = []
-            
-            for i, v_idx in enumerate(polygon):
-                prev_idx = polygon[(i - 1) % len(polygon)]
-                next_idx = polygon[(i + 1) % len(polygon)]
-                
-                for j, v_other in enumerate(polygon):
-                    if v_other == v_idx or v_other == prev_idx or v_other == next_idx:
-                        continue
-                    
-                    if merged_conn[v_idx, v_other] > 0:
-                        edge = tuple(sorted([v_idx, v_other]))
-                        if edge not in alternate_edges:
-                            alternate_edges.append(edge)
-            
-            if len(alternate_edges) > 0:
-                print(f"      Found {len(alternate_edges)} alternate edge(s): " +
-                      f"{alternate_edges}")
-                
-                # Test each alternate edge for planarity improvement
-                best_edge = None
-                best_planarity_score = float('inf')
-                
-                for edge in alternate_edges:
-                    v1, v2 = edge
-                    pos1 = polygon.index(v1)
-                    pos2 = polygon.index(v2)
-                    
-                    if pos1 > pos2:
-                        pos1, pos2 = pos2, pos1
-                        v1, v2 = v2, v1
-                    
-                    poly1_verts = polygon[pos1:pos2+1]
-                    poly2_verts = polygon[pos2:] + polygon[:pos1+1]
-                    
-                    if len(poly1_verts) >= 3 and len(poly2_verts) >= 3:
-                        poly1_coords = np.array([selected_vertices[v]
-                                                 for v in poly1_verts])
-                        poly2_coords = np.array([selected_vertices[v]
-                                                 for v in poly2_verts])
-                        
-                        # Fit planes
-                        c1 = np.mean(poly1_coords, axis=0)
-                        _, _, V1 = np.linalg.svd(poly1_coords - c1)
-                        n1 = V1[-1]
-                        d1 = -np.dot(n1, c1)
-                        
-                        c2 = np.mean(poly2_coords, axis=0)
-                        _, _, V2 = np.linalg.svd(poly2_coords - c2)
-                        n2 = V2[-1]
-                        d2 = -np.dot(n2, c2)
-                        
-                        max_dev1 = max([abs(np.dot(n1, v) + d1)
-                                       for v in poly1_coords])
-                        max_dev2 = max([abs(np.dot(n2, v) + d2)
-                                       for v in poly2_coords])
-                        
-                        planarity_score = max(max_dev1, max_dev2)
-                        
-                        if planarity_score < best_planarity_score:
-                            best_planarity_score = planarity_score
-                            best_edge = (v1, v2, pos1, pos2,
-                                        poly1_verts, poly2_verts,
-                                        n1, d1, n2, d2)
-                
-                if best_edge is not None and best_planarity_score < max_dist:
-                    v1, v2, pos1, pos2, poly1_verts, poly2_verts, n1, d1, n2, d2 = best_edge
-                    
-                    print(f"      Best edge: {v1}-{v2} " +
-                          f"(planarity score: {best_planarity_score:.3f}mm)")
-                    print(f"        Face {face_idx + 1}a: {poly1_verts}")
-                    print(f"        Face {face_idx + 1}b: {poly2_verts}")
-                    
-                    # Mark original face for removal
-                    faces_to_remove.append(face_idx)
-                    
-                    # Create two new faces
-                    new_face1 = {
-                        'vertices': poly1_verts,
-                        'normal': tuple(n1),
-                        'd': d1,
-                        'holes': []
-                    }
-                    new_face2 = {
-                        'vertices': poly2_verts,
-                        'normal': tuple(n2),
-                        'd': d2,
-                        'holes': []
-                    }
-                    split_faces.append(new_face1)
-                    split_faces.append(new_face2)
-    
-    # Remove non-planar faces and add split faces
-    if len(faces_to_remove) > 0:
-        print(f"\n   Removing {len(faces_to_remove)} non-planar face(s)")
-        print(f"   Adding {len(split_faces)} split face(s)")
-        
-        # Remove faces in reverse order to maintain indices
-        for face_idx in sorted(faces_to_remove, reverse=True):
-            del extracted_faces[face_idx]
-        
-        # Add split faces
-        extracted_faces.extend(split_faces)
-        
-        print(f"\n[CRITICAL] After non-planar splitting: " +
-              f"{len(extracted_faces)} faces")
-    else:
-        print(f"\n   No non-planar polygons found (all within 0.1mm tolerance)")
-    
-    # ADDED: Analyze which vertices appear in fewer than 3 faces
-    print(f"\n[POLY FORM] Analyzing vertex usage across faces...")
-    vertex_face_count = {}
-    for v_idx in range(len(selected_vertices)):
-        vertex_face_count[v_idx] = 0
-    
-    for face_idx, face in enumerate(extracted_faces):
-        if isinstance(face, dict) and 'vertices' in face:
-            for v_idx in face['vertices']:
-                vertex_face_count[v_idx] += 1
-    
-    vertices_less_than_3 = [v_idx for v_idx, count in vertex_face_count.items() if count < 3]
-    print(f"[POLY FORM] Step 4 Analysis: {len(vertices_less_than_3)} vertices have < 3 faces")
-    if len(vertices_less_than_3) > 0:
-        print(f"[POLY FORM] Vertices with < 3 faces:")
-        for v_idx in sorted(vertices_less_than_3):
-            v = selected_vertices[v_idx]
-            count = vertex_face_count[v_idx]
-            print(f"  Vertex {v_idx}: [{v[0]:.1f}, {v[1]:.1f}, {v[2]:.1f}] mm - appears in {count} face(s)")
-    
-    # Debug: Check if faces have vertices
-    if len(extracted_faces) > 0:
-        print(f"[DEBUG] First face type: {type(extracted_faces[0])}")
-        print(f"[DEBUG] First face has {len(extracted_faces[0].get('vertices', []))} vertices")
-        print(f"[DEBUG] Face keys: {list(extracted_faces[0].keys())}")
-        if 'vertices' in extracted_faces[0]:
-            print(f"[DEBUG] First face vertices: {extracted_faces[0]['vertices']}")
-    else:
-        print("[CRITICAL WARNING] No faces were extracted!")
-        print("[DEBUG] This means extract_polygon_faces_from_connectivity returned empty list")
     
     # Store original face count for later reference
     original_face_count = len(extracted_faces)
+    
+
     
     # =========================================================================
     # STEP 6.5: Determine correct face orientations using ray-casting
@@ -1800,12 +1893,38 @@ def main():
                 vertex_distances.append((v_idx, dist))
                 max_dist = max(max_dist, dist)
             
+            # CRITICAL: Check if face has vertices from multiple planes
+            # Tighter tolerance: vertices should be within 0.05mm of the same plane
+            if max_dist > 0.05:
+                print(f"   Face {face_idx + 1}: CRITICAL - Vertices span multiple planes!")
+                print(f"     Max deviation: {max_dist:.6f}mm")
+                print(f"     Vertices with large deviations:")
+                for v_idx, dist in vertex_distances:
+                    if dist > 0.05:
+                        coord = selected_vertices[v_idx]
+                        print(f"       v{v_idx}: {dist:.6f}mm from plane, coord={coord}")
+                
+                # Identify distinct plane clusters
+                from collections import defaultdict
+                plane_clusters = defaultdict(list)  # dist_bin -> [v_idx]
+                
+                for v_idx, dist in vertex_distances:
+                    # Bin vertices by their plane distance (0.01mm bins)
+                    bin_key = round(dist / 0.01) * 0.01
+                    plane_clusters[bin_key].append(v_idx)
+                
+                if len(plane_clusters) > 1:
+                    print(f"     Found {len(plane_clusters)} distinct plane cluster(s):")
+                    for bin_key, verts in sorted(plane_clusters.items()):
+                        print(f"       Cluster at {bin_key:.3f}mm: vertices {verts}")
+                    print(f"     → Face may need to be split or vertices re-assigned")
+            
             # Update face with accurate plane equation
             face['normal'] = computed_normal
             face['d'] = computed_d
             
             # Check planarity for warning purposes only
-            if max_dist > 0.01:
+            if max_dist > 0.01 and max_dist <= 0.05:
                 # Small deviation - note it but proceed
                 print(f"   Face {face_idx + 1}: Small planarity deviation "
                       f"{max_dist:.6f}mm (acceptable)")
@@ -2027,6 +2146,7 @@ def main():
     
     solid_is_valid = False  # Track solid validity for Step 8.3
     free_edge_polygons_to_delete = []  # Will be populated after first sewing
+    faces_were_merged = False  # Track if we need to re-sew after merging
     
     if len(occ_faces_list) == 0:
         print("   ERROR: No valid faces to stitch")
@@ -2072,15 +2192,20 @@ def main():
                 from OCC.Core.TopAbs import TopAbs_FACE
                 face_iter = TopExp_Explorer(sewn_shape, TopAbs_FACE)
                 edge_face_count = 0
+                edge_face_num = None  # Track which face this edge belongs to
+                face_num = 0
                 while face_iter.More():
                     face = face_iter.Current()
                     edge_in_face = TopExp_Explorer(face, TopAbs_EDGE)
                     while edge_in_face.More():
                         if edge.IsSame(edge_in_face.Current()):
                             edge_face_count += 1
+                            if edge_face_num is None:
+                                edge_face_num = face_num + 1  # 1-indexed
                             break
                         edge_in_face.Next()
                     face_iter.Next()
+                    face_num += 1
                 
                 if edge_face_count < 2:
                     from OCC.Core.BRep import BRep_Tool
@@ -2104,7 +2229,9 @@ def main():
                     
                     v1_str = f"v{v1_idx}" if v1_idx is not None else "?"
                     v2_str = f"v{v2_idx}" if v2_idx is not None else "?"
+                    face_str = f"Face {edge_face_num}" if edge_face_num is not None else "Face ?"
                     print(f"     Free edge {free_edge_count+1}: {v1_str}-{v2_str} "
+                          f"({face_str}) "
                           f"({p1.X():.2f},{p1.Y():.2f},{p1.Z():.2f}) <-> "
                           f"({p2.X():.2f},{p2.Y():.2f},{p2.Z():.2f})")
                     
@@ -2117,207 +2244,1193 @@ def main():
             
             # Print summary
             if len(free_edges_list) > 0:
-                print(f"\n   Summary: {len(free_edges_list)} free edges found:")
-                print(f"   Edges: {free_edges_list}")
-                
-                # Get unique vertices involved
-                unique_verts = set()
-                for v1, v2 in free_edges_list:
-                    unique_verts.add(v1)
-                    unique_verts.add(v2)
-                print(f"   Involves {len(unique_verts)} unique vertices: "
-                      f"{sorted(unique_verts)}")
-                
-                # Check if free edges form closed polygons (faces to delete)
-                print(f"\n   Analyzing free edges for closed polygons...")
-                
-                # Build adjacency graph from free edges
-                from collections import defaultdict
-                edge_graph = defaultdict(list)
-                for v1, v2 in free_edges_list:
-                    edge_graph[v1].append(v2)
-                    edge_graph[v2].append(v1)
-                
-                # Find closed loops (polygons)
-                visited_edges = set()
-                closed_polygons = []
-                
-                for start_v in unique_verts:
-                    if start_v in edge_graph and len(edge_graph[start_v]) > 0:
-                        # Try to trace a path from this vertex
-                        path = [start_v]
-                        current = start_v
-                        
-                        while True:
-                            # Find next unvisited neighbor
-                            next_v = None
-                            for neighbor in edge_graph[current]:
-                                edge_key = (min(current, neighbor), 
-                                           max(current, neighbor))
-                                if edge_key not in visited_edges:
-                                    next_v = neighbor
-                                    visited_edges.add(edge_key)
-                                    break
-                            
-                            if next_v is None:
-                                break  # No more unvisited edges
-                            
-                            if next_v == start_v:
-                                # Closed loop found!
-                                if len(path) >= 3:
-                                    closed_polygons.append(path[:])
-                                break
-                            
-                            path.append(next_v)
-                            current = next_v
-                            
-                            # Safety check
-                            if len(path) > len(unique_verts):
-                                break
-                
-                if closed_polygons:
-                    print(f"   Found {len(closed_polygons)} closed polygon(s) "
-                          f"formed by free edges:")
+                # Filter out rejected interior edges (from boundary processing)
+                if 'rejected_interior_edges' in locals() and rejected_interior_edges:
+                    rejected_edge_set = set(rejected_interior_edges)
+                    filtered_free_edges = []
+                    rejected_count = 0
                     
-                    # Check each closed polygon for planarity
-                    for poly_idx, poly in enumerate(closed_polygons):
-                        print(f"     Polygon {poly_idx+1}: {len(poly)} "
-                              f"vertices: {poly}")
+                    for v1, v2 in free_edges_list:
+                        edge = tuple(sorted([v1, v2]))
+                        if edge in rejected_edge_set:
+                            rejected_count += 1
+                        else:
+                            filtered_free_edges.append((v1, v2))
+                    
+                    if rejected_count > 0:
+                        print(f"\n   Filtered out {rejected_count} free edge(s) " +
+                              f"from rejected interior polygons")
+                        print(f"   (These edges correctly represent interior faces)")
+                    
+                    free_edges_list = filtered_free_edges
+                
+                if len(free_edges_list) > 0:
+                    print(f"\n   Summary: {len(free_edges_list)} free edges found:")
+                    print(f"   Edges: {free_edges_list}")
+                    
+                    # Get unique vertices involved
+                    unique_verts = set()
+                    for v1, v2 in free_edges_list:
+                        unique_verts.add(v1)
+                        unique_verts.add(v2)
+                    print(f"   Involves {len(unique_verts)} unique vertices: "
+                          f"{sorted(unique_verts)}")
+                    
+                    # ========================================================
+                    # HELPER: Build edge-to-plane mapping for split validation
+                    # ========================================================
+                    print(f"\n[BOUNDARY ANALYSIS] Building edge-plane relationships...")
+                    
+                    # Build comprehensive edge-to-plane mapping
+                    edge_plane_map = {}  # edge -> list of plane info
+                    vertex_connectivity = {}  # vertex -> list of (neighbor, planes)
+                    
+                    for v_idx in unique_verts:
+                        vertex_connectivity[v_idx] = []
                         
-                        # Check planarity of this polygon
-                        if len(poly) >= 3:
-                            outer_verts_3d = [selected_vertices[v_idx] for v_idx in poly]
-                            
-                            # Fit plane using SVD
-                            centroid = np.mean(outer_verts_3d, axis=0)
-                            centered = np.array(outer_verts_3d) - centroid
-                            _, _, Vt = np.linalg.svd(centered)
-                            computed_normal = Vt[-1]
-                            computed_d = -np.dot(computed_normal, centroid)
-                            
-                            # Check max distance from fitted plane
-                            max_dist = 0.0
-                            for v in outer_verts_3d:
-                                dist = abs(np.dot(computed_normal, v) + computed_d)
-                                max_dist = max(max_dist, dist)
-                            
-                            if max_dist > 0.1:
-                                print(f"       ⚠️  NON-PLANAR polygon detected! "
-                                      f"max deviation = {max_dist:.6f}mm")
-                                print(f"       → This polygon needs to be split into "
-                                      f"planar sub-faces")
+                        # Find all edges from this vertex using merged_conn
+                        for dest_idx in range(len(selected_vertices)):
+                            if merged_conn[v_idx, dest_idx] > 0:
+                                edge = tuple(sorted([v_idx, dest_idx]))
                                 
-                                # Find alternate edges using connectivity matrix
-                                alternate_edges = []
-                                for i, v_idx in enumerate(poly):
-                                    prev_idx = poly[(i - 1) % len(poly)]
-                                    next_idx = poly[(i + 1) % len(poly)]
-                                    
-                                    for j, v_other in enumerate(poly):
-                                        if v_other == v_idx or v_other == prev_idx or v_other == next_idx:
-                                            continue
-                                        
-                                        if merged_conn[v_idx, v_other] > 0:
-                                            edge = tuple(sorted([v_idx, v_other]))
-                                            if edge not in alternate_edges:
-                                                alternate_edges.append(edge)
-                                
-                                if len(alternate_edges) > 0:
-                                    print(f"       Found {len(alternate_edges)} alternate edge(s)")
-                                    
-                                    # Test each alternate edge for best split
-                                    best_edge = None
-                                    best_planarity_score = float('inf')
-                                    
-                                    for edge in alternate_edges:
-                                        v1, v2 = edge
-                                        pos1 = poly.index(v1)
-                                        pos2 = poly.index(v2)
-                                        
-                                        if pos1 > pos2:
-                                            pos1, pos2 = pos2, pos1
-                                            v1, v2 = v2, v1
-                                        
-                                        poly1_verts = poly[pos1:pos2+1]
-                                        poly2_verts = poly[pos2:] + poly[:pos1+1]
-                                        
-                                        if len(poly1_verts) >= 3 and len(poly2_verts) >= 3:
-                                            poly1_coords = np.array([selected_vertices[v]
-                                                                     for v in poly1_verts])
-                                            poly2_coords = np.array([selected_vertices[v]
-                                                                     for v in poly2_verts])
-                                            
-                                            # Fit planes
-                                            c1 = np.mean(poly1_coords, axis=0)
-                                            _, _, V1 = np.linalg.svd(poly1_coords - c1)
-                                            n1 = V1[-1]
-                                            d1 = -np.dot(n1, c1)
-                                            
-                                            c2 = np.mean(poly2_coords, axis=0)
-                                            _, _, V2 = np.linalg.svd(poly2_coords - c2)
-                                            n2 = V2[-1]
-                                            d2 = -np.dot(n2, c2)
-                                            
-                                            max_dev1 = max([abs(np.dot(n1, v) + d1)
-                                                           for v in poly1_coords])
-                                            max_dev2 = max([abs(np.dot(n2, v) + d2)
-                                                           for v in poly2_coords])
-                                            
-                                            planarity_score = max(max_dev1, max_dev2)
-                                            
-                                            if planarity_score < best_planarity_score:
-                                                best_planarity_score = planarity_score
-                                                best_edge = (v1, v2, poly1_verts, poly2_verts,
-                                                            n1, d1, n2, d2)
-                                    
-                                    if best_edge is not None and best_planarity_score < max_dist:
-                                        v1, v2, poly1_verts, poly2_verts, n1, d1, n2, d2 = best_edge
-                                        
-                                        print(f"       ✓ Best split edge: v{v1}-v{v2} "
-                                              f"(planarity: {best_planarity_score:.6f}mm)")
-                                        print(f"         Sub-polygon 1: {poly1_verts}")
-                                        print(f"         Sub-polygon 2: {poly2_verts}")
-                                        
-                                        # Create two new planar faces to add
-                                        new_face1 = {
-                                            'vertices': poly1_verts,
-                                            'normal': tuple(n1),
-                                            'd': d1,
-                                            'holes': []
-                                        }
-                                        new_face2 = {
-                                            'vertices': poly2_verts,
-                                            'normal': tuple(n2),
-                                            'd': d2,
-                                            'holes': []
-                                        }
-                                        
-                                        # Add split faces to extracted_faces
-                                        extracted_faces.append(new_face1)
-                                        extracted_faces.append(new_face2)
-                                        
-                                        print(f"       → Added 2 planar faces to replace "
-                                              f"non-planar polygon")
-                                        
-                                        # Don't mark for deletion since we're adding replacement faces
+                                # Find which face planes contain this edge
+                                edge_planes = []
+                                for face_idx, face in enumerate(extracted_faces):
+                                    if 'vertices' not in face:
                                         continue
-                                    else:
-                                        print(f"       ✗ Could not find good split "
-                                              f"(best score: {best_planarity_score:.6f}mm)")
-                                else:
-                                    print(f"       ✗ No alternate edges found for splitting")
-                            else:
-                                print(f"       ✓ Planar polygon (deviation: {max_dist:.6f}mm)")
+                                    verts = face['vertices']
+                                    for i in range(len(verts)):
+                                        v1 = verts[i]
+                                        v2 = verts[(i + 1) % len(verts)]
+                                        if tuple(sorted([v1, v2])) == edge:
+                                            plane_info = {
+                                                'face_idx': face_idx,
+                                                'normal': face['normal'],
+                                                'd': face['d']
+                                            }
+                                            if plane_info not in edge_planes:
+                                                edge_planes.append(plane_info)
+                                            break
+                                
+                                if edge not in edge_plane_map:
+                                    edge_plane_map[edge] = edge_planes
+                                
+                                vertex_connectivity[v_idx].append({
+                                    'dest': dest_idx,
+                                    'edge': edge,
+                                    'planes': edge_planes
+                                })
+                    
+                    print(f"   Mapped {len(edge_plane_map)} edges to planes")
+                    print(f"   Built connectivity for {len(vertex_connectivity)} vertices")
+                    
+                    # Helper function to find valid split edges based on plane consistency
+                    def find_plane_aware_splits(polygon, edge_plane_map, selected_vertices):
+                        """Find alternate edges that respect plane boundaries"""
+                        candidates = []
                         
-                        # Try to find which face in extracted_faces matches
-                        # this polygon (for deletion if it's a degenerate face)
-                        poly_set = set(poly)
-                        for ext_face_idx, ext_face in enumerate(extracted_faces):
-                            if not isinstance(ext_face, dict):
+                        for i, v_idx in enumerate(polygon):
+                            for j, v_other in enumerate(polygon):
+                                if abs(i - j) <= 1 or abs(i - j) >= len(polygon) - 1:
+                                    continue  # Skip adjacent vertices
+                                
+                                edge = tuple(sorted([v_idx, v_other]))
+                                if edge in edge_plane_map and len(edge_plane_map[edge]) > 0:
+                                    # This edge lies on an existing face plane
+                                    candidates.append({
+                                        'edge': edge,
+                                        'v1': v_idx,
+                                        'v2': v_other,
+                                        'planes': edge_plane_map[edge]
+                                    })
+                        
+                        return candidates
+                    
+                    # Store these for use in polygon analysis
+                    boundary_analysis_data = {
+                        'edge_plane_map': edge_plane_map,
+                        'vertex_connectivity': vertex_connectivity,
+                        'find_splits': find_plane_aware_splits
+                    }
+                    
+                    # ========================================================
+                    # END OF HELPER SECTION
+                    # ========================================================
+                    
+                    # ========================================================
+                    # VERTEX VALENCY ANALYSIS
+                    # ========================================================
+                    print(f"\n[VERTEX VALENCY ANALYSIS] Identifying under-connected vertices...")
+                    
+                    # Build complete edge list from all faces (including those marked for deletion)
+                    all_face_edges = []
+                    face_count_total = 0
+                    face_count_skipped = 0
+                    for face_idx, face in enumerate(extracted_faces):
+                        if not isinstance(face, dict) or 'vertices' not in face:
+                            face_count_skipped += 1
+                            continue
+                        # Don't skip faces marked as to_delete - they still have valid geometry
+                        face_count_total += 1
+                        verts = face['vertices']
+                        for i in range(len(verts)):
+                            v1 = verts[i]
+                            v2 = verts[(i + 1) % len(verts)]
+                            all_face_edges.append((min(v1, v2), max(v1, v2)))
+                    
+                    print(f"   Scanned {face_count_total} faces ({face_count_skipped} skipped), found {len(all_face_edges)} total edges")
+                    
+                    # Count edge occurrences per vertex
+                    vertex_edge_count = {}
+                    vertex_edges = {}  # vertex -> list of edges
+                    for v_idx in range(len(selected_vertices)):
+                        vertex_edge_count[v_idx] = 0
+                        vertex_edges[v_idx] = []
+                    
+                    for edge in all_face_edges:
+                        v1, v2 = edge
+                        if edge not in vertex_edges[v1]:
+                            vertex_edges[v1].append(edge)
+                            vertex_edge_count[v1] += 1
+                        if edge not in vertex_edges[v2]:
+                            vertex_edges[v2].append(edge)
+                            vertex_edge_count[v2] += 1
+                    
+                    # Find under-connected vertices (< 3 edges)
+                    under_connected = []
+                    for v_idx in unique_verts:
+                        if vertex_edge_count[v_idx] < 3:
+                            under_connected.append({
+                                'vertex': v_idx,
+                                'edge_count': vertex_edge_count[v_idx],
+                                'edges': vertex_edges[v_idx]
+                            })
+                    
+                    print(f"   Found {len(under_connected)} under-connected vertices (< 3 edges):")
+                    for vc in under_connected:
+                        v_idx = vc['vertex']
+                        # Find all faces containing this vertex
+                        faces_with_v = []
+                        for face_idx, face in enumerate(extracted_faces):
+                            if isinstance(face, dict) and 'vertices' in face:
+                                if v_idx in face['vertices']:
+                                    faces_with_v.append(face_idx + 1)  # 1-indexed
+                        print(f"     v{v_idx}: {vc['edge_count']} edges - {vc['edges']} (appears in {len(faces_with_v)} faces: {faces_with_v})")
+                    
+                    # For each under-connected vertex, identify missing edges using face intersection method
+                    print(f"\n   Identifying missing edges via face intersection analysis...")
+                    missing_edges = []
+                    
+                    for vc in under_connected:
+                        v_idx = vc['vertex']
+                        edges_from_vertex = vc['edges']
+                        
+                        print(f"\n     v{v_idx} (has {len(edges_from_vertex)} edges in edge list):")
+                        
+                        # Get neighbors from current edge list
+                        current_neighbors = set()
+                        for edge in edges_from_vertex:
+                            if edge[0] == v_idx:
+                                current_neighbors.add(edge[1])
+                            else:
+                                current_neighbors.add(edge[0])
+                        print(f"       Neighbors from edge list: {sorted(current_neighbors)}")
+                        
+                        # Map each edge from the edge list to ALL faces that contain it
+                        edge_list_to_faces = {}
+                        for edge in edges_from_vertex:
+                            edge_list_to_faces[edge] = []
+                            
+                            # Search ALL faces for this edge
+                            for face_idx, face in enumerate(extracted_faces):
+                                if 'vertices' not in face:
+                                    continue
+                                verts = face['vertices']
+                                
+                                # Check if edge exists in this face (either direction)
+                                for i in range(len(verts)):
+                                    v1 = verts[i]
+                                    v2 = verts[(i + 1) % len(verts)]
+                                    face_edge = (min(v1, v2), max(v1, v2))
+                                    if face_edge == edge:
+                                        edge_list_to_faces[edge].append(face_idx)
+                                        break
+                        
+                        print(f"       Edges from edge list mapped to faces:")
+                        for edge, faces in sorted(edge_list_to_faces.items()):
+                            other_v = edge[0] if edge[1] == v_idx else edge[1]
+                            print(f"         v{v_idx}-v{other_v}: {len(faces)} face(s) {[f+1 for f in faces]}")
+                        
+                        # Find all faces that contain vertex v_idx
+                        faces_with_vertex = []
+                        for face_idx, face in enumerate(extracted_faces):
+                            if 'vertices' not in face:
                                 continue
-                            face_verts = set(ext_face.get('vertices', []))
-                            if poly_set == face_verts:
-                                print(f"       → Matches extracted Face "
+                            if v_idx in face['vertices']:
+                                faces_with_vertex.append(face_idx)
+                        
+                        print(f"       Vertex v{v_idx} appears in {len(faces_with_vertex)} faces: {[f+1 for f in faces_with_vertex]}")
+                        
+                        # For ALL faces containing v_idx, find ALL edges from v_idx in those faces
+                        all_edges_in_faces = {}  # edge -> list of face indices
+                        
+                        for face_idx in faces_with_vertex:
+                            face = extracted_faces[face_idx]
+                            verts = face['vertices']
+                            
+                            # Find v_idx position in face
+                            v_pos = verts.index(v_idx)
+                            
+                            # Get the two edges connected to v_idx in this face
+                            prev_v = verts[(v_pos - 1) % len(verts)]
+                            next_v = verts[(v_pos + 1) % len(verts)]
+                            
+                            edge1 = (min(v_idx, prev_v), max(v_idx, prev_v))
+                            edge2 = (min(v_idx, next_v), max(v_idx, next_v))
+                            
+                            if edge1 not in all_edges_in_faces:
+                                all_edges_in_faces[edge1] = []
+                            all_edges_in_faces[edge1].append(face_idx)
+                            
+                            if edge2 not in all_edges_in_faces:
+                                all_edges_in_faces[edge2] = []
+                            all_edges_in_faces[edge2].append(face_idx)
+                        
+                        # Display complete edge-face mapping from scanning faces
+                        print(f"       All edges from v{v_idx} found by scanning faces:")
+                        for edge, faces in sorted(all_edges_in_faces.items()):
+                            other_v = edge[0] if edge[1] == v_idx else edge[1]
+                            in_edge_list = "✓" if edge in edges_from_vertex else "✗"
+                            print(f"         v{v_idx}-v{other_v}: {len(faces)} face(s) {[f+1 for f in faces]} [in edge_list: {in_edge_list}]")
+                        
+                        # Identify which edges from faces are MISSING from edge list
+                        missing_from_list = []
+                        for edge in all_edges_in_faces:
+                            if edge not in edges_from_vertex:
+                                missing_from_list.append(edge)
+                        
+                        if len(missing_from_list) > 0:
+                            print(f"       → Found {len(missing_from_list)} edge(s) in faces but NOT in edge list:")
+                            for edge in missing_from_list:
+                                other_v = edge[0] if edge[1] == v_idx else edge[1]
+                                print(f"         v{v_idx}-v{other_v} (appears in {len(all_edges_in_faces[edge])} faces)")
+                                if edge not in missing_edges:
+                                    missing_edges.append(edge)
+                        
+                        # Find faces that are adjacent to v_idx but only connected by ONE edge
+                        # (These faces should share the missing edge)
+                        face_edge_count = {}  # face_idx -> count of edges from v_idx
+                        for face_idx in faces_with_vertex:
+                            face_edge_count[face_idx] = 0
+                            
+                            for edge, edge_faces in all_edges_in_faces.items():
+                                if face_idx in edge_faces:
+                                    face_edge_count[face_idx] += 1
+                        
+                        print(f"       Face edge count from v{v_idx} (based on face scan):")
+                        for face_idx, count in sorted(face_edge_count.items()):
+                            print(f"         Face {face_idx+1}: {count} edge(s)")
+                        
+                        # Update neighbors to include ALL neighbors found in faces
+                        all_neighbors_in_faces = set()
+                        for edge in all_edges_in_faces.keys():
+                            other_v = edge[0] if edge[1] == v_idx else edge[1]
+                            all_neighbors_in_faces.add(other_v)
+                        print(f"       All neighbors found in faces: {sorted(all_neighbors_in_faces)}")
+                        
+                        # Faces with only 1 edge from v_idx are candidates for missing edge
+                        candidate_faces = [f for f, count in face_edge_count.items() if count == 1]
+                        
+                        if len(candidate_faces) >= 2:
+                            print(f"       → Found {len(candidate_faces)} candidate faces with only 1 edge from v{v_idx}")
+                            print(f"         Candidate faces: {[f+1 for f in candidate_faces]}")
+                            
+                            # For each pair of candidate faces, find their intersection
+                            for i in range(len(candidate_faces)):
+                                for j in range(i + 1, len(candidate_faces)):
+                                    face_i_idx = candidate_faces[i]
+                                    face_j_idx = candidate_faces[j]
+                                    
+                                    # Get vertices from both faces
+                                    verts_i = set(extracted_faces[face_i_idx]['vertices'])
+                                    verts_j = set(extracted_faces[face_j_idx]['vertices'])
+                                    
+                                    # Find common vertices (intersection)
+                                    common_verts = verts_i & verts_j
+                                    
+                                    if len(common_verts) >= 2:
+                                        # Check if there's an edge in common_verts that includes v_idx
+                                        # and another vertex that forms an edge in both faces
+                                        for cv in common_verts:
+                                            if cv != v_idx:
+                                                potential_edge = (min(v_idx, cv), max(v_idx, cv))
+                                                
+                                                # Check if this edge exists in both faces (using face scan data)
+                                                edge_in_i = potential_edge in all_edges_in_faces and face_i_idx in all_edges_in_faces[potential_edge]
+                                                edge_in_j = potential_edge in all_edges_in_faces and face_j_idx in all_edges_in_faces[potential_edge]
+                                                
+                                                if edge_in_i and edge_in_j:
+                                                    # This is the missing edge!
+                                                    if potential_edge not in missing_edges and potential_edge not in edges_from_vertex:
+                                                        missing_edges.append(potential_edge)
+                                                        print(f"         → Missing edge found via face intersection: v{v_idx}-v{cv} "
+                                                              f"(shared by Face {face_i_idx+1} and Face {face_j_idx+1})")
+                                                    break  # Found the edge for this pair
+                        else:
+                            print(f"       → No candidate face pairs found (need faces with only 1 edge)")
+                    
+                    print(f"\n   Summary: Found {len(missing_edges)} missing edge(s) total")
+                    print(f"   Missing edges: {missing_edges}")
+                    
+                    # Skip old method code
+                    missing_edge_candidates = []
+                    
+                    for vc in under_connected:
+                        v_idx = vc['vertex']
+                        current_neighbors = set()
+                        for edge in vc['edges']:
+                            if edge[0] == v_idx:
+                                current_neighbors.add(edge[1])
+                            else:
+                                current_neighbors.add(edge[0])
+                        
+                        # Look for potential neighbors based on:
+                        # 1. Vertices sharing a common plane
+                        # 2. Vertices in free edges
+                        # 3. Vertices with similar coordinates (within tolerance)
+                        
+                        v_coord = selected_vertices[v_idx]
+                        potential_neighbors = []
+                        
+                        for other_v in unique_verts:
+                            if other_v == v_idx or other_v in current_neighbors:
+                                continue
+                            
+                            # Check if they could form a valid edge
+                            other_coord = selected_vertices[other_v]
+                            dist = np.linalg.norm(v_coord - other_coord)
+                            
+                            # Check if both vertices share a common plane
+                            v_planes = []
+                            other_planes = []
+                            
+                            for face_idx, face in enumerate(extracted_faces):
+                                if 'vertices' not in face:
+                                    continue
+                                if v_idx in face['vertices']:
+                                    v_planes.append((face_idx, face['normal'], face['d']))
+                                if other_v in face['vertices']:
+                                    other_planes.append((face_idx, face['normal'], face['d']))
+                            
+                            # Find common planes
+                            common_planes = []
+                            for vp in v_planes:
+                                for op in other_planes:
+                                    if vp[0] == op[0]:  # Same face
+                                        common_planes.append(vp)
+                                        break
+                            
+                            if len(common_planes) > 0:
+                                potential_neighbors.append({
+                                    'vertex': other_v,
+                                    'distance': dist,
+                                    'common_planes': common_planes
+                                })
+                        
+                        if len(potential_neighbors) > 0:
+                            missing_edge_candidates.append({
+                                'from_vertex': v_idx,
+                                'potential_edges': potential_neighbors
+                            })
+                    
+                    print(f"   Found {len(missing_edge_candidates)} vertices with potential missing edges")
+                    
+                    # Build candidate polygons from ACTUAL missing edges + free edges
+                    print(f"\n   Building candidate polygons from identified missing edges...")
+                    candidate_polygons = []
+                    
+                    # Create combined edge graph with free edges + missing edges
+                    from collections import defaultdict
+                    combined_graph = defaultdict(set)
+                    
+                    # Add all free edges
+                    print(f"   Adding {len(free_edges_list)} free edges to graph...")
+                    for v1, v2 in free_edges_list:
+                        combined_graph[v1].add(v2)
+                        combined_graph[v2].add(v1)
+                    
+                    # Add identified missing edges from connectivity matrix
+                    print(f"   Adding {len(missing_edges)} missing edges from connectivity analysis...")
+                    missing_edge_set = set()
+                    for v1, v2 in missing_edges:
+                        combined_graph[v1].add(v2)
+                        combined_graph[v2].add(v1)
+                        missing_edge_set.add((min(v1, v2), max(v1, v2)))
+                    
+                    print(f"   Combined graph has {sum(len(v) for v in combined_graph.values()) // 2} total edges")
+                    
+                    # Find cycles in the combined graph
+                    def find_simple_cycles(graph, max_length=10):
+                        """Find simple cycles in graph using DFS"""
+                        cycles = []
+                        
+                        def dfs(start, current, path, visited_edges):
+                            if len(path) > max_length:
+                                return
+                            
+                            for neighbor in graph[current]:
+                                edge = tuple(sorted([current, neighbor]))
+                                
+                                if neighbor == start and len(path) >= 3:
+                                    # Found a cycle
+                                    cycles.append(path[:])
+                                    continue
+                                
+                                if neighbor not in path and edge not in visited_edges:
+                                    new_visited = visited_edges | {edge}
+                                    dfs(start, neighbor, path + [neighbor], new_visited)
+                        
+                        for start_v in graph:
+                            if len(graph[start_v]) >= 2:
+                                dfs(start_v, start_v, [start_v], set())
+                        
+                        # Remove duplicate cycles (same vertices, different order)
+                        unique_cycles = []
+                        seen_sets = []
+                        for cycle in cycles:
+                            cycle_set = frozenset(cycle)
+                            if cycle_set not in seen_sets:
+                                seen_sets.append(cycle_set)
+                                unique_cycles.append(cycle)
+                        
+                        return unique_cycles
+                    
+                    enhanced_polygons = find_simple_cycles(combined_graph, max_length=12)
+                    print(f"   Found {len(enhanced_polygons)} candidate polygons from combined analysis")
+                    
+                    for poly_idx, poly in enumerate(enhanced_polygons[:10]):  # Show first 10
+                        # Analyze edges in this polygon
+                        free_edge_count = 0
+                        missing_edge_count = 0
+                        poly_edges = []
+                        for i in range(len(poly)):
+                            v1 = poly[i]
+                            v2 = poly[(i + 1) % len(poly)]
+                            edge = (min(v1, v2), max(v1, v2))
+                            poly_edges.append(edge)
+                            if edge in free_edges_list:
+                                free_edge_count += 1
+                            elif edge in missing_edge_set:
+                                missing_edge_count += 1
+                        
+                        print(f"     Candidate {poly_idx+1}: {len(poly)} vertices - {poly}")
+                        print(f"       Edges: {free_edge_count} free, {missing_edge_count} missing, {len(poly) - free_edge_count - missing_edge_count} other")
+                    
+                    # ========================================================
+                    # END OF VERTEX VALENCY ANALYSIS
+                    # ========================================================
+                    
+                    # Check if free edges form closed polygons (faces to delete)
+                    print(f"\n   Analyzing free edges for closed polygons...")
+                    
+                    # Track how many faces exist before processing free edges
+                    num_faces_before_free_edges = len(extracted_faces)
+                    
+                    # Build adjacency graph from free edges
+                    from collections import defaultdict
+                    edge_graph = defaultdict(list)
+                    for v1, v2 in free_edges_list:
+                        edge_graph[v1].append(v2)
+                        edge_graph[v2].append(v1)
+                    
+                    # Find closed loops (polygons)
+                    visited_edges = set()
+                    closed_polygons = []
+                    
+                    for start_v in unique_verts:
+                        if start_v in edge_graph and len(edge_graph[start_v]) > 0:
+                            # Try to trace a path from this vertex
+                            path = [start_v]
+                            current = start_v
+                            
+                            while True:
+                                # Find next unvisited neighbor
+                                next_v = None
+                                for neighbor in edge_graph[current]:
+                                    edge_key = (min(current, neighbor),
+                                               max(current, neighbor))
+                                    if edge_key not in visited_edges:
+                                        next_v = neighbor
+                                        visited_edges.add(edge_key)
+                                        break
+                                
+                                if next_v is None:
+                                    break  # No more unvisited edges
+                                
+                                if next_v == start_v:
+                                    # Closed loop found!
+                                    if len(path) >= 3:
+                                        closed_polygons.append(path[:])
+                                    break
+                                
+                                path.append(next_v)
+                                current = next_v
+                                
+                                # Safety check
+                                if len(path) > len(unique_verts):
+                                    break
+                    
+                    if closed_polygons:
+                        print(f"   Found {len(closed_polygons)} closed polygon(s) "
+                              f"formed by free edges:")
+                        
+                        # Check each closed polygon
+                        for poly_idx, poly in enumerate(closed_polygons):
+                            print(f"     Polygon {poly_idx+1}: {len(poly)} "
+                                  f"vertices: {poly}")
+                            
+                            # Check if this polygon matches any face in extracted_faces
+                            poly_set = set(poly)
+                            face_to_delete = None
+                            
+                            for face_idx, face in enumerate(extracted_faces):
+                                if not isinstance(face, dict) or 'vertices' not in face:
+                                    continue
+                                
+                                face_verts_set = set(face['vertices'])
+                                
+                                # Check if polygon matches face boundary
+                                if poly_set == face_verts_set:
+                                    face_to_delete = face_idx
+                                    print(f"       ✓ Polygon matches Face {face_idx+1} boundary")
+                                    break
+                                
+                                # Check if polygon matches any hole in this face
+                                if 'holes' in face:
+                                    for hole_idx, hole in enumerate(face['holes']):
+                                        hole_set = set(hole)
+                                        if poly_set == hole_set:
+                                            print(f"       ✓ Polygon matches hole {hole_idx+1} in Face {face_idx+1}")
+                                            # Don't delete face, just note it's a hole
+                                            break
+                            
+                            # If polygon matches a face, mark it for deletion
+                            # (will be replaced with proper face from free edge polygon)
+                            if face_to_delete is not None:
+                                print(f"       → Polygon matches Face {face_to_delete+1}")
+                                print(f"       → Will replace with properly oriented face from free edges")
+                                # Mark face for deletion - will be replaced below
+                                extracted_faces[face_to_delete]['to_delete'] = True
+                            
+                            # Check planarity of this polygon
+                            if len(poly) >= 3:
+                                outer_verts_3d = [selected_vertices[v_idx] for v_idx in poly]
+                            
+                                # Fit plane using SVD
+                                centroid = np.mean(outer_verts_3d, axis=0)
+                                centered = np.array(outer_verts_3d) - centroid
+                                _, _, Vt = np.linalg.svd(centered)
+                                computed_normal = Vt[-1]
+                                computed_d = -np.dot(computed_normal, centroid)
+                                
+                                # Check max distance from fitted plane
+                                max_dist = 0.0
+                                for v in outer_verts_3d:
+                                    dist = abs(np.dot(computed_normal, v) + computed_d)
+                                    max_dist = max(max_dist, dist)
+                                
+                                # Use tight tolerance of 0.0001 for planarity check
+                                if max_dist > 0.0001:
+                                    print(f"       ⚠️  NON-PLANAR polygon detected! "
+                                          f"max deviation = {max_dist:.6f}mm")
+                                    print(f"       → This polygon needs to be split into "
+                                          f"planar sub-faces")
+                                    
+                                    # Find alternate edges using plane-aware helper if available
+                                    if 'boundary_analysis_data' in locals():
+                                        print(f"       → Using plane-aware edge selection")
+                                        plane_candidates = boundary_analysis_data['find_splits'](
+                                            poly, 
+                                            boundary_analysis_data['edge_plane_map'],
+                                            selected_vertices
+                                        )
+                                        
+                                        if len(plane_candidates) > 0:
+                                            alternate_edges = [c['edge'] for c in plane_candidates]
+                                            print(f"       → Found {len(alternate_edges)} edges on existing planes")
+                                        else:
+                                            # Fallback to connectivity-based search
+                                            alternate_edges = []
+                                            for i, v_idx in enumerate(poly):
+                                                prev_idx = poly[(i - 1) % len(poly)]
+                                                next_idx = poly[(i + 1) % len(poly)]
+                                                
+                                                for j, v_other in enumerate(poly):
+                                                    if v_other == v_idx or v_other == prev_idx or v_other == next_idx:
+                                                        continue
+                                                    
+                                                    if merged_conn[v_idx, v_other] > 0:
+                                                        edge = tuple(sorted([v_idx, v_other]))
+                                                        if edge not in alternate_edges:
+                                                            alternate_edges.append(edge)
+                                    else:
+                                        # Original connectivity-based search
+                                        alternate_edges = []
+                                        for i, v_idx in enumerate(poly):
+                                            prev_idx = poly[(i - 1) % len(poly)]
+                                            next_idx = poly[(i + 1) % len(poly)]
+                                            
+                                            for j, v_other in enumerate(poly):
+                                                if v_other == v_idx or v_other == prev_idx or v_other == next_idx:
+                                                    continue
+                                                
+                                                if merged_conn[v_idx, v_other] > 0:
+                                                    edge = tuple(sorted([v_idx, v_other]))
+                                                    if edge not in alternate_edges:
+                                                        alternate_edges.append(edge)
+                                    
+                                    if len(alternate_edges) > 0:
+                                        print(f"       Found {len(alternate_edges)} alternate edge(s)")
+                                        
+                                        # Test each alternate edge for best split
+                                        best_edge = None
+                                        best_planarity_score = float('inf')
+                                        
+                                        for edge in alternate_edges:
+                                            v1, v2 = edge
+                                            pos1 = poly.index(v1)
+                                            pos2 = poly.index(v2)
+                                            
+                                            if pos1 > pos2:
+                                                pos1, pos2 = pos2, pos1
+                                                v1, v2 = v2, v1
+                                            
+                                            poly1_verts = poly[pos1:pos2+1]
+                                            poly2_verts = poly[pos2:] + poly[:pos1+1]
+                                            
+                                            if len(poly1_verts) >= 3 and len(poly2_verts) >= 3:
+                                                poly1_coords = np.array([selected_vertices[v]
+                                                                         for v in poly1_verts])
+                                                poly2_coords = np.array([selected_vertices[v]
+                                                                         for v in poly2_verts])
+                                                
+                                                # Fit planes
+                                                c1 = np.mean(poly1_coords, axis=0)
+                                                _, _, V1 = np.linalg.svd(poly1_coords - c1)
+                                                n1 = V1[-1]
+                                                d1 = -np.dot(n1, c1)
+                                                
+                                                c2 = np.mean(poly2_coords, axis=0)
+                                                _, _, V2 = np.linalg.svd(poly2_coords - c2)
+                                                n2 = V2[-1]
+                                                d2 = -np.dot(n2, c2)
+                                                
+                                                max_dev1 = max([abs(np.dot(n1, v) + d1)
+                                                               for v in poly1_coords])
+                                                max_dev2 = max([abs(np.dot(n2, v) + d2)
+                                                               for v in poly2_coords])
+                                                
+                                                planarity_score = max(max_dev1, max_dev2)
+                                                
+                                                if planarity_score < best_planarity_score:
+                                                    best_planarity_score = planarity_score
+                                                    best_edge = (v1, v2, poly1_verts, poly2_verts,
+                                                                n1, d1, n2, d2)
+                                        
+                                        if best_edge is not None and best_planarity_score < max_dist:
+                                            v1, v2, poly1_verts, poly2_verts, n1, d1, n2, d2 = best_edge
+                                            
+                                            print(f"       ✓ Best split edge: v{v1}-v{v2} "
+                                                  f"(planarity: {best_planarity_score:.6f}mm)")
+                                            print(f"         Sub-polygon 1: {poly1_verts}")
+                                            print(f"         Sub-polygon 2: {poly2_verts}")
+                                            
+                                            # Skip ray-casting test and add both sub-polygons
+                                            print(f"       → Skipping ray-casting test - adding both sub-polygons")
+                                            
+                                            faces_to_add = []
+                                            
+                                            for face_idx, (poly_verts, normal, d) in enumerate([
+                                                (poly1_verts, n1, d1),
+                                                (poly2_verts, n2, d2)
+                                            ], 1):
+                                                print(f"         Sub-polygon {face_idx}: ADDING")
+                                                faces_to_add.append({
+                                                    'vertices': poly_verts,
+                                                    'normal': tuple(normal),
+                                                    'd': d,
+                                                    'holes': []
+                                                })
+                                            
+                                            # Add both faces (will be converted to OCC during re-sew)
+                                            for face in faces_to_add:
+                                                extracted_faces.append(face)
+                                            
+                                            print(f"       → Added {len(faces_to_add)} face(s) from split")
+                                            
+                                            # Set flag to trigger re-sewing with new faces
+                                            faces_were_merged = True
+                                            
+                                            # Create two new planar faces to add
+                                            # (REMOVED - replaced with ray-casting logic above)
+                                            
+                                            # Don't mark for deletion since we're adding replacement faces
+                                            continue
+                                        else:
+                                            print(f"       ✗ Could not find good split "
+                                                  f"(best score: {best_planarity_score:.6f}mm)")
+                                    else:
+                                        print(f"       ✗ No alternate edges found for splitting")
+                                else:
+                                    print(f"       ✓ Planar polygon (deviation: {max_dist:.6f}mm)")
+                                    
+                                    # ========================================================
+                                    # SHAPELY-BASED POLYGON CLASSIFICATION
+                                    # ========================================================
+                                    # Classify this polygon as: new face, hole, or merge candidate
+                                    from shapely.geometry import Polygon as ShapelyPolygon, Point
+                                    from shapely import affinity
+                                    
+                                    # Project polygon onto its best-fit plane for 2D analysis
+                                    poly_coords_3d = np.array([selected_vertices[v] for v in poly])
+                                    centroid_3d = np.mean(poly_coords_3d, axis=0)
+                                    
+                                    # Get plane normal
+                                    centered = poly_coords_3d - centroid_3d
+                                    _, _, Vt = np.linalg.svd(centered)
+                                    normal = Vt[-1]
+                                    
+                                    # Create coordinate system for projection
+                                    # u and v are orthogonal vectors in the plane
+                                    if abs(normal[2]) < 0.9:
+                                        u = np.cross(normal, [0, 0, 1])
+                                    else:
+                                        u = np.cross(normal, [1, 0, 0])
+                                    u = u / np.linalg.norm(u)
+                                    v = np.cross(normal, u)
+                                    v = v / np.linalg.norm(v)
+                                    
+                                    # Project to 2D
+                                    poly_2d = []
+                                    for coord in poly_coords_3d:
+                                        rel = coord - centroid_3d
+                                        x = np.dot(rel, u)
+                                        y = np.dot(rel, v)
+                                        poly_2d.append((x, y))
+                                    
+                                    try:
+                                        shapely_poly = ShapelyPolygon(poly_2d)
+                                        if not shapely_poly.is_valid:
+                                            shapely_poly = shapely_poly.buffer(0)  # Fix invalid polygons
+                                        
+                                        polygon_classification = None
+                                        coplanar_face_idx = None
+                                        
+                                        # Debug: Print polygon plane info
+                                        print(f"       → Polygon plane: normal={normal}, d={computed_d:.4f}")
+                                        print(f"       → Polygon centroid: {centroid_3d}")
+                                        
+                                        # Check against all existing faces
+                                        for face_idx, face in enumerate(extracted_faces):
+                                            if not isinstance(face, dict) or 'vertices' not in face:
+                                                continue
+                                            if face.get('to_delete', False):
+                                                continue
+                                            
+                                            # Check if polygon is coplanar with this face
+                                            face_normal = np.array(face['normal'])
+                                            face_d = face['d']
+                                            
+                                            angle = np.arccos(np.clip(np.abs(np.dot(normal, face_normal)), 0, 1))
+                                            dist_diff = abs(np.dot(normal, centroid_3d) + computed_d - 
+                                                          (np.dot(face_normal, centroid_3d) + face_d))
+                                            
+                                            # Relax tolerance: 0.1 radians (~5.7°) and 0.5mm
+                                            if angle < 0.1 and dist_diff < 0.5:
+                                                print(f"       → Checking Face {face_idx+1} (coplanar: angle={angle:.4f}, dist={dist_diff:.4f})")
+                                                # Project face to 2D
+                                                face_coords_3d = np.array([selected_vertices[v] for v in face['vertices']])
+                                                face_2d = []
+                                                for coord in face_coords_3d:
+                                                    rel = coord - centroid_3d
+                                                    x = np.dot(rel, u)
+                                                    y = np.dot(rel, v)
+                                                    face_2d.append((x, y))
+                                                
+                                                try:
+                                                    shapely_face = ShapelyPolygon(face_2d)
+                                                    if not shapely_face.is_valid:
+                                                        shapely_face = shapely_face.buffer(0)
+                                                    
+                                                    # Check spatial relationship
+                                                    if shapely_poly.within(shapely_face):
+                                                        polygon_classification = 'hole'
+                                                        coplanar_face_idx = face_idx
+                                                        print(f"       → Classified as HOLE in Face {face_idx+1} (inside boundary)")
+                                                        break
+                                                    elif shapely_poly.intersects(shapely_face):
+                                                        intersection = shapely_poly.intersection(shapely_face)
+                                                        overlap_ratio = intersection.area / shapely_poly.area
+                                                        print(f"       → Intersects Face {face_idx+1} (overlap={overlap_ratio:.2%})")
+                                                        if overlap_ratio > 0.1:  # Significant overlap
+                                                            polygon_classification = 'merge'
+                                                            coplanar_face_idx = face_idx
+                                                            print(f"       → Classified as MERGE candidate with Face {face_idx+1}")
+                                                            break
+                                                    else:
+                                                        print(f"       → No spatial relationship with Face {face_idx+1}")
+                                                except Exception as e:
+                                                    print(f"       → Shapely check failed for Face {face_idx+1}: {e}")
+                                                    pass  # Skip invalid face geometry
+                                        
+                                        if polygon_classification is None:
+                                            polygon_classification = 'new_face'
+                                            print(f"       → Classified as NEW FACE (different plane or non-overlapping)")
+                                        
+                                        # Store classification for processing
+                                        poly_classification = {
+                                            'type': polygon_classification,
+                                            'face_idx': coplanar_face_idx,
+                                            'vertices': poly,
+                                            'normal': normal,
+                                            'd': computed_d
+                                        }
+                                        
+                                        # Apply classification immediately
+                                        if polygon_classification == 'hole' and coplanar_face_idx is not None:
+                                            # Add as hole to the existing face
+                                            target_face = extracted_faces[coplanar_face_idx]
+                                            if 'holes' not in target_face:
+                                                target_face['holes'] = []
+                                            target_face['holes'].append(poly)
+                                            print(f"       → Added as hole to Face {coplanar_face_idx+1}")
+                                            continue  # Don't add as new face
+                                        
+                                    except Exception as e:
+                                        print(f"       ⚠️  Shapely classification failed: {e}")
+                                        polygon_classification = 'new_face'  # Default
+                                        poly_classification = {
+                                            'type': 'new_face',
+                                            'face_idx': None,
+                                            'vertices': poly,
+                                            'normal': normal,
+                                            'd': computed_d
+                                        }
+                                    
+                                    # ========================================================
+                                    # END OF SHAPELY CLASSIFICATION
+                                    # ========================================================
+                                    
+                                    # Check if planarity can be improved by splitting (for OCC face creation)
+                                    # OCC requires tighter tolerance than our 0.1mm check
+                                    if max_dist > 0.001 and len(poly) > 4:
+                                        print(f"       → Checking if splitting improves planarity for OCC...")
+                                        
+                                        # Find alternate edges
+                                        alternate_edges = []
+                                        for i, v_idx in enumerate(poly):
+                                            prev_idx = poly[(i - 1) % len(poly)]
+                                            next_idx = poly[(i + 1) % len(poly)]
+                                            
+                                            for j, v_other in enumerate(poly):
+                                                if v_other == v_idx or v_other == prev_idx or v_other == next_idx:
+                                                    continue
+                                                
+                                                if merged_conn[v_idx, v_other] > 0:
+                                                    edge = tuple(sorted([v_idx, v_other]))
+                                                    if edge not in alternate_edges:
+                                                        alternate_edges.append(edge)
+                                        
+                                        if len(alternate_edges) > 0:
+                                            # Test each alternate edge for planarity improvement
+                                            best_edge = None
+                                            best_planarity_score = float('inf')
+                                            
+                                            for edge in alternate_edges:
+                                                v1, v2 = edge
+                                                pos1 = poly.index(v1)
+                                                pos2 = poly.index(v2)
+                                                
+                                                if pos1 > pos2:
+                                                    pos1, pos2 = pos2, pos1
+                                                    v1, v2 = v2, v1
+                                                
+                                                poly1_verts = poly[pos1:pos2+1]
+                                                poly2_verts = poly[pos2:] + poly[:pos1+1]
+                                                
+                                                if len(poly1_verts) >= 3 and len(poly2_verts) >= 3:
+                                                    poly1_coords = np.array([selected_vertices[v] for v in poly1_verts])
+                                                    poly2_coords = np.array([selected_vertices[v] for v in poly2_verts])
+                                                    
+                                                    # Fit planes
+                                                    c1 = np.mean(poly1_coords, axis=0)
+                                                    _, _, V1 = np.linalg.svd(poly1_coords - c1)
+                                                    n1 = V1[-1]
+                                                    d1 = -np.dot(n1, c1)
+                                                    
+                                                    c2 = np.mean(poly2_coords, axis=0)
+                                                    _, _, V2 = np.linalg.svd(poly2_coords - c2)
+                                                    n2 = V2[-1]
+                                                    d2 = -np.dot(n2, c2)
+                                                    
+                                                    max_dev1 = max([abs(np.dot(n1, v) + d1) for v in poly1_coords])
+                                                    max_dev2 = max([abs(np.dot(n2, v) + d2) for v in poly2_coords])
+                                                    
+                                                    planarity_score = max(max_dev1, max_dev2)
+                                                    
+                                                    if planarity_score < best_planarity_score:
+                                                        best_planarity_score = planarity_score
+                                                        best_edge = (v1, v2, poly1_verts, poly2_verts, n1, d1, n2, d2)
+                                            
+                                            if best_edge is not None and best_planarity_score < max_dist:
+                                                v1, v2, poly1_verts, poly2_verts, n1, d1, n2, d2 = best_edge
+                                                
+                                                print(f"       ✓ Split improves planarity: {max_dist:.6f}mm → {best_planarity_score:.6f}mm")
+                                                print(f"         Split edge: v{v1}-v{v2}")
+                                                print(f"         Sub-polygon 1 ({len(poly1_verts)} verts): {poly1_verts}")
+                                                print(f"         Sub-polygon 2 ({len(poly2_verts)} verts): {poly2_verts}")
+                                                
+                                                # Add both sub-polygons as separate faces
+                                                face1 = {
+                                                    'vertices': poly1_verts,
+                                                    'normal': tuple(n1),
+                                                    'd': d1,
+                                                    'holes': []
+                                                }
+                                                face2 = {
+                                                    'vertices': poly2_verts,
+                                                    'normal': tuple(n2),
+                                                    'd': d2,
+                                                    'holes': []
+                                                }
+                                                extracted_faces.append(face1)
+                                                extracted_faces.append(face2)
+                                                print(f"       ✓ Added 2 planar sub-faces from split")
+                                                faces_were_merged = True
+                                            # If split doesn't help or no alternate edges, continue with single polygon
+                                    
+                                    # Calculate normal and d for this polygon
+                                    outer_verts_3d = [selected_vertices[v_idx] for v_idx in poly]
+                                    centroid = np.mean(outer_verts_3d, axis=0)
+                                    centered = np.array(outer_verts_3d) - centroid
+                                    _, _, Vt = np.linalg.svd(centered)
+                                    computed_normal = Vt[-1]
+                                    computed_d = -np.dot(computed_normal, centroid)
+                                
+                                    # Check if this polygon is coplanar with any existing face
+                                    # (faces sharing edges with same plane equation)
+                                    coplanar_face_idx = None
+                                    poly_edges = set()
+                                    for i in range(len(poly)):
+                                        edge = tuple(sorted([poly[i], poly[(i+1) % len(poly)]]))
+                                        poly_edges.add(edge)
+                                
+                                    for ext_face_idx, ext_face in enumerate(extracted_faces):
+                                        if not isinstance(ext_face, dict):
+                                            continue
+                                    
+                                        # Check if faces share edges
+                                        ext_verts = ext_face.get('vertices', [])
+                                        ext_edges = set()
+                                        for i in range(len(ext_verts)):
+                                            edge = tuple(sorted([ext_verts[i], ext_verts[(i+1) % len(ext_verts)]]))
+                                            ext_edges.add(edge)
+                                    
+                                        shared_edges = poly_edges & ext_edges
+                                        if len(shared_edges) == 0:
+                                            continue
+                                    
+                                        # Check if coplanar (same plane equation)
+                                        ext_normal = np.array(ext_face.get('normal', [0, 0, 0]))
+                                        ext_d = ext_face.get('d', 0)
+                                    
+                                        # Normalize normals for comparison
+                                        ext_normal_norm = ext_normal / (np.linalg.norm(ext_normal) + 1e-10)
+                                        comp_normal_norm = computed_normal / (np.linalg.norm(computed_normal) + 1e-10)
+                                    
+                                        # Check if normals are parallel (same or opposite)
+                                        dot_product = np.dot(ext_normal_norm, comp_normal_norm)
+                                        angle = np.arccos(np.clip(dot_product, -1.0, 1.0))
+                                    
+                                        # Allow for opposite normals
+                                        if angle > np.pi / 2:
+                                            angle = np.pi - angle
+                                    
+                                        # Check distance difference
+                                        dist_diff = abs(ext_d - computed_d)
+                                    
+                                        # Tolerance: 0.01 radians (~0.57°) and 0.05mm
+                                        if angle < 0.01 and dist_diff < 0.05:
+                                            coplanar_face_idx = ext_face_idx
+                                            print(f"       → Found coplanar adjacent face: Face {ext_face_idx+1}")
+                                            print(f"         (shares {len(shared_edges)} edge(s), angle={angle:.6f}rad, dist_diff={dist_diff:.6f}mm)")
+                                            break
+                                
+                                    if coplanar_face_idx is not None:
+                                        existing_face = extracted_faces[coplanar_face_idx]
+                                        existing_verts = existing_face.get('vertices', [])
+                                        existing_holes = existing_face.get('holes', [])
+                                    
+                                        # Get edges from both polygons
+                                        ext_edges = []
+                                        for i in range(len(existing_verts)):
+                                            ext_edges.append((existing_verts[i], existing_verts[(i+1) % len(existing_verts)]))
+                                    
+                                        poly_edges_ordered = []
+                                        for i in range(len(poly)):
+                                            poly_edges_ordered.append((poly[i], poly[(i+1) % len(poly)]))
+                                    
+                                        # Find shared edges (considering both directions)
+                                        shared_edges = set()
+                                        for e1 in ext_edges:
+                                            for e2 in poly_edges_ordered:
+                                                if (e1[0] == e2[0] and e1[1] == e2[1]) or (e1[0] == e2[1] and e1[1] == e2[0]):
+                                                    shared_edges.add(tuple(sorted(e1)))
+                                                    break
+                                    
+                                        # Check if polygons share edges or are independent
+                                        if len(shared_edges) > 0:
+                                            # Merge the two faces by removing shared edges
+                                            print(f"       → Merging with Face {coplanar_face_idx+1} "
+                                                  f"(shares {len(shared_edges)} edge(s))")
+                                    
+                                            # Remove shared edges from both polygons
+                                            remaining_ext_edges = [e for e in ext_edges 
+                                                                  if tuple(sorted(e)) not in shared_edges]
+                                            remaining_poly_edges = [e for e in poly_edges_ordered 
+                                                                   if tuple(sorted(e)) not in shared_edges]
+                                        
+                                            # Combine remaining edges
+                                            all_remaining_edges = remaining_ext_edges + remaining_poly_edges
+                                    
+                                        print(f"         Shared edges: {len(shared_edges)}, Remaining: {len(all_remaining_edges)}")
+                                        print(f"         Existing face edges: {ext_edges}")
+                                        print(f"         Boundary polygon edges: {poly_edges_ordered}")
+                                        print(f"         Shared: {sorted(list(shared_edges))}")
+                                        print(f"         Remaining edges: {all_remaining_edges}")
+                                    
+                                        # Build adjacency graph to find merged boundary
+                                        from collections import defaultdict
+                                        edge_graph = defaultdict(list)
+                                        for v1, v2 in all_remaining_edges:
+                                            edge_graph[v1].append(v2)
+                                            edge_graph[v2].append(v1)
+                                    
+                                        # Trace the merged boundary
+                                        if len(all_remaining_edges) > 0:
+                                            # Start from any vertex
+                                            start_v = all_remaining_edges[0][0]
+                                            merged_verts = [start_v]
+                                            current = start_v
+                                            visited_edges = set()
+                                        
+                                            while True:
+                                                # Find next vertex
+                                                next_v = None
+                                                for neighbor in edge_graph[current]:
+                                                    edge_key = tuple(sorted([current, neighbor]))
+                                                    if edge_key not in visited_edges:
+                                                        next_v = neighbor
+                                                        visited_edges.add(edge_key)
+                                                        break
+                                            
+                                                if next_v is None or next_v == start_v:
+                                                    break
+                                            
+                                                merged_verts.append(next_v)
+                                                current = next_v
+                                            
+                                                # Safety check
+                                                if len(merged_verts) > len(all_remaining_edges) + 2:
+                                                    break
+                                        
+                                            if len(merged_verts) >= 3:
+                                                # Update existing face with merged boundary
+                                                existing_face['vertices'] = merged_verts
+                                            
+                                                print(f"       ✓ Merged into single face with {len(merged_verts)} vertices")
+                                                print(f"         Original: {len(existing_verts)} verts, New polygon: {len(poly)} verts")
+                                                print(f"         Merged vertices: {merged_verts}")
+                                            
+                                                # Rebuild the OCC face with merged vertices
+                                                print(f"       → Rebuilding OCC face {coplanar_face_idx+1} with merged geometry")
+                                                try:
+                                                    # Get 3D coordinates of merged vertices
+                                                    merged_coords_3d = [selected_vertices[v] for v in merged_verts]
+                                                
+                                                    # Create OCC face from merged vertices
+                                                    from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakePolygon, BRepBuilderAPI_MakeFace
+                                                    from OCC.Core.gp import gp_Pnt
+                                                
+                                                    poly_maker = BRepBuilderAPI_MakePolygon()
+                                                    for coord in merged_coords_3d:
+                                                        poly_maker.Add(gp_Pnt(coord[0], coord[1], coord[2]))
+                                                    poly_maker.Close()
+                                                
+                                                    if poly_maker.IsDone():
+                                                        wire = poly_maker.Wire()
+                                                        face_maker = BRepBuilderAPI_MakeFace(wire)
+                                                    
+                                                        if face_maker.IsDone():
+                                                            new_occ_face = face_maker.Face()
+                                                            # Replace the old face in occ_faces_list
+                                                            occ_faces_list[coplanar_face_idx] = new_occ_face
+                                                            # Also update extracted_faces with merged vertices
+                                                            extracted_faces[coplanar_face_idx]['vertices'] = merged_verts
+                                                            print(f"       ✓ Rebuilt OCC face successfully")
+                                                            faces_were_merged = True  # Set flag to trigger re-sewing
+                                                        else:
+                                                            print(f"       ✗ Failed to create OCC face from wire")
+                                                    else:
+                                                        print(f"       ✗ Failed to create wire from vertices")
+                                                except Exception as e:
+                                                    print(f"       ✗ Error rebuilding OCC face: {e}")
+                                            
+                                                # Keep existing holes as-is
+                                                if len(existing_holes) > 0:
+                                                    print(f"         Preserving {len(existing_holes)} hole(s)")
+                                            else:
+                                                print(f"       ✗ Merge failed: invalid merged boundary ({len(merged_verts)} verts)")
+                                                new_face = {
+                                                    'vertices': poly,
+                                                    'normal': tuple(computed_normal),
+                                                    'd': computed_d,
+                                                    'holes': []
+                                                }
+                                                extracted_faces.append(new_face)
+                                                print(f"       ✓ Added planar face with {len(poly)} vertices")
+                                        else:
+                                            print(f"       ✗ Merge failed: no remaining edges")
+                                            new_face = {
+                                                'vertices': poly,
+                                                'normal': tuple(computed_normal),
+                                                'd': computed_d,
+                                                'holes': []
+                                            }
+                                            extracted_faces.append(new_face)
+                                            print(f"       ✓ Added planar face with {len(poly)} vertices")
+                                    else:
+                                        # No coplanar face found, add as new face
+                                        print(f"       → Adding as new face to close free edges")
+                                        new_face = {
+                                            'vertices': poly,
+                                            'normal': tuple(computed_normal),
+                                            'd': computed_d,
+                                            'holes': []
+                                        }
+                                        extracted_faces.append(new_face)
+                                        print(f"       ✓ Added planar face with {len(poly)} vertices")
+                                        faces_were_merged = True  # Trigger re-build and re-sew
+                        
+                            # Try to find which face in extracted_faces matches
+                            # this polygon (for deletion if it's a degenerate face)
+                            poly_set = set(poly)
+                            for ext_face_idx, ext_face in enumerate(extracted_faces):
+                                if not isinstance(ext_face, dict):
+                                    continue
+                                face_verts = set(ext_face.get('vertices', []))
+                                if poly_set == face_verts:
+                                    print(f"       → Matches extracted Face "
                                       f"{ext_face_idx+1}")
                                 free_edge_polygons_to_delete.append(
                                     ext_face_idx)
@@ -2325,6 +3438,510 @@ def main():
                 else:
                     print(f"   No closed polygons found from free edges")
             
+            # =========================================================================
+            # STEP 6.1: Check for non-planar polygons and split if needed
+            # =========================================================================
+            print("\n[STEP 6.1] Checking for non-planar polygons...")
+            
+            split_faces = []
+            faces_to_remove = []
+            
+            for face_idx, face in enumerate(extracted_faces):
+                if not isinstance(face, dict) or 'vertices' not in face:
+                    continue
+                
+                polygon = face['vertices']
+                if len(polygon) < 3:
+                    continue
+                
+                outer_verts_3d = [selected_vertices[v_idx] for v_idx in polygon]
+                
+                # Fit plane to polygon vertices using SVD
+                centroid = np.mean(outer_verts_3d, axis=0)
+                centered = np.array(outer_verts_3d) - centroid
+                _, _, Vt = np.linalg.svd(centered)
+                computed_normal = Vt[-1]
+                computed_d = -np.dot(computed_normal, centroid)
+                
+                # Check planarity - max distance from best-fit plane
+                max_dist = 0.0
+                for v in outer_verts_3d:
+                    dist = abs(np.dot(computed_normal, v) + computed_d)
+                    max_dist = max(max_dist, dist)
+                
+                # Check if polygon is non-planar beyond tolerance (0.1mm)
+                if max_dist > 0.1:
+                    print(f"\n   Face {face_idx + 1}: NON-PLANAR polygon detected, " +
+                          f"max dist = {max_dist:.6f}mm")
+                    print(f"      Original polygon: {polygon}")
+                    
+                    # Find alternate edges from connectivity matrix
+                    alternate_edges = []
+                    
+                    for i, v_idx in enumerate(polygon):
+                        prev_idx = polygon[(i - 1) % len(polygon)]
+                        next_idx = polygon[(i + 1) % len(polygon)]
+                        
+                        for j, v_other in enumerate(polygon):
+                            if v_other == v_idx or v_other == prev_idx or v_other == next_idx:
+                                continue
+                            
+                            if merged_conn[v_idx, v_other] > 0:
+                                edge = tuple(sorted([v_idx, v_other]))
+                                if edge not in alternate_edges:
+                                    alternate_edges.append(edge)
+                    
+                    if len(alternate_edges) > 0:
+                        print(f"      Found {len(alternate_edges)} alternate edge(s): " +
+                              f"{alternate_edges}")
+                        
+                        # Test each alternate edge for planarity improvement
+                        best_edge = None
+                        best_planarity_score = float('inf')
+                        
+                        for edge in alternate_edges:
+                            v1, v2 = edge
+                            pos1 = polygon.index(v1)
+                            pos2 = polygon.index(v2)
+                            
+                            if pos1 > pos2:
+                                pos1, pos2 = pos2, pos1
+                                v1, v2 = v2, v1
+                            
+                            poly1_verts = polygon[pos1:pos2+1]
+                            poly2_verts = polygon[pos2:] + polygon[:pos1+1]
+                            
+                            if len(poly1_verts) >= 3 and len(poly2_verts) >= 3:
+                                poly1_coords = np.array([selected_vertices[v]
+                                                         for v in poly1_verts])
+                                poly2_coords = np.array([selected_vertices[v]
+                                                         for v in poly2_verts])
+                                
+                                # Fit planes
+                                c1 = np.mean(poly1_coords, axis=0)
+                                _, _, V1 = np.linalg.svd(poly1_coords - c1)
+                                n1 = V1[-1]
+                                d1 = -np.dot(n1, c1)
+                                
+                                c2 = np.mean(poly2_coords, axis=0)
+                                _, _, V2 = np.linalg.svd(poly2_coords - c2)
+                                n2 = V2[-1]
+                                d2 = -np.dot(n2, c2)
+                                
+                                max_dev1 = max([abs(np.dot(n1, v) + d1)
+                                               for v in poly1_coords])
+                                max_dev2 = max([abs(np.dot(n2, v) + d2)
+                                               for v in poly2_coords])
+                                
+                                planarity_score = max(max_dev1, max_dev2)
+                                
+                                if planarity_score < best_planarity_score:
+                                    best_planarity_score = planarity_score
+                                    best_edge = (v1, v2, pos1, pos2,
+                                                poly1_verts, poly2_verts,
+                                                n1, d1, n2, d2)
+                        
+                        if best_edge is not None and best_planarity_score < max_dist:
+                            v1, v2, pos1, pos2, poly1_verts, poly2_verts, n1, d1, n2, d2 = best_edge
+                            
+                            print(f"      Best edge: {v1}-{v2} " +
+                                  f"(planarity score: {best_planarity_score:.3f}mm)")
+                            print(f"        Face {face_idx + 1}a: {poly1_verts}")
+                            print(f"        Face {face_idx + 1}b: {poly2_verts}")
+                            
+                            # Mark original face for removal
+                            faces_to_remove.append(face_idx)
+                            
+                            # Create two new faces
+                            new_face1 = {
+                                'vertices': poly1_verts,
+                                'normal': tuple(n1),
+                                'd': d1,
+                                'holes': []
+                            }
+                            new_face2 = {
+                                'vertices': poly2_verts,
+                                'normal': tuple(n2),
+                                'd': d2,
+                                'holes': []
+                            }
+                            split_faces.append(new_face1)
+                            split_faces.append(new_face2)
+            
+            # Remove non-planar faces and add split faces
+            if len(faces_to_remove) > 0:
+                print(f"\n   Removing {len(faces_to_remove)} non-planar face(s)")
+                print(f"   Adding {len(split_faces)} split face(s)")
+                
+                # Remove faces in reverse order to maintain indices
+                for face_idx in sorted(faces_to_remove, reverse=True):
+                    del extracted_faces[face_idx]
+                
+                # Add split faces
+                extracted_faces.extend(split_faces)
+                
+                print(f"\n[CRITICAL] After non-planar splitting: " +
+                      f"{len(extracted_faces)} faces")
+            else:
+                print(f"\n   No non-planar polygons found (all within 0.1mm tolerance)")
+            
+        # If faces were merged, rebuild OCC faces and re-sew
+        if faces_were_merged:
+            print(f"\n   ━━━ NEW FACE(S) ADDED - ADDING TO EXISTING SEWN SHAPE ━━━")
+            
+            # Count how many new faces were added
+            num_new_faces = len(extracted_faces) - num_faces_before_free_edges
+            print(f"   Adding {num_new_faces} new face(s) to existing sewn shape...")
+            print(f"   DEBUG: num_faces_before={num_faces_before_free_edges}, current={len(extracted_faces)}")
+            
+            # Filter out faces marked for deletion
+            faces_before = len(extracted_faces)
+            extracted_faces = [f for f in extracted_faces if not f.get('to_delete', False)]
+            if len(extracted_faces) < faces_before:
+                print(f"   Removed {faces_before - len(extracted_faces)} interior face(s)")
+            
+            # Build OCC faces only for the NEW faces (the ones added from free edges)
+            new_occ_faces = []
+            
+            # The new faces are at the end of extracted_faces
+            print(f"   DEBUG: Looking for faces from index {num_faces_before_free_edges} to {len(extracted_faces)}")
+            for face_idx in range(num_faces_before_free_edges, len(extracted_faces)):
+                print(f"   DEBUG: Processing face {face_idx+1}")
+                face_data = extracted_faces[face_idx]
+                
+                if not isinstance(face_data, dict):
+                    print(f"   DEBUG: Face {face_idx+1} is not a dict, skipping")
+                    continue
+                
+                outer_boundary = face_data.get('vertices', [])
+                holes = face_data.get('holes', [])
+                
+                print(f"   DEBUG: Face {face_idx+1} has {len(outer_boundary)} vertices")
+                
+                if len(outer_boundary) < 3:
+                    print(f"   DEBUG: Face {face_idx+1} has < 3 vertices, skipping")
+                    continue
+                
+                # Get 3D coordinates
+                outer_coords_3d = [selected_vertices[v] for v in outer_boundary]
+                print(f"   DEBUG: Got coordinates for {len(outer_coords_3d)} vertices")
+                
+                # Create wire for outer boundary
+                from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakePolygon, BRepBuilderAPI_MakeFace
+                from OCC.Core.gp import gp_Pnt
+                
+                poly_maker = BRepBuilderAPI_MakePolygon()
+                for coord in outer_coords_3d:
+                    poly_maker.Add(gp_Pnt(coord[0], coord[1], coord[2]))
+                poly_maker.Close()
+                
+                print(f"   DEBUG: Poly maker IsDone={poly_maker.IsDone()}")
+                
+                if not poly_maker.IsDone():
+                    print(f"     WARNING: Failed to create wire for new face {face_idx+1}")
+                    continue
+                
+                outer_wire = poly_maker.Wire()
+                
+                print(f"   DEBUG: Wire created, has holes={len(holes)}")
+                
+                # Create face (with holes if present)
+                if len(holes) > 0:
+                    face_maker = BRepBuilderAPI_MakeFace(outer_wire)
+                    
+                    for hole in holes:
+                        if len(hole) < 3:
+                            continue
+                        hole_coords_3d = [selected_vertices[v] for v in hole]
+                        hole_poly_maker = BRepBuilderAPI_MakePolygon()
+                        for coord in hole_coords_3d:
+                            hole_poly_maker.Add(gp_Pnt(coord[0], coord[1], coord[2]))
+                        hole_poly_maker.Close()
+                        
+                        if hole_poly_maker.IsDone():
+                            hole_wire = hole_poly_maker.Wire()
+                            face_maker.Add(hole_wire)
+                    
+                    if face_maker.IsDone():
+                        new_occ_faces.append(face_maker.Face())
+                        print(f"     Created OCC face for face {face_idx+1} (with {len(holes)} hole(s))")
+                else:
+                    face_maker = BRepBuilderAPI_MakeFace(outer_wire)
+                    print(f"   DEBUG: Face maker IsDone={face_maker.IsDone()}")
+                    if face_maker.IsDone():
+                        new_occ_faces.append(face_maker.Face())
+                        print(f"     Created OCC face for face {face_idx+1}")
+            
+            print(f"   Built {len(new_occ_faces)} new OCC face(s)")
+            
+            # DIAGNOSTIC: Check free edges with modified faces before rebuilding
+            print(f"\n   ━━━ DIAGNOSTIC: Checking modified solid before rebuild ━━━")
+            print(f"   Creating test sewing with {len(occ_faces_list)} modified faces + {len(new_occ_faces)} new face(s)...")
+            test_sewing = BRepBuilderAPI_Sewing()
+            test_sewing.SetTolerance(0.1005)
+            
+            # Add all modified faces
+            for occ_face in occ_faces_list:
+                test_sewing.Add(occ_face)
+            
+            # Add new faces
+            for occ_face in new_occ_faces:
+                test_sewing.Add(occ_face)
+            
+            test_sewing.Perform()
+            test_shape = test_sewing.SewedShape()
+            
+            print(f"   Test sewing diagnostics:")
+            print(f"     - Number of free edges: {test_sewing.NbFreeEdges()}")
+            print(f"     - Number of multiple edges: {test_sewing.NbMultipleEdges()}")
+            print(f"     - Number of contigous edges: {test_sewing.NbContigousEdges()}")
+            
+            if test_sewing.NbFreeEdges() > 0:
+                print(f"\n   Identifying free edges in test sewing (with modifications)...")
+                from OCC.Core.TopAbs import TopAbs_EDGE, TopAbs_FACE
+                from OCC.Core.TopoDS import topods_Edge
+                from OCC.Core.TopExp import TopExp_Explorer, topexp
+                from OCC.Core.BRep import BRep_Tool
+                
+                edge_explorer = TopExp_Explorer(test_shape, TopAbs_EDGE)
+                free_edge_count = 0
+                
+                while edge_explorer.More() and free_edge_count < 30:  # Show up to 30
+                    edge = topods_Edge(edge_explorer.Current())
+                    # Check if edge is free
+                    face_iter = TopExp_Explorer(test_shape, TopAbs_FACE)
+                    edge_face_count = 0
+                    edge_face_num = None
+                    face_num = 0
+                    
+                    while face_iter.More():
+                        face = face_iter.Current()
+                        edge_in_face = TopExp_Explorer(face, TopAbs_EDGE)
+                        while edge_in_face.More():
+                            if edge.IsSame(edge_in_face.Current()):
+                                edge_face_count += 1
+                                if edge_face_num is None:
+                                    edge_face_num = face_num + 1
+                                break
+                            edge_in_face.Next()
+                        face_iter.Next()
+                        face_num += 1
+                    
+                    if edge_face_count < 2:
+                        first, last = topexp.FirstVertex(edge), topexp.LastVertex(edge)
+                        p1 = BRep_Tool.Pnt(first)
+                        p2 = BRep_Tool.Pnt(last)
+                        
+                        # Find matching vertex indices
+                        coord1 = np.array([p1.X(), p1.Y(), p1.Z()])
+                        coord2 = np.array([p2.X(), p2.Y(), p2.Z()])
+                        
+                        v1_idx = None
+                        v2_idx = None
+                        for v_idx, v_coord in enumerate(selected_vertices):
+                            dist1 = np.linalg.norm(v_coord - coord1)
+                            dist2 = np.linalg.norm(v_coord - coord2)
+                            if dist1 < 1e-6 and v1_idx is None:
+                                v1_idx = v_idx
+                            if dist2 < 1e-6 and v2_idx is None:
+                                v2_idx = v_idx
+                        
+                        v1_str = f"v{v1_idx}" if v1_idx is not None else "?"
+                        v2_str = f"v{v2_idx}" if v2_idx is not None else "?"
+                        face_str = f"Face {edge_face_num}" if edge_face_num is not None else "No face"
+                        print(f"     Free edge {free_edge_count+1}: {v1_str}-{v2_str} "
+                              f"({face_str}) "
+                              f"[{p1.X():.2f},{p1.Y():.2f},{p1.Z():.2f}] <-> "
+                              f"[{p2.X():.2f},{p2.Y():.2f},{p2.Z():.2f}]")
+                        
+                        free_edge_count += 1
+                    
+                    edge_explorer.Next()
+            
+            # Now proceed with actual rebuild
+            # Rebuild sewing from scratch with all faces (including any modified ones)
+            print(f"\n   Rebuilding sewing with all {len(occ_faces_list)} original faces + {len(new_occ_faces)} new face(s)...")
+            sewing = BRepBuilderAPI_Sewing()
+            sewing.SetTolerance(0.1005)
+            
+            # Add all faces from occ_faces_list (includes any modified faces like merged Face 17)
+            for occ_face in occ_faces_list:
+                sewing.Add(occ_face)
+            
+            # Add the new faces
+            for occ_face in new_occ_faces:
+                sewing.Add(occ_face)
+            
+            sewing.Perform()
+            sewn_shape = sewing.SewedShape()
+            
+            print(f"   Re-sewing diagnostics:")
+            print(f"     - Number of free edges: {sewing.NbFreeEdges()}")
+            print(f"     - Number of multiple edges: {sewing.NbMultipleEdges()}")
+            print(f"     - Number of contigous edges: {sewing.NbContigousEdges()}")
+            
+            if sewing.NbFreeEdges() > 0:
+                print(f"   WARNING: Still {sewing.NbFreeEdges()} free edges after re-sewing")
+                print(f"   → Re-sewing did not close free edges")
+                
+                # Identify which edges are still free
+                print(f"\n   Identifying remaining free edges after mending...")
+                from OCC.Core.TopAbs import TopAbs_EDGE, TopAbs_FACE
+                from OCC.Core.TopoDS import topods_Edge
+                from OCC.Core.TopExp import TopExp_Explorer, topexp
+                from OCC.Core.BRep import BRep_Tool
+                
+                edge_explorer = TopExp_Explorer(sewn_shape, TopAbs_EDGE)
+                free_edge_count = 0
+                
+                while edge_explorer.More() and free_edge_count < 20:  # Limit to first 20
+                    edge = topods_Edge(edge_explorer.Current())
+                    # Check if edge is free (not shared by 2 faces)
+                    face_iter = TopExp_Explorer(sewn_shape, TopAbs_FACE)
+                    edge_face_count = 0
+                    edge_face_num = None
+                    face_num = 0
+                    
+                    while face_iter.More():
+                        face = face_iter.Current()
+                        edge_in_face = TopExp_Explorer(face, TopAbs_EDGE)
+                        while edge_in_face.More():
+                            if edge.IsSame(edge_in_face.Current()):
+                                edge_face_count += 1
+                                if edge_face_num is None:
+                                    edge_face_num = face_num + 1
+                                break
+                            edge_in_face.Next()
+                        face_iter.Next()
+                        face_num += 1
+                    
+                    if edge_face_count < 2:
+                        first, last = topexp.FirstVertex(edge), topexp.LastVertex(edge)
+                        p1 = BRep_Tool.Pnt(first)
+                        p2 = BRep_Tool.Pnt(last)
+                        
+                        # Find matching vertex indices
+                        coord1 = np.array([p1.X(), p1.Y(), p1.Z()])
+                        coord2 = np.array([p2.X(), p2.Y(), p2.Z()])
+                        
+                        v1_idx = None
+                        v2_idx = None
+                        for v_idx, v_coord in enumerate(selected_vertices):
+                            dist1 = np.linalg.norm(v_coord - coord1)
+                            dist2 = np.linalg.norm(v_coord - coord2)
+                            if dist1 < 1e-6 and v1_idx is None:
+                                v1_idx = v_idx
+                            if dist2 < 1e-6 and v2_idx is None:
+                                v2_idx = v_idx
+                        
+                        v1_str = f"v{v1_idx}" if v1_idx is not None else "?"
+                        v2_str = f"v{v2_idx}" if v2_idx is not None else "?"
+                        face_str = f"Face {edge_face_num}" if edge_face_num is not None else "No face"
+                        print(f"     Free edge {free_edge_count+1}: {v1_str}-{v2_str} "
+                              f"({face_str}) "
+                              f"[{p1.X():.2f},{p1.Y():.2f},{p1.Z():.2f}] <-> "
+                              f"[{p2.X():.2f},{p2.Y():.2f},{p2.Z():.2f}]")
+                        
+                        free_edge_count += 1
+                    
+                    edge_explorer.Next()
+                
+                print(f"   → Discarding partial sewing and rebuilding from scratch with all faces")
+                
+                # Rebuild from scratch with ALL faces (original + new)
+                print(f"\n   ━━━ REBUILDING SOLID FROM SCRATCH ━━━")
+                print(f"   Creating new sewing with all {len(occ_faces_list) + len(new_occ_faces)} faces...")
+                
+                # Create completely new sewing
+                fresh_sewing = BRepBuilderAPI_Sewing()
+                fresh_sewing.SetTolerance(0.1005)
+                
+                # Add all original faces
+                for occ_face in occ_faces_list:
+                    fresh_sewing.Add(occ_face)
+                
+                # Add all new boundary faces
+                for occ_face in new_occ_faces:
+                    fresh_sewing.Add(occ_face)
+                
+                fresh_sewing.Perform()
+                sewn_shape = fresh_sewing.SewedShape()
+                
+                print(f"   Fresh sewing diagnostics:")
+                print(f"     - Number of free edges: {fresh_sewing.NbFreeEdges()}")
+                print(f"     - Number of multiple edges: {fresh_sewing.NbMultipleEdges()}")
+                print(f"     - Number of contigous edges: {fresh_sewing.NbContigousEdges()}")
+                
+                if fresh_sewing.NbFreeEdges() == 0:
+                    print(f"   ✓ Fresh sewing successful - solid is now closed!")
+                else:
+                    print(f"   WARNING: Still {fresh_sewing.NbFreeEdges()} free edges after fresh sewing")
+                
+                # Identify and list the free edges
+                print(f"   Identifying free edges after re-sewing...")
+                from OCC.Core.TopAbs import TopAbs_EDGE
+                from OCC.Core.TopoDS import topods_Edge
+                from OCC.Core.TopExp import TopExp_Explorer, topexp
+                from OCC.Core.BRep import BRep_Tool
+                
+                edge_explorer = TopExp_Explorer(sewn_shape, TopAbs_EDGE)
+                free_edge_count = 0
+                
+                while edge_explorer.More() and free_edge_count < 30:
+                    edge = topods_Edge(edge_explorer.Current())
+                    # Check if edge is free
+                    from OCC.Core.TopAbs import TopAbs_FACE
+                    face_iter = TopExp_Explorer(sewn_shape, TopAbs_FACE)
+                    edge_face_count = 0
+                    edge_face_num = None
+                    face_num = 0
+                    
+                    while face_iter.More():
+                        face = face_iter.Current()
+                        edge_in_face = TopExp_Explorer(face, TopAbs_EDGE)
+                        while edge_in_face.More():
+                            if edge.IsSame(edge_in_face.Current()):
+                                edge_face_count += 1
+                                if edge_face_num is None:
+                                    edge_face_num = face_num + 1
+                                break
+                            edge_in_face.Next()
+                        face_iter.Next()
+                        face_num += 1
+                    
+                    if edge_face_count < 2:
+                        first, last = topexp.FirstVertex(edge), topexp.LastVertex(edge)
+                        p1 = BRep_Tool.Pnt(first)
+                        p2 = BRep_Tool.Pnt(last)
+                        
+                        # Find matching vertex indices
+                        coord1 = np.array([p1.X(), p1.Y(), p1.Z()])
+                        coord2 = np.array([p2.X(), p2.Y(), p2.Z()])
+                        
+                        v1_idx = None
+                        v2_idx = None
+                        for v_idx, v_coord in enumerate(selected_vertices):
+                            dist1 = np.linalg.norm(v_coord - coord1)
+                            dist2 = np.linalg.norm(v_coord - coord2)
+                            if dist1 < 1e-6 and v1_idx is None:
+                                v1_idx = v_idx
+                            if dist2 < 1e-6 and v2_idx is None:
+                                v2_idx = v_idx
+                        
+                        v1_str = f"v{v1_idx}" if v1_idx is not None else "?"
+                        v2_str = f"v{v2_idx}" if v2_idx is not None else "?"
+                        face_str = f"Face {edge_face_num}" if edge_face_num is not None else "Face ?"
+                        print(f"     Free edge {free_edge_count+1}: {v1_str}-{v2_str} "
+                              f"({face_str}) "
+                              f"({p1.X():.2f},{p1.Y():.2f},{p1.Z():.2f}) <-> "
+                              f"({p2.X():.2f},{p2.Y():.2f},{p2.Z():.2f})")
+                        
+                        free_edge_count += 1
+                    
+                    edge_explorer.Next()
+            else:
+                print(f"   ✓ No free edges - solid is closed!")
+        
         from OCC.Core.TopExp import TopExp_Explorer
         from OCC.Core.TopAbs import TopAbs_SHELL, TopAbs_FACE
         from OCC.Core.TopoDS import topods_Shell, topods_Face
@@ -2918,15 +4535,15 @@ def main():
             print("   ERROR: No shell found in sewn shape")
             occ_solid = None
     
-    # Step 8.3: Extract faces from OCC solid and plot using matplotlib
+    # Step 8.3: Extract faces from OCC solid and compare with original
     if occ_solid is not None:
-        print(f"\n[STEP 8.3] Extracting faces from OCC solid and plotting...")
+        print(f"\n[STEP 8.3] Extracting faces from OCC solid and comparing with original...")
         
         from OCC.Core.TopExp import TopExp_Explorer
         from OCC.Core.TopAbs import TopAbs_FACE, TopAbs_WIRE
         from OCC.Core.TopoDS import topods_Face, topods_Wire
         
-        # Extract all faces from the solid
+        # Extract all faces from the reconstructed solid
         face_explorer = TopExp_Explorer(occ_solid, TopAbs_FACE)
         extracted_occ_faces = []
         
@@ -2963,17 +4580,331 @@ def main():
             
             face_explorer.Next()
         
-        print(f"   Extracted {face_count} faces from OCC solid")
+        print(f"   Extracted {face_count} faces from reconstructed solid")
         print(f"   Faces with holes: {sum(1 for f in extracted_occ_faces if len(f['holes']) > 0)}")
         
-        # Plot the extracted faces
-        print(f"\n[STEP 8.3] Plotting reconstructed solid faces...")
+        # Compare with original faces
+        print(f"\n[STEP 8.3.1] Comparing reconstructed faces with original faces...")
+        
+        def compute_face_plane(vertices):
+            """Compute plane equation (normal, distance) from face vertices"""
+            if len(vertices) < 3:
+                return None, None
+            
+            # Use first 3 non-collinear vertices to compute plane
+            v0 = vertices[0]
+            v1 = vertices[1]
+            v2 = vertices[2]
+            
+            # Two edge vectors
+            edge1 = v1 - v0
+            edge2 = v2 - v0
+            
+            # Normal is cross product
+            normal = np.cross(edge1, edge2)
+            norm_len = np.linalg.norm(normal)
+            
+            if norm_len < 1e-10:
+                return None, None
+            
+            normal = normal / norm_len  # Normalize
+            
+            # Distance from origin: d = -normal · v0
+            distance = -np.dot(normal, v0)
+            
+            return normal, distance
+        
+        def faces_coplanar(face1, face2, angle_tol=0.01, dist_tol=0.05):
+            """Check if two faces are on the same plane
+            angle_tol: tolerance for normal angle difference (radians)
+            dist_tol: tolerance for distance difference (mm)
+            Returns: (is_coplanar, reason_if_not)
+            """
+            n1, d1 = compute_face_plane(face1['outer_boundary'])
+            n2, d2 = compute_face_plane(face2['outer_boundary'])
+            
+            if n1 is None or n2 is None:
+                return False, "Failed to compute plane equation"
+            
+            # Check if normals are parallel (same or opposite direction)
+            dot = np.dot(n1, n2)
+            angle = np.arccos(np.clip(dot, -1.0, 1.0))
+            
+            # Allow for opposite normals (flipped faces)
+            if angle > np.pi / 2:
+                angle = np.pi - angle
+                d2 = -d2  # Flip distance for opposite normal
+            
+            if angle > angle_tol:
+                return False, f"Normal angle too large ({np.degrees(angle):.2f}° > {np.degrees(angle_tol):.2f}°)"
+            
+            # Check distance
+            dist_diff = abs(d1 - d2)
+            if dist_diff > dist_tol:
+                return False, f"Plane distance mismatch ({dist_diff:.3f}mm > {dist_tol}mm)"
+            
+            return True, None
+        
+        def faces_overlap(face1, face2):
+            """Check if two coplanar faces overlap using Shapely 2D projection
+            Compares outer boundary AND holes if present
+            """
+            try:
+                from shapely.geometry import Polygon
+                from shapely.ops import unary_union
+                
+                # Project both faces onto a 2D plane for comparison
+                # Use the plane's coordinate system
+                n1, d1 = compute_face_plane(face1['outer_boundary'])
+                if n1 is None:
+                    return False, 0.0
+                
+                # Create coordinate system on the plane
+                # Choose u axis perpendicular to normal
+                if abs(n1[0]) < 0.9:
+                    u = np.array([1, 0, 0])
+                else:
+                    u = np.array([0, 1, 0])
+                
+                u = u - np.dot(u, n1) * n1
+                u = u / np.linalg.norm(u)
+                
+                v = np.cross(n1, u)
+                
+                # Project vertices to 2D
+                def project_to_2d(vertices):
+                    coords = []
+                    for vertex in vertices:
+                        x = np.dot(vertex, u)
+                        y = np.dot(vertex, v)
+                        coords.append((x, y))
+                    return coords
+                
+                # Create Shapely polygons with holes
+                outer1_2d = project_to_2d(face1['outer_boundary'])
+                outer2_2d = project_to_2d(face2['outer_boundary'])
+                
+                # Get holes if present
+                holes1 = []
+                if 'holes' in face1 and face1['holes']:
+                    for hole in face1['holes']:
+                        holes1.append(project_to_2d(hole))
+                
+                holes2 = []
+                if 'holes' in face2 and face2['holes']:
+                    for hole in face2['holes']:
+                        holes2.append(project_to_2d(hole))
+                
+                # Create polygons with holes
+                poly1 = Polygon(outer1_2d, holes1) if holes1 else Polygon(outer1_2d)
+                poly2 = Polygon(outer2_2d, holes2) if holes2 else Polygon(outer2_2d)
+                
+                if not poly1.is_valid or not poly2.is_valid:
+                    return False, 0.0
+                
+                # Check intersection (symmetric difference accounts for holes)
+                intersection = poly1.intersection(poly2)
+                overlap_area = intersection.area
+                
+                # Calculate overlap percentage relative to smaller polygon
+                min_area = min(poly1.area, poly2.area)
+                if min_area < 1e-10:
+                    return False, 0.0
+                
+                overlap_ratio = overlap_area / min_area
+                
+                # Consider faces overlapping if >90% of smaller face overlaps
+                return overlap_ratio > 0.9, overlap_ratio
+                
+            except Exception as e:
+                print(f"      Warning: Shapely overlap check failed: {e}")
+                return False, 0.0
+        
+        def faces_match(face1, face2, debug=False):
+            """Check if two faces match using plane equation and overlap
+            Returns: (matched, reason_if_failed)
+            """
+            # First check if coplanar
+            is_coplanar, coplanar_reason = faces_coplanar(face1, face2)
+            if not is_coplanar:
+                if debug:
+                    print(f"      Faces not coplanar: {coplanar_reason}")
+                return False, coplanar_reason
+            
+            # Check geometric overlap
+            overlaps, ratio = faces_overlap(face1, face2)
+            if debug:
+                print(f"      Coplanar: Yes, Overlap ratio: {ratio:.2%}")
+            
+            if not overlaps:
+                return False, f"Insufficient overlap ({ratio:.1%} < 90%)"
+            
+            return True, None
+        
+        # Match reconstructed faces to original faces
+        face_matches = []  # List of (recon_idx, orig_idx, matched)
+        matched_original = []
+        
+        if face_polygons is not None and len(face_polygons) > 0:
+            matched_original = [False] * len(face_polygons)
+        
+        # Debug: Print first face from each set
+        if len(extracted_occ_faces) > 0:
+            print(f"\n   Debug: First reconstructed face has {len(extracted_occ_faces[0]['outer_boundary'])} vertices")
+            print(f"          Sample vertex: {extracted_occ_faces[0]['outer_boundary'][0]}")
+        
+        if face_polygons is not None and len(face_polygons) > 0:
+            orig_first = face_polygons[0]
+            outer_key = 'outer_boundary' if 'outer_boundary' in orig_first else 'vertices'
+            if outer_key in orig_first:
+                print(f"   Debug: First original face has {len(orig_first[outer_key])} vertices")
+                print(f"          Sample vertex: {orig_first[outer_key][0]}")
+        
+        for recon_idx, recon_face in enumerate(extracted_occ_faces):
+            matched = False
+            matched_orig_idx = -1
+            match_failures = []  # Track why each original face didn't match
+            
+            if face_polygons is not None and len(face_polygons) > 0:
+                for orig_idx, orig_face in enumerate(face_polygons):
+                    if not matched_original[orig_idx]:
+                        # Show debug for first comparison only
+                        debug = (recon_idx == 0 and orig_idx == 0)
+                        is_match, fail_reason = faces_match(recon_face, orig_face, debug=debug)
+                        if is_match:
+                            matched = True
+                            matched_orig_idx = orig_idx
+                            matched_original[orig_idx] = True
+                            break
+                        else:
+                            match_failures.append((orig_idx, fail_reason))
+            
+            face_matches.append({
+                'recon_idx': recon_idx,
+                'orig_idx': matched_orig_idx,
+                'matched': matched,
+                'failures': match_failures
+            })
+        
+        # Count matches
+        num_matched = sum(1 for m in face_matches if m['matched'])
+        num_unmatched_recon = len(extracted_occ_faces) - num_matched
+        num_unmatched_orig = sum(1 for m in matched_original if not m) if len(matched_original) > 0 else 0
+        
+        # Check if unmatched original faces are actually holes in reconstructed faces
+        hole_matches = []  # List of (orig_idx, recon_idx, hole_idx)
+        if num_unmatched_orig > 0 and face_polygons is not None:
+            for orig_idx, is_matched in enumerate(matched_original):
+                if not is_matched:
+                    orig_face = face_polygons[orig_idx]
+                    outer_key = 'outer_boundary' if 'outer_boundary' in orig_face else 'vertices'
+                    
+                    # Check if this original face matches a hole in any reconstructed face
+                    for recon_idx, recon_face in enumerate(extracted_occ_faces):
+                        if 'holes' in recon_face and recon_face['holes']:
+                            for hole_idx, hole_boundary in enumerate(recon_face['holes']):
+                                # Create a temporary face dict for the hole
+                                hole_as_face = {'outer_boundary': hole_boundary}
+                                orig_as_face = {
+                                    'outer_boundary': orig_face[outer_key]
+                                }
+                                
+                                # Check if they're coplanar and overlap
+                                is_coplanar, _ = faces_coplanar(orig_as_face, hole_as_face)
+                                if is_coplanar:
+                                    overlaps, ratio = faces_overlap(orig_as_face, hole_as_face)
+                                    if overlaps:
+                                        hole_matches.append({
+                                            'orig_idx': orig_idx,
+                                            'recon_idx': recon_idx,
+                                            'hole_idx': hole_idx,
+                                            'overlap_ratio': ratio
+                                        })
+                                        matched_original[orig_idx] = True
+                                        break
+                            if matched_original[orig_idx]:
+                                break
+        
+        # Update counts after hole matching
+        num_matched_as_holes = len(hole_matches)
+        num_unmatched_orig = sum(1 for m in matched_original if not m) if len(matched_original) > 0 else 0
+        total_matched = num_matched + num_matched_as_holes
+        
+        print(f"\n   Face Matching Results:")
+        orig_face_count = len(face_polygons) if face_polygons is not None else 0
+        print(f"   - Original faces: {orig_face_count}")
+        print(f"   - Reconstructed faces: {len(extracted_occ_faces)}")
+        print(f"   - Matched faces (as outer boundaries): {num_matched}")
+        print(f"   - Matched faces (as holes): {num_matched_as_holes}")
+        print(f"   - Total matched: {total_matched}")
+        print(f"   - Unmatched reconstructed faces: {num_unmatched_recon}")
+        print(f"   - Missing original faces: {num_unmatched_orig}")
+        
+        if num_matched_as_holes > 0:
+            print(f"\n   Original Faces Matched as Holes in Reconstructed Faces:")
+            for match in hole_matches:
+                print(f"     - Original Face {match['orig_idx'] + 1} → "
+                      f"Reconstructed Face {match['recon_idx'] + 1}, "
+                      f"Hole {match['hole_idx'] + 1} "
+                      f"(overlap: {match['overlap_ratio']:.1%})")
+        
+        if num_unmatched_recon > 0:
+            print(f"\n   Unmatched Reconstructed Faces:")
+            for match in face_matches:
+                if not match['matched']:
+                    recon_face = extracted_occ_faces[match['recon_idx']]
+                    vertices = recon_face['outer_boundary']
+                    
+                    print(f"\n     Reconstructed Face {match['recon_idx'] + 1}:")
+                    print(f"       Vertices ({len(vertices)} total):")
+                    for i, v in enumerate(vertices):
+                        print(f"         V{i}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})")
+                    
+                    # Show why it failed to match with original faces
+                    if match['failures']:
+                        print(f"       Failed to match because:")
+                        # Show first few failures
+                        for orig_idx, reason in match['failures'][:3]:
+                            print(f"         vs Original Face {orig_idx + 1}: {reason}")
+                        if len(match['failures']) > 3:
+                            print(f"         ... and {len(match['failures']) - 3} more")
+        
+        if num_unmatched_orig > 0:
+            print(f"\n   Missing Original Faces:")
+            for orig_idx, is_matched in enumerate(matched_original):
+                if not is_matched:
+                    orig_face = face_polygons[orig_idx]
+                    outer_key = 'outer_boundary' if 'outer_boundary' in orig_face else 'vertices'
+                    
+                    print(f"\n     Original Face {orig_idx + 1}:")
+                    if outer_key in orig_face:
+                        vertices = orig_face[outer_key]
+                        print(f"       Vertices ({len(vertices)} total):")
+                        for i, v in enumerate(vertices):
+                            print(f"         V{i}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})")
+                    else:
+                        print(f"       (No vertex data available)")
+        
+        # Plot the extracted faces with color coding
+        print(f"\n[STEP 8.3.2] Plotting reconstructed solid faces with match highlighting...")
+        print(f"   Number of faces to plot: {len(extracted_occ_faces)}")
+        if len(extracted_occ_faces) > 0:
+            print(f"   Face 0 vertices: {len(extracted_occ_faces[0]['outer_boundary'])} (should be 7)")
         
         from matplotlib.widgets import CheckButtons
         
         # Helper function to find vertex index in selected_vertices
-        def find_vertex_index(coord_3d, selected_verts, tolerance=1e-6):
-            """Find the index of a 3D coordinate in selected_vertices array."""
+        def find_vertex_index(coord_3d, selected_verts, tolerance=0.5):
+            """Find the index of a 3D coordinate in selected_vertices array.
+            
+            Args:
+                coord_3d: 3D coordinate to find
+                selected_verts: Array of vertices to search in
+                tolerance: Distance tolerance in mm (default 0.5mm to match OCC precision)
+            
+            Returns:
+                Index of matching vertex, or None if not found
+            """
             for idx, v in enumerate(selected_verts):
                 if np.linalg.norm(coord_3d - v) < tolerance:
                     return idx
@@ -2986,37 +4917,67 @@ def main():
         from mpl_toolkits.mplot3d.art3d import Poly3DCollection
         from matplotlib.widgets import CheckButtons
         
-        # Generate distinct colors for each face
-        import matplotlib.cm as cm
-        colors = cm.get_cmap('tab20')(
-            np.linspace(0, 1, len(extracted_occ_faces)))
-        
         # Store text objects and polygon collections for toggling
         vertex_texts = []
         face_texts = []
-        polygon_collections = []
+        matched_collections = []
+        unmatched_collections = []
+        matched_lines = []
+        unmatched_lines = []
         
         for face_idx, face_data in enumerate(extracted_occ_faces):
             outer = face_data['outer_boundary']
             holes = face_data['holes']
             
+            if face_idx == 0:
+                print(f"   DEBUG: Plotting Face 0 with {len(outer)} vertices")
+            
+            # Determine if this face is matched or unmatched
+            is_matched = face_matches[face_idx]['matched']
+            
+            # Color coding: Green for matched, Red for unmatched
+            if is_matched:
+                face_color = 'green'
+                edge_color = 'darkgreen'
+                label_color = 'darkgreen'
+                label_bg = 'lightgreen'
+            else:
+                face_color = 'red'
+                edge_color = 'darkred'
+                label_color = 'darkred'
+                label_bg = 'lightcoral'
+            
             # Plot outer boundary with colored shading
             if len(outer) > 2:
                 # Create filled polygon with transparency
                 poly = Poly3DCollection([outer], alpha=0.3, 
-                                       facecolors=colors[face_idx],
-                                       edgecolors='blue', linewidths=2)
+                                       facecolors=face_color,
+                                       edgecolors=edge_color, linewidths=2)
                 ax.add_collection3d(poly)
-                polygon_collections.append(poly)
+                if is_matched:
+                    matched_collections.append(poly)
+                else:
+                    unmatched_collections.append(poly)
                 
                 # Plot outer boundary edges
                 outer_closed = np.vstack([outer, outer[0]])
-                ax.plot(outer_closed[:, 0], outer_closed[:, 1],
-                       outer_closed[:, 2],
-                       color='blue', linewidth=2,
-                       label='Outer' if face_idx == 0 else None)
-                ax.scatter(outer[:, 0], outer[:, 1], outer[:, 2],
-                          color='blue', s=40)
+                line = ax.plot(outer_closed[:, 0], outer_closed[:, 1],
+                               outer_closed[:, 2],
+                               color=edge_color, linewidth=2,
+                               label=('Matched' if is_matched else 'Unmatched')
+                                     if face_idx == 0 or (face_idx == 1 and not face_matches[0]['matched'])
+                                     else None)
+                if is_matched:
+                    matched_lines.extend(line)
+                else:
+                    unmatched_lines.extend(line)
+                    
+                scatter = ax.scatter(outer[:, 0], outer[:, 1], outer[:, 2],
+                                     color=edge_color, s=40)
+                if is_matched:
+                    matched_collections.append(scatter)
+                else:
+                    unmatched_collections.append(scatter)
                 
                 # Add vertex labels with actual vertex indices
                 for v_idx, v in enumerate(outer):
@@ -3034,13 +4995,19 @@ def main():
                                    alpha=0.7, edgecolor='none'))
                     vertex_texts.append(txt)
                 
-                # Add face number at centroid
+                # Add face number at centroid with match status
                 centroid = np.mean(outer, axis=0)
+                face_label = f'F{face_idx+1}'
+                if not is_matched:
+                    face_label += ' ✗'
+                else:
+                    face_label += ' ✓'
+                    
                 txt = ax.text(centroid[0], centroid[1], centroid[2],
-                       f'F{face_idx}',
-                       color='darkblue', fontsize=12, ha='center', va='center',
+                       face_label,
+                       color=label_color, fontsize=12, ha='center', va='center',
                        weight='bold',
-                       bbox=dict(boxstyle='round,pad=0.4', facecolor='yellow',
+                       bbox=dict(boxstyle='round,pad=0.4', facecolor=label_bg,
                                alpha=0.8, edgecolor='black', linewidth=1.5))
                 face_texts.append(txt)
             
@@ -3084,9 +5051,10 @@ def main():
             ax.legend(loc='upper right', fontsize=10)
         
         # Add toggle buttons for labels and shading
-        checkbox_ax = plt.axes([0.02, 0.7, 0.15, 0.2])
-        labels_check = ['Vertex Labels', 'Face Labels', 'Polygon Shading']
-        visibility = [True, True, True]
+        checkbox_ax = plt.axes([0.02, 0.65, 0.17, 0.25])
+        labels_check = ['Vertex Labels', 'Face Labels', 'Polygon Shading',
+                       'Matched Faces', 'Unmatched Faces']
+        visibility = [True, True, True, True, True]
         check = CheckButtons(checkbox_ax, labels_check, visibility)
         
         def toggle_labels(label):
@@ -3097,8 +5065,21 @@ def main():
                 for txt in face_texts:
                     txt.set_visible(not txt.get_visible())
             elif label == 'Polygon Shading':
-                for poly in polygon_collections:
-                    poly.set_visible(not poly.get_visible())
+                for poly in matched_collections + unmatched_collections:
+                    if isinstance(poly, Poly3DCollection):
+                        poly.set_visible(not poly.get_visible())
+            elif label == 'Matched Faces':
+                vis = not matched_collections[0].get_visible() if matched_collections else True
+                for item in matched_collections:
+                    item.set_visible(vis)
+                for line in matched_lines:
+                    line.set_visible(vis)
+            elif label == 'Unmatched Faces':
+                vis = not unmatched_collections[0].get_visible() if unmatched_collections else True
+                for item in unmatched_collections:
+                    item.set_visible(vis)
+                for line in unmatched_lines:
+                    line.set_visible(vis)
             fig.canvas.draw_idle()
         
         check.on_clicked(toggle_labels)
@@ -3229,6 +5210,181 @@ def main():
             print("[STEP 8.3] Plot closed after user interaction.")
     else:
         print(f"\n[STEP 8.3] No solid to display (construction failed)")
+    
+    # Generate summary statistics
+    print("\n" + "="*70)
+    print("RECONSTRUCTION SUMMARY STATISTICS")
+    print("="*70)
+    
+    summary_stats = {}
+    summary_stats['seed'] = args.seed
+    
+    # Original solid statistics
+    original_num_faces = len(face_polygons) if face_polygons is not None else 0
+    summary_stats['original_num_faces'] = original_num_faces
+    print("Original Solid:")
+    print(f"  - Number of faces: {original_num_faces}")
+    
+    # Use volume from saved file (already scaled to mm³)
+    if original_volume_from_file is not None:
+        original_volume = original_volume_from_file
+        summary_stats['original_volume'] = original_volume
+        print(f"  - Volume: {original_volume:.6f} mm³")
+    else:
+        print("  - Volume: Not available (old file format or missing data)")
+        summary_stats['original_volume'] = None
+        original_volume = None
+    
+    # Reconstructed solid statistics
+    if occ_solid is not None:
+        from OCC.Core.TopExp import TopExp_Explorer
+        from OCC.Core.TopAbs import TopAbs_SHELL, TopAbs_FACE
+        from OCC.Core.TopoDS import topods_Shell
+        from OCC.Core.BRepGProp import brepgprop_VolumeProperties
+        from OCC.Core.GProp import GProp_GProps
+        
+        # Count shells
+        shell_exp = TopExp_Explorer(occ_solid, TopAbs_SHELL)
+        num_shells = 0
+        shell_face_counts = []
+        
+        while shell_exp.More():
+            num_shells += 1
+            shell = topods_Shell(shell_exp.Current())
+            
+            # Count faces in this shell
+            face_exp = TopExp_Explorer(shell, TopAbs_FACE)
+            shell_faces = 0
+            while face_exp.More():
+                shell_faces += 1
+                face_exp.Next()
+            shell_face_counts.append(shell_faces)
+            
+            shell_exp.Next()
+        
+        summary_stats['reconstructed_num_shells'] = num_shells
+        summary_stats['reconstructed_shell_face_counts'] = shell_face_counts
+        summary_stats['reconstructed_total_faces'] = sum(shell_face_counts)
+        
+        # Compute volume
+        props = GProp_GProps()
+        brepgprop_VolumeProperties(occ_solid, props)
+        recon_volume = props.Mass()
+        summary_stats['reconstructed_volume'] = recon_volume
+        
+        # Add face matching statistics if available
+        if 'face_matches' in locals():
+            num_matched = sum(1 for m in face_matches if m['matched'])
+            num_matched_as_holes = len(hole_matches) if 'hole_matches' in locals() else 0
+            total_matched = num_matched + num_matched_as_holes
+            num_unmatched_recon = len(face_matches) - num_matched
+            matched_orig_count = sum(1 for m in matched_original if m) if 'matched_original' in locals() else 0
+            num_missing_orig = original_num_faces - matched_orig_count
+            
+            summary_stats['matched_faces'] = total_matched
+            summary_stats['matched_as_boundaries'] = num_matched
+            summary_stats['matched_as_holes'] = num_matched_as_holes
+            summary_stats['unmatched_reconstructed_faces'] = num_unmatched_recon
+            summary_stats['missing_original_faces'] = num_missing_orig
+        
+        print("\nReconstructed Solid:")
+        print(f"  - Number of shells: {num_shells}")
+        for i, fc in enumerate(shell_face_counts):
+            print(f"    - Shell {i+1}: {fc} faces")
+        print(f"  - Total faces: {sum(shell_face_counts)}")
+        print(f"  - Volume: {recon_volume:.6f} mm³")
+        
+        if 'face_matches' in locals():
+            print("\nFace Matching:")
+            print(f"  - Matched faces: {total_matched}/{original_num_faces}")
+            if num_matched_as_holes > 0:
+                print(f"    - As outer boundaries: {num_matched}")
+                print(f"    - As holes: {num_matched_as_holes}")
+            print(f"  - Unmatched reconstructed faces: {num_unmatched_recon}")
+            print(f"  - Missing original faces: {num_missing_orig}")
+    else:
+        summary_stats['reconstructed_num_shells'] = 0
+        summary_stats['reconstructed_shell_face_counts'] = []
+        summary_stats['reconstructed_total_faces'] = 0
+        summary_stats['reconstructed_volume'] = None
+        summary_stats['matched_faces'] = 0
+        summary_stats['unmatched_reconstructed_faces'] = 0
+        summary_stats['missing_original_faces'] = original_num_faces
+        
+        print("\nReconstructed Solid:")
+        print("  - Construction failed")
+    
+    # Save summary to file
+    summary_dir = "Summary"
+    os.makedirs(summary_dir, exist_ok=True)
+    summary_file = os.path.join(
+        summary_dir, f"reconstruction_summary_seed_{args.seed}.txt")
+    
+    with open(summary_file, 'w') as f:
+        f.write("="*70 + "\n")
+        f.write("RECONSTRUCTION SUMMARY STATISTICS\n")
+        f.write("="*70 + "\n")
+        f.write(f"Seed: {args.seed}\n\n")
+        
+        f.write("Original Solid:\n")
+        f.write(f"  - Number of faces: {original_num_faces}\n")
+        if original_volume is not None:
+            f.write(f"  - Volume: {original_volume:.6f} mm³\n\n")
+        else:
+            f.write("  - Volume: Not available\n\n")
+        
+        f.write("Reconstructed Solid:\n")
+        if summary_stats['reconstructed_num_shells'] > 0:
+            f.write(f"  - Number of shells: "
+                   f"{summary_stats['reconstructed_num_shells']}\n")
+            for i, fc in enumerate(
+                    summary_stats['reconstructed_shell_face_counts']):
+                f.write(f"    - Shell {i+1}: {fc} faces\n")
+            f.write(f"  - Total faces: "
+                   f"{summary_stats['reconstructed_total_faces']}\n")
+            if summary_stats['reconstructed_volume'] is not None:
+                f.write(f"  - Volume: "
+                       f"{summary_stats['reconstructed_volume']:.6f} mm³\n")
+            
+            # Add face matching information
+            if 'matched_faces' in summary_stats:
+                f.write("\nFace Matching:\n")
+                f.write(f"  - Matched faces: {summary_stats['matched_faces']}"
+                       f"/{summary_stats['original_num_faces']}\n")
+                f.write(f"  - Unmatched reconstructed faces: "
+                       f"{summary_stats['unmatched_reconstructed_faces']}\n")
+                f.write(f"  - Missing original faces: "
+                       f"{summary_stats['missing_original_faces']}\n")
+                
+                # List unmatched reconstructed faces with vertices
+                if 'face_matches' in locals() and num_unmatched_recon > 0:
+                    f.write("\nUnmatched Reconstructed Faces (with vertices):\n")
+                    for match in face_matches:
+                        if not match['matched']:
+                            recon_face = extracted_occ_faces[match['recon_idx']]
+                            vertices = recon_face['outer_boundary']
+                            f.write(f"  Face {match['recon_idx'] + 1}:\n")
+                            for i, v in enumerate(vertices):
+                                f.write(f"    v{i}: [{v[0]:.2f}, {v[1]:.2f}, {v[2]:.2f}]\n")
+                
+                # List missing original faces with vertices
+                if 'matched_original' in locals() and num_unmatched_orig > 0:
+                    f.write("\nMissing Original Faces (with vertices):\n")
+                    for orig_idx, is_matched in enumerate(matched_original):
+                        if not is_matched:
+                            orig_face = face_polygons[orig_idx]
+                            outer_key = 'outer_boundary' if 'outer_boundary' in orig_face else 'vertices'
+                            if outer_key in orig_face:
+                                vertices = orig_face[outer_key]
+                                f.write(f"  Original Face {orig_idx + 1}:\n")
+                                for v_idx, vertex in enumerate(vertices):
+                                    f.write(f"    v{v_idx}: [{vertex[0]:.2f}, {vertex[1]:.2f}, {vertex[2]:.2f}]\n")
+        else:
+            f.write("  - Construction failed\n")
+        
+        f.write("\n" + "="*70 + "\n")
+    
+    print(f"\nSummary saved to: {summary_file}")
     
     print("\n" + "="*70)
     print("[COMPLETED] Reconstruction process finished.")
