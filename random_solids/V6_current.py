@@ -5071,16 +5071,307 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
     # =========================================================================
     # Algorithm based on matrix-based relationship analysis between polygons
     # Key change: ALT polygons CANNOT have holes (must have continuous interior)
+    #
+    # Relationship types (for edges between polygons):
+    # - S:  Shares edge(s) with another polygon
+    # - ST: Shares edge(s) AND touches at single/multiple points
+    # - O:  One polygon completely outside another (no containment)
+    # - OT: Outside but touches at point(s) (no shared edges)
+    # - I:  One polygon completely inside another (contained)
+    # - IT: Inside but touches at point(s) (no shared edges)
     
     for face_idx, face_eq in enumerate(unique_faces):
         polygons = face_eq.get('polygons', [])
         if len(polygons) == 0:
             continue
         
-        # NEW CLASSIFICATION CODE WILL BE IMPLEMENTED HERE
-        # TODO: Implement relationship matrix algorithm
+        print(f"\n[POLY FORM]   Face {face_idx+1}: Processing {len(polygons)} polygons with relationship matrix")
         
-        print(f"[POLY FORM]   Face {face_idx+1}: {len(polygons)} polygons - NEW ALGORITHM TO BE IMPLEMENTED")
+        # Handle single polygon case
+        if len(polygons) == 1:
+            polygons[0]['polygon_type'] = 'BOUNDARY'
+            polygons[0]['is_alternate'] = False
+            polygons[0]['is_hole'] = False
+            print(f"[POLY FORM]     Single polygon → BOUNDARY")
+            continue
+        
+        # =====================================================================
+        # STEP 0: Build relationship matrix
+        # =====================================================================
+        n = len(polygons)
+        matrix = [['' for _ in range(n)] for _ in range(n)]
+        
+        # Create Shapely polygons for geometric analysis
+        from shapely.geometry import Polygon as ShapelyPolygon
+        shapely_polygons = []
+        for poly_idx, poly in enumerate(polygons):
+            try:
+                poly_verts = poly['vertices']
+                verts_2d = [face_eq['face_results']['verts_2d'][v] for v in poly_verts]
+                shapely_poly = ShapelyPolygon(verts_2d)
+                if not shapely_poly.is_valid:
+                    shapely_poly = shapely_poly.buffer(0)
+                shapely_polygons.append(shapely_poly)
+            except Exception as e:
+                print(f"[POLY FORM]     WARNING: Failed to create Shapely polygon {poly_idx}: {e}")
+                shapely_polygons.append(None)
+        
+        # Build edge sets for each polygon
+        edge_sets = []
+        for poly in polygons:
+            edges = set()
+            verts = poly['vertices']
+            for k in range(len(verts)):
+                v1, v2 = verts[k], verts[(k+1) % len(verts)]
+                edges.add((min(v1, v2), max(v1, v2)))
+            edge_sets.append(edges)
+        
+        # Populate matrix with relationships
+        print(f"[POLY FORM]     Building {n}x{n} relationship matrix...")
+        for i in range(n):
+            for j in range(n):
+                if i == j:
+                    matrix[i][j] = '-'  # Self
+                    continue
+                
+                poly_i_shapely = shapely_polygons[i]
+                poly_j_shapely = shapely_polygons[j]
+                
+                if poly_i_shapely is None or poly_j_shapely is None:
+                    matrix[i][j] = 'O'  # Default to outside
+                    continue
+                
+                # Check for shared edges
+                shared_edges = edge_sets[i] & edge_sets[j]
+                has_shared_edges = len(shared_edges) > 0
+                
+                # Check geometric relationships
+                try:
+                    i_contains_j = poly_i_shapely.contains(poly_j_shapely)
+                    j_contains_i = poly_j_shapely.contains(poly_i_shapely)
+                    touches = poly_i_shapely.touches(poly_j_shapely)
+                    disjoint = poly_i_shapely.disjoint(poly_j_shapely)
+                except Exception as e:
+                    print(f"[POLY FORM]       WARNING: Shapely comparison failed for ({i},{j}): {e}")
+                    i_contains_j = False
+                    j_contains_i = False
+                    touches = False
+                    disjoint = True
+                
+                # Determine relationship type
+                if has_shared_edges:
+                    if touches:
+                        matrix[i][j] = 'ST'  # Shares edges AND touches
+                    else:
+                        matrix[i][j] = 'S'   # Shares edges only
+                elif i_contains_j:
+                    if touches:
+                        matrix[i][j] = 'IT'  # j inside i, touching
+                    else:
+                        matrix[i][j] = 'I'   # j inside i, not touching
+                elif j_contains_i:
+                    if touches:
+                        matrix[i][j] = 'OT'  # i outside j (j contains i), touching
+                    else:
+                        matrix[i][j] = 'O'   # i outside j (j contains i)
+                elif touches:
+                    matrix[i][j] = 'OT'      # Outside but touching
+                elif disjoint:
+                    matrix[i][j] = 'O'       # Completely disjoint
+                else:
+                    # Overlapping or other complex relationship
+                    matrix[i][j] = 'O'       # Default to outside
+        
+        # Print matrix for debugging
+        print(f"[POLY FORM]     Relationship Matrix:")
+        print(f"[POLY FORM]       ", end="")
+        for j in range(n):
+            print(f"  {j:2d}", end="")
+        print()
+        for i in range(n):
+            print(f"[POLY FORM]       {i:2d}", end="")
+            for j in range(n):
+                print(f"  {matrix[i][j]:>2s}", end="")
+            print()
+        
+        # =====================================================================
+        # STEP 1: Identify separate faces and boundary polygon
+        # =====================================================================
+        print(f"[POLY FORM]     Step 1: Identifying separate faces and boundary...")
+        
+        # Find polygons with all S relationships (separate faces)
+        separate_faces = []
+        for i in range(n):
+            row = matrix[i]
+            # Check if all non-self entries are 'S' or 'O' (no containment)
+            is_separate = all(cell in ['S', 'O', '-'] for cell in row)
+            if is_separate and any(cell == 'O' for cell in row):
+                separate_faces.append(i)
+                print(f"[POLY FORM]       Polygon {i} is a separate face (all S/O)")
+        
+        # Find boundary polygon (contains most others or has most I/S relationships)
+        boundary_candidate = None
+        max_contains_count = -1
+        
+        for i in range(n):
+            if i in separate_faces:
+                continue
+            row = matrix[i]
+            # Count I (contains) relationships
+            contains_count = sum(1 for cell in row if cell in ['I', 'IT'])
+            # Count S/ST (shares edges) relationships
+            shares_count = sum(1 for cell in row if cell in ['S', 'ST'])
+            # Boundary should have mix of I and S relationships
+            score = contains_count * 2 + shares_count  # Weight contains higher
+            
+            if score > max_contains_count:
+                max_contains_count = score
+                boundary_candidate = i
+        
+        if boundary_candidate is not None:
+            print(f"[POLY FORM]       Polygon {boundary_candidate} identified as BOUNDARY (score: {max_contains_count})")
+            polygons[boundary_candidate]['polygon_type'] = 'BOUNDARY'
+            polygons[boundary_candidate]['is_alternate'] = False
+            polygons[boundary_candidate]['is_hole'] = False
+        else:
+            # Fallback: largest polygon by area
+            boundary_candidate = max(range(n), key=lambda i: polygons[i].get('area', 0))
+            print(f"[POLY FORM]       No clear boundary from matrix, using largest polygon {boundary_candidate}")
+            polygons[boundary_candidate]['polygon_type'] = 'BOUNDARY'
+            polygons[boundary_candidate]['is_alternate'] = False
+            polygons[boundary_candidate]['is_hole'] = False
+        
+        # =====================================================================
+        # STEP 2: Tag IT polygons for later processing
+        # =====================================================================
+        print(f"[POLY FORM]     Step 2: Tagging IT polygons...")
+        
+        it_tagged = set()
+        for i in range(n):
+            if i == boundary_candidate or i in separate_faces:
+                continue
+            row = matrix[i]
+            # Check if this polygon has IT relationship with boundary
+            if matrix[boundary_candidate][i] == 'IT':
+                it_tagged.add(i)
+                print(f"[POLY FORM]       Polygon {i} tagged as IT (inside boundary, touching)")
+        
+        # =====================================================================
+        # STEP 3: Process holes with S/ST relationships (CORRECTED)
+        # =====================================================================
+        print(f"[POLY FORM]     Step 3: Processing holes with S/ST relationships...")
+        
+        holes_to_process = []
+        for i in range(n):
+            if i == boundary_candidate or i in separate_faces or i in it_tagged:
+                continue
+            
+            row = matrix[i]
+            # Check if row has S or ST relationships (may NOT have O/OT cells per correction)
+            has_s_or_st = any(cell in ['S', 'ST'] for cell in row)
+            
+            # Check if contained by boundary
+            is_contained_by_boundary = matrix[boundary_candidate][i] in ['I', 'IT']
+            
+            if has_s_or_st and is_contained_by_boundary:
+                holes_to_process.append(i)
+                print(f"[POLY FORM]       Polygon {i} is a hole with S/ST relationships")
+                polygons[i]['polygon_type'] = 'HOLE'
+                polygons[i]['is_hole'] = True
+                polygons[i]['is_alternate'] = False
+                polygons[i]['parent_polygon'] = 'BOUNDARY'
+            elif is_contained_by_boundary and not has_s_or_st:
+                # Pure hole (no shared edges)
+                print(f"[POLY FORM]       Polygon {i} is a pure hole (no S/ST)")
+                polygons[i]['polygon_type'] = 'HOLE'
+                polygons[i]['is_hole'] = True
+                polygons[i]['is_alternate'] = False
+                polygons[i]['parent_polygon'] = 'BOUNDARY'
+        
+        # =====================================================================
+        # STEP 4: Validate IT-tagged polygons
+        # =====================================================================
+        print(f"[POLY FORM]     Step 4: Validating IT-tagged polygons...")
+        
+        for i in it_tagged:
+            row = matrix[i]
+            # Check relationships with other polygons
+            has_s = any(cell in ['S', 'ST'] for j, cell in enumerate(row) if j != boundary_candidate)
+            
+            if has_s:
+                # IT polygon shares edges with others → likely part of ALT structure
+                print(f"[POLY FORM]       IT polygon {i} shares edges with others → ALT")
+                polygons[i]['polygon_type'] = 'ALT'
+                polygons[i]['is_alternate'] = True
+                polygons[i]['is_hole'] = False
+            else:
+                # IT polygon doesn't share edges → could be hole touching boundary
+                print(f"[POLY FORM]       IT polygon {i} no shared edges → HOLE touching boundary")
+                polygons[i]['polygon_type'] = 'HOLE'
+                polygons[i]['is_hole'] = True
+                polygons[i]['is_alternate'] = False
+                polygons[i]['parent_polygon'] = 'BOUNDARY'
+        
+        # =====================================================================
+        # STEP 5: Process remaining polygons as ALTs
+        # =====================================================================
+        print(f"[POLY FORM]     Step 5: Processing remaining polygons...")
+        
+        for i in range(n):
+            if i == boundary_candidate or i in separate_faces:
+                continue
+            
+            # If not yet classified, must be ALT
+            if 'polygon_type' not in polygons[i] or polygons[i]['polygon_type'] == '':
+                row = matrix[i]
+                # Check if shares edges with boundary
+                shares_with_boundary = matrix[boundary_candidate][i] in ['S', 'ST'] or matrix[i][boundary_candidate] in ['S', 'ST']
+                
+                if shares_with_boundary:
+                    print(f"[POLY FORM]       Polygon {i} shares edges with boundary → ALT")
+                    polygons[i]['polygon_type'] = 'ALT'
+                    polygons[i]['is_alternate'] = True
+                    polygons[i]['is_hole'] = False
+                else:
+                    print(f"[POLY FORM]       Polygon {i} no boundary connection → separate face")
+                    polygons[i]['polygon_type'] = 'BOUNDARY'
+                    polygons[i]['is_alternate'] = False
+                    polygons[i]['is_hole'] = False
+        
+        # =====================================================================
+        # STEP 6: Validate ALT polygons cannot have holes
+        # =====================================================================
+        print(f"[POLY FORM]     Step 6: Validating ALT constraint (no holes allowed)...")
+        
+        for i in range(n):
+            if polygons[i].get('polygon_type') == 'ALT':
+                # Check if any holes are inside this ALT
+                for j in range(n):
+                    if i == j:
+                        continue
+                    if polygons[j].get('polygon_type') == 'HOLE':
+                        # Check if hole j is inside ALT i
+                        if matrix[i][j] in ['I', 'IT']:
+                            print(f"[POLY FORM]       ERROR: ALT polygon {i} contains HOLE {j} - violates constraint!")
+                            print(f"[POLY FORM]       → Reclassifying ALT {i} as separate BOUNDARY face")
+                            # Mark as separate face that needs to be split
+                            polygons[i]['polygon_type'] = 'BOUNDARY'
+                            polygons[i]['is_alternate'] = False
+                            polygons[i]['is_hole'] = False
+                            polygons[i]['_needs_split'] = True
+                            # Mark the hole as belonging to this new face
+                            polygons[j]['_parent_face'] = i
+        
+        # Print final classification
+        print(f"[POLY FORM]     Final classification:")
+        boundary_count = sum(1 for p in polygons if p.get('polygon_type') == 'BOUNDARY')
+        hole_count = sum(1 for p in polygons if p.get('polygon_type') == 'HOLE')
+        alt_count = sum(1 for p in polygons if p.get('polygon_type') == 'ALT')
+        print(f"[POLY FORM]       BOUNDARY: {boundary_count}, HOLES: {hole_count}, ALTs: {alt_count}")
+        
+        for i, poly in enumerate(polygons):
+            ptype = poly.get('polygon_type', 'UNKNOWN')
+            print(f"[POLY FORM]       [{i}] {ptype}: {poly['vertices']}")
     
     # ==========================================================================
     # SPLIT INDEPENDENT BOUNDARY POLYGONS INTO SEPARATE FACES
