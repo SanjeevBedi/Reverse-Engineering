@@ -5123,11 +5123,13 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             verts = poly['vertices']
             for k in range(len(verts)):
                 v1, v2 = verts[k], verts[(k+1) % len(verts)]
+                # Normalize edge to (min, max) to handle both directions
                 edges.add((min(v1, v2), max(v1, v2)))
             edge_sets.append(edges)
         
         # Populate matrix with relationships
         print(f"[POLY FORM]     Building {n}x{n} relationship matrix...")
+        
         for i in range(n):
             for j in range(n):
                 if i == j:
@@ -5146,36 +5148,35 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                 has_shared_edges = len(shared_edges) > 0
                 
                 # Check geometric relationships
+                # Note: In solid modeling, polygons only "touch" if they share edges, not just vertices
                 try:
                     i_contains_j = poly_i_shapely.contains(poly_j_shapely)
                     j_contains_i = poly_j_shapely.contains(poly_i_shapely)
-                    touches = poly_i_shapely.touches(poly_j_shapely)
                     disjoint = poly_i_shapely.disjoint(poly_j_shapely)
                 except Exception as e:
                     print(f"[POLY FORM]       WARNING: Shapely comparison failed for ({i},{j}): {e}")
                     i_contains_j = False
                     j_contains_i = False
-                    touches = False
                     disjoint = True
                 
                 # Determine relationship type
-                if has_shared_edges:
-                    if touches:
-                        matrix[i][j] = 'ST'  # Shares edges AND touches
-                    else:
-                        matrix[i][j] = 'S'   # Shares edges only
-                elif i_contains_j:
-                    if touches:
-                        matrix[i][j] = 'IT'  # j inside i, touching
+                # Priority: Containment relationships (I/IT/O/OT) take precedence over shared edges (S/ST)
+                # Note: "Touching" in solid modeling means sharing edges, not vertex-only contact
+                if i_contains_j:
+                    # i contains j - use I or IT
+                    if has_shared_edges:
+                        matrix[i][j] = 'IT'  # j inside i, touching via shared edge
                     else:
                         matrix[i][j] = 'I'   # j inside i, not touching
                 elif j_contains_i:
-                    if touches:
-                        matrix[i][j] = 'OT'  # i outside j (j contains i), touching
+                    # j contains i - from i's perspective, i is outside
+                    if has_shared_edges:
+                        matrix[i][j] = 'OT'  # i outside j (j contains i), touching via shared edge
                     else:
                         matrix[i][j] = 'O'   # i outside j (j contains i)
-                elif touches:
-                    matrix[i][j] = 'OT'      # Outside but touching
+                elif has_shared_edges:
+                    # No containment, but shares edges - both are at same level
+                    matrix[i][j] = 'S'   # Shares edges (ST not needed - all edge sharing is touching)
                 elif disjoint:
                     matrix[i][j] = 'O'       # Completely disjoint
                 else:
