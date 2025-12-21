@@ -1,0 +1,126 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning}
+\usepackage{hyperref}
+
+\title{Step 6: Face Polygon Extraction from Planar Connectivity}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Overview}
+
+Step 6 identifies and classifies polygonal face boundaries on each unique plane by analyzing the connectivity of vertices and edges that lie on that plane.
+
+\section{Process}
+
+\subsection{1. Planar Decomposition}
+
+\begin{itemize}
+    \item Each unique plane in 3D space is considered individually
+    \item All vertices that lie on the plane (within tolerance) are identified
+    \item All edges connecting these coplanar vertices are extracted from the merged 3D connectivity matrix
+\end{itemize}
+
+\subsection{2. Polygon Detection}
+
+\begin{itemize}
+    \item Edges are traced following the connectivity matrix to form closed cycles
+    \item Each closed cycle of edges defines a polygon
+    \item Multiple polygons may exist on a single plane, representing different faces or face features
+\end{itemize}
+
+\subsection{3. Polygon Classification}
+
+The polygons on each plane are analyzed based on their spatial relationships:
+
+\subsubsection{a) Simple Face (Isolated Polygon)}
+
+\begin{itemize}
+    \item \textbf{Condition:} Single polygon with no other polygons inside or touching it
+    \item \textbf{Result:} The polygon defines a complete face boundary
+    \item \textbf{Type:} Marked as boundary polygon
+\end{itemize}
+
+\subsubsection{b) Face with Holes}
+
+\begin{itemize}
+    \item \textbf{Condition:} One outer polygon containing one or more non-touching interior polygons
+    \item \textbf{Result:}
+    \begin{itemize}
+        \item Outer polygon = face boundary
+        \item Interior polygons = holes within the face
+    \end{itemize}
+    \item \textbf{Types:}
+    \begin{itemize}
+        \item Outer polygon marked as ``boundary''
+        \item Interior polygons marked as ``holes''
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{c) Touching Polygons (Edge-Adjacent)}
+
+When two polygons share a common edge but do not overlap in area, several scenarios exist:
+
+\begin{itemize}
+    \item \textbf{Case 1 -- Interior Touch:}
+    \begin{itemize}
+        \item The touching polygon lies inside the current polygon's conceptual boundary
+        \item Action: Modify the boundary to exclude the internal polygon (convert to hole or separate face)
+    \end{itemize}
+    
+    \item \textbf{Case 2 -- Exterior Touch:}
+    \begin{itemize}
+        \item The touching polygon lies outside the current polygon
+        \item Either polygon can serve as the valid face boundary
+        \item The alternate polygon represents either:
+        \begin{itemize}
+            \item A \textbf{depression} (below the plane)
+            \item An \textbf{elevation} (above the plane)
+        \end{itemize}
+        \item Type: Marked as ``alt'' (alternate boundary)
+    \end{itemize}
+\end{itemize}
+
+\subsection{4. Final Classification}
+
+Each polygon on a plane receives one of three labels:
+
+\begin{description}[style=nextline]
+    \item[\textbf{``boundary'':}] The primary face boundary (typically the polygon with the largest perimeter or edge count)
+    
+    \item[\textbf{``holes'':}] Polygons completely contained within the boundary, representing voids in the face
+    
+    \item[\textbf{``alt'':}] Alternate boundary polygons that share edges with the boundary but lie outside it, representing adjacent features at different depths
+\end{description}
+
+\section{Output}
+
+A structured list of faces where each face contains:
+
+\begin{itemize}
+    \item One boundary polygon
+    \item Zero or more hole polygons
+    \item Zero or more alternate boundary polygons
+    \item The plane equation (normal vector and $d$-parameter)
+\end{itemize}
+
+\section{Key Insight}
+
+Step 6 resolves the ambiguity of multiple polygons on the same plane by analyzing their topological relationships (containment, adjacency) and their geometric configuration to correctly identify which polygons define face boundaries, which represent holes, and which represent adjacent features at different elevations.
+
+\vspace{1em}
+
+\noindent This classification enables accurate reconstruction of complex 3D solid geometries from connectivity information by distinguishing between true face boundaries, internal features (holes), and adjacent coplanar features at different depths.
+
+\end{document}

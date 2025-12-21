@@ -1,0 +1,299 @@
+Metadata-Version: 2.4
+Name: opencascade-engineering-drawings
+Version: 1.0.0
+Summary: Generate engineering drawings from 3D CAD models using OpenCASCADE
+Home-page: https://github.com/engineering-team/opencascade-engineering-drawings
+Author: Engineering Drawings Team
+Author-email: engineering@example.com
+License: MIT
+Project-URL: Homepage, https://github.com/engineering-drawings/opencascade-drawings
+Project-URL: Repository, https://github.com/engineering-drawings/opencascade-drawings.git
+Project-URL: Documentation, https://opencascade-drawings.readthedocs.io/
+Project-URL: Bug Tracker, https://github.com/engineering-drawings/opencascade-drawings/issues
+Keywords: cad,engineering,drawings,opencascade,3d,modeling
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Topic :: Scientific/Engineering :: Computer Aided Design (CAD)
+Classifier: Topic :: Scientific/Engineering :: Visualization
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: numpy>=1.19.0
+Requires-Dist: matplotlib>=3.3.0
+Requires-Dist: shapely>=1.7.0
+Provides-Extra: dev
+Requires-Dist: pytest>=6.0; extra == "dev"
+Requires-Dist: pytest-cov>=2.10; extra == "dev"
+Requires-Dist: black>=21.0; extra == "dev"
+Requires-Dist: flake8>=3.8; extra == "dev"
+Requires-Dist: isort>=5.0; extra == "dev"
+Dynamic: author-email
+Dynamic: home-page
+Dynamic: requires-python
+
+# OpenCASCADE Engineering Drawings Generator
+
+A comprehensive Python project for generating engineering drawings from 3D CAD models using OpenCASCADE technology with advanced polygon classification algorithms.
+
+## Features
+
+- **3D Solid Modeling**: Create complex 3D solids using OpenCASCADE boolean operations
+- **Face Analysis**: Automatic detection and classification of planar, curved, and complex faces
+- **Vertex Extraction**: Proper orientation-aware vertex extraction respecting edge directions
+- **Hidden Line Removal**: Historic depth-based polygon classification algorithm
+- **Engineering Visualization**: Generate technical drawings with proper plotting order
+- **Interactive Input**: User-configurable projection normals
+- **Multiple Views**: Support for front, side, top, and isometric projections
+
+## Project Structure
+
+```
+OpenCASCADE_Engineering_Drawings/
+├── README.md                          # This file
+├── requirements.txt                   # Python dependencies
+├── setup.py                          # Package setup and installation
+├── main.py                           # Main application entry point
+├── src/
+│   ├── __init__.py
+│   ├── solid_generator.py            # 3D solid creation and boolean operations
+│   ├── face_analyzer.py              # Face type analysis and geometry validation
+│   ├── vertex_extractor.py           # Vertex extraction with orientation handling
+│   ├── projection_engine.py          # 2D projection and polygon creation
+│   ├── classification_algorithm.py   # Historic polygon classification
+│   └── visualization.py              # Plotting and visualization functions
+├── examples/
+│   ├── basic_usage.py                # Simple usage examples
+│   ├── advanced_features.py          # Advanced feature demonstrations
+│   └── custom_projections.py         # Custom projection examples
+├── tests/
+│   ├── __init__.py
+│   ├── test_solid_generator.py       # Unit tests for solid generation
+│   ├── test_face_analyzer.py         # Unit tests for face analysis
+│   ├── test_vertex_extractor.py      # Unit tests for vertex extraction
+│   └── test_classification.py        # Unit tests for classification algorithm
+└── docs/
+    ├── installation.md               # Installation instructions
+    ├── user_guide.md                 # User guide and tutorials
+    └── api_reference.md              # API documentation
+```
+
+## Installation
+
+### Prerequisites
+
+- Python 3.8 or higher
+- OpenCASCADE (pythonocc-core)
+- NumPy
+- Matplotlib
+- Shapely
+
+### Quick Install
+
+```bash
+# Clone or download the project
+cd OpenCASCADE_Engineering_Drawings
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Install the package
+pip install -e .
+```
+
+### Conda Environment (Recommended)
+
+```bash
+# Create conda environment
+conda create -n engineering_drawings python=3.9
+conda activate engineering_drawings
+
+# Install dependencies
+conda install -c conda-forge pythonocc-core numpy matplotlib shapely
+
+# Install the package
+pip install -e .
+```
+
+## Quick Start
+
+```python
+from engineering_drawings import EngineeringDrawingsGenerator
+
+# Create generator instance
+generator = EngineeringDrawingsGenerator()
+
+# Generate 3D solid with boolean operations
+solid = generator.create_complex_solid()
+
+# Extract faces and analyze geometry
+faces = generator.analyze_solid_geometry(solid)
+
+# Generate engineering drawings
+projection_normal = [1, 1, 1]  # Isometric view
+arrays_B, arrays_C = generator.classify_faces(faces, projection_normal)
+
+# Visualize results
+generator.plot_engineering_drawings(arrays_B, arrays_C, projection_normal)
+```
+
+## Advanced Features
+
+### Custom Solid Generation
+
+```python
+from engineering_drawings.solid_generator import SolidGenerator
+
+generator = SolidGenerator()
+
+# Create custom boolean operations
+cuboid1 = generator.create_box(10, 20, 30)
+cuboid2 = generator.create_box(12, 15, 25, translation=(5, 10, 15))
+result = generator.boolean_cut(cuboid1, cuboid2)
+```
+
+### Face Analysis
+
+```python
+from engineering_drawings.face_analyzer import FaceAnalyzer
+
+analyzer = FaceAnalyzer()
+
+# Analyze face types
+face_types = analyzer.classify_face_types(solid)
+print(f"Planar faces: {face_types['planar']}")
+print(f"Curved faces: {face_types['curved']}")
+```
+
+### Vertex Extraction with Orientation
+
+```python
+from engineering_drawings.vertex_extractor import VertexExtractor
+
+extractor = VertexExtractor()
+
+# Extract vertices respecting edge orientations
+for face in faces:
+    vertices = extractor.extract_oriented_vertices(face)
+    print(f"Face vertices: {len(vertices)}")
+```
+
+## Key Fixes and Improvements
+
+### 1. Vertex Extraction Logic
+- **FORWARD edges**: Use start→end vertex order
+- **REVERSED edges**: Use end→start vertex order
+- Proper connectivity checking between edges
+- Detailed orientation tracking
+
+### 2. Face Type Analysis
+- Fixed planar face detection using GeomAbs constants
+- Proper surface type classification
+- Enhanced error handling and validation
+
+### 3. Historic Algorithm Implementation
+- Depth-based polygon classification
+- Boolean intersection and subtraction operations
+- 3D line-face intersection analysis
+- Multi-point sampling for accuracy
+
+### 4. Visualization Enhancements
+- Correct plotting order: array_C first (dashed), array_B second (solid)
+- Engineering drawing standards compliance
+- Interactive projection normal input
+- Multiple view support
+
+## Technical Details
+
+### Coordinate Systems
+- Right-handed coordinate system
+- OpenCASCADE topology hierarchy: Solid → Shells → Faces → Wires → Edges → Vertices
+- Proper orientation handling at all levels
+
+### Algorithms
+- **Hidden Line Removal**: Historic depth-based classification
+- **Boolean Operations**: OpenCASCADE BRepAlgoAPI
+- **Projection**: Orthogonal projection with configurable normals
+- **Polygon Classification**: Intersection-based depth analysis
+
+### Performance
+- Optimized vertex extraction with orientation caching
+- Efficient polygon intersection algorithms
+- Memory-conscious face processing
+- Scalable for complex geometries
+
+## Examples
+
+See the `examples/` directory for:
+- Basic cuboid generation and analysis
+- Complex boolean operations
+- Custom projection configurations
+- Batch processing workflows
+
+## Testing
+
+Run the test suite:
+
+```bash
+# Run all tests
+python -m pytest tests/
+
+# Run specific test module
+python -m pytest tests/test_vertex_extractor.py -v
+
+# Run with coverage
+python -m pytest tests/ --cov=src/
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- OpenCASCADE Technology for 3D modeling capabilities
+- Shapely library for 2D geometric operations
+- Matplotlib for visualization
+- Historic polygon classification algorithm researchers
+
+## Troubleshooting
+
+### Common Issues
+
+1. **OpenCASCADE Import Error**
+   ```
+   Solution: Install pythonocc-core via conda-forge
+   conda install -c conda-forge pythonocc-core
+   ```
+
+2. **NumPy Library Loading Error**
+   ```
+   Solution: Use conda environment with compatible versions
+   conda create -n engineering_drawings python=3.9
+   ```
+
+3. **Face Type Detection Shows 0 Planar Faces**
+   ```
+   Solution: This version includes the fix - ensures proper GeomAbs constants usage
+   ```
+
+4. **Vertex Extraction Order Issues**
+   ```
+   Solution: This version includes orientation-aware vertex extraction
+   ```
+
+For more issues, see the GitHub Issues page or contact the maintainers.

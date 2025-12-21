@@ -19,7 +19,7 @@ from OCC.Core.TopoDS import topods
 from OCC.Core.BRep import BRep_Tool
 from OCC.Core.Bnd import Bnd_Box
 from OCC.Core.BRepBndLib import brepbndlib_Add
-from OCC.Core.TopAbs import TopAbs_FACE, TopAbs_WIRE, TopAbs_VERTEX, TopAbs_EDGE
+from OCC.Core.TopAbs import TopAbs_FACE, TopAbs_WIRE, TopAbs_VERTEX, TopAbs_EDGE, TopAbs_SHELL
 
 # XDE imports for tagging faces
 from OCC.Core.TDF import TDF_LabelSequence
@@ -64,6 +64,42 @@ probs = probs / probs.sum()  # Normalize to sum to 1
 # height probability ^
 base_width = 200
 base_depth = 300
+
+
+# ============================================================================
+# COORDINATE ROUNDING FOR BUILD PROCESS
+# ============================================================================
+# Build tolerance: 0.5mm for dimensional precision
+# Reconstruction tolerance: 0.05mm (tighter for accurate recovery)
+# Normal/rotation tolerance: 1e-6 (high precision for angles)
+#
+# To ensure reconstruction from views works correctly, all geometry must be
+# created with consistent precision from the start.
+
+# Global tolerance for building geometry (dimensions)
+BUILD_TOLERANCE = 0.5  # mm
+
+def round_to_precision(value, precision=BUILD_TOLERANCE):
+    """Round a single coordinate value to specified precision (default 0.5mm)"""
+    return round(value / precision) * precision
+
+def make_rounded_pnt(x, y, z, precision=BUILD_TOLERANCE):
+    """Create a gp_Pnt with coordinates rounded to specified precision (default 0.5mm)"""
+    return gp_Pnt(
+        round_to_precision(x, precision),
+        round_to_precision(y, precision),
+        round_to_precision(z, precision)
+    )
+
+def make_rounded_vec(x, y, z, precision=BUILD_TOLERANCE):
+    """Create a gp_Vec with coordinates rounded to specified precision (default 0.5mm)"""
+    return gp_Vec(
+        round_to_precision(x, precision),
+        round_to_precision(y, precision),
+        round_to_precision(z, precision)
+    )
+
+# ============================================================================
 
 
 def extract_wire_vertices(wire, debug=False, face_orientation=None, wire_idx=None, face_idx=None):
@@ -215,7 +251,20 @@ def plot_face_boundaries_with_holes(solid):
     print("Debug: 2D face boundaries with holes plotted.")
 
 
-def generate_valid_base(seed=None):
+def generate_valid_base(seed=None, max_attempts=10, current_attempt=0):
+    """
+    Generate a valid base solid composed of multiple overlapping cuboids.
+    
+    Args:
+        seed: Random seed for reproducibility
+        max_attempts: Maximum number of seed increments to try
+        current_attempt: Current attempt number (for recursion tracking)
+    """
+    if current_attempt >= max_attempts:
+        print(f"✗ Failed to generate valid base after {max_attempts} "
+              f"attempts")
+        return None
+    
     # Random cuboid parameters
     # Choose number of cuboids with weighted probability
     cuboid_choices = [2, 1, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -224,7 +273,8 @@ def generate_valid_base(seed=None):
     weights = np.array(weights)
     weights = weights / weights.sum()
     num_cuboids = random.choices(cuboid_choices, weights=weights)[0]
-    print(f"Generating base with {num_cuboids} cuboids (seed={seed})")
+    print(f"Generating base with {num_cuboids} cuboids "
+          f"(seed={seed}, attempt {current_attempt+1}/{max_attempts})")
     cuboids = []
     for i in range(num_cuboids):
         cx = random.uniform(0, 40)
@@ -246,11 +296,12 @@ def generate_valid_base(seed=None):
     for cx, cy, w, d, h, ang in cuboids:
         base_offset = random.uniform(5, 15)
         z_base = -base_offset
-        box = BRepPrimAPI_MakeBox(gp_Pnt(float(cx), float(cy), z_base), float(w), float(d), float(h)).Shape()
+        # Round all coordinates to 0.1mm precision
+        box = BRepPrimAPI_MakeBox(make_rounded_pnt(cx, cy, z_base), float(w), float(d), float(h)).Shape()
         trsf = gp_Trsf()
         # Only rotate about z axis, keep translation in x/y/z_base
         if ang != 0:
-            trsf.SetRotation(gp_Ax1(gp_Pnt(cx, cy, z_base), gp_Dir(0, 0, 1)), np.deg2rad(ang))
+            trsf.SetRotation(gp_Ax1(make_rounded_pnt(cx, cy, z_base), gp_Dir(0, 0, 1)), np.deg2rad(ang))
         box_loc = TopLoc_Location(trsf)
         box.Move(box_loc)
         boxes.append(box)
@@ -265,21 +316,27 @@ def generate_valid_base(seed=None):
             return None
         fused = fuse_op.Shape()
         # Check for multiple shells
-        from OCC.Core.TopExp import TopExp_Explorer
-        from OCC.Core.TopAbs import TopAbs_SHELL
         shell_explorer = TopExp_Explorer(fused, TopAbs_SHELL)
         shell_count = 0
         while shell_explorer.More():
             shell_count += 1
             shell_explorer.Next()
         if shell_count > 1:
-            print(f"Abandoning solid: {shell_count} shells detected. Regenerating...")
+            print(f"Abandoning solid: {shell_count} shells detected. "
+                  f"Regenerating...")
             # Try again with a new random seed
             if seed is not None:
-                # Increment seed to avoid infinite loop
-                return generate_valid_base(seed=seed+1)
+                # Increment seed and attempt counter to avoid infinite loop
+                return generate_valid_base(
+                    seed=seed+1,
+                    max_attempts=max_attempts,
+                    current_attempt=current_attempt+1
+                )
             else:
-                return generate_valid_base()
+                return generate_valid_base(
+                    max_attempts=max_attempts,
+                    current_attempt=current_attempt+1
+                )
     # Subtract a large cuboid with top face at z=0
     # Compute bounding box
     from OCC.Core.Bnd import Bnd_Box
@@ -297,14 +354,15 @@ def generate_valid_base(seed=None):
     big_width = big_xmax - big_xmin
     big_height = big_ymax - big_ymin
     big_depth = abs(big_zmin)
-    big_box = BRepPrimAPI_MakeBox(gp_Pnt(big_xmin, big_ymin, big_zmin), big_width, big_height, -big_zmin).Shape()
+    # Round bounding box coordinates to 0.1mm precision
+    big_box = BRepPrimAPI_MakeBox(make_rounded_pnt(big_xmin, big_ymin, big_zmin), big_width, big_height, -big_zmin).Shape()
     from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Cut
     fused_trimmed = BRepAlgoAPI_Cut(fused, big_box).Shape()
     return fused_trimmed
 
 
 
-def build_solid_with_polygons(seed, quiet):
+def build_solid_with_polygons(seed, quiet, no_lettering=False):
     # Initialize lettering solids list
     if not hasattr(build_solid_with_polygons, 'lettering_solids'):
         build_solid_with_polygons.lettering_solids = []
@@ -523,22 +581,58 @@ def build_solid_with_polygons(seed, quiet):
                 fixed_val = np.mean([
                     extrude_vec_func['fixed'](v) for v in outer_vertices
                 ])
+                # Round polygon points and fixed coordinate to 0.1mm precision
                 if extrude_vec_func['axis'] == 'z':
                     polygon_3d = [
-                        gp_Pnt(x, y, fixed_val) for x, y in polygon_points
+                        make_rounded_pnt(x, y, fixed_val) for x, y in polygon_points
                     ]
                 elif extrude_vec_func['axis'] == 'x':
                     polygon_3d = [
-                        gp_Pnt(fixed_val, y, z) for y, z in polygon_points
+                        make_rounded_pnt(fixed_val, y, z) for y, z in polygon_points
                     ]
                 else:
                     raise ValueError('Unknown axis for extrusion')
                 
+                # Remove consecutive duplicate points after rounding
+                # This prevents degenerate edges (zero-length edges)
+                filtered_polygon_3d = [polygon_3d[0]]
+                for pt in polygon_3d[1:]:
+                    prev_pt = filtered_polygon_3d[-1]
+                    # Check if points are different (not identical after rounding)
+                    if not (abs(pt.X() - prev_pt.X()) < 1e-9 and 
+                            abs(pt.Y() - prev_pt.Y()) < 1e-9 and 
+                            abs(pt.Z() - prev_pt.Z()) < 1e-9):
+                        filtered_polygon_3d.append(pt)
+                
+                # Skip if polygon collapsed to less than 3 unique points
+                if len(filtered_polygon_3d) < 3:
+                    print(f"[DEBUG] Polygon collapsed to {len(filtered_polygon_3d)} points after rounding, skipping")
+                    continue
+                
+                # Calculate polygon area to detect degenerate cases
+                # Extract 2D coordinates for area calculation
+                if extrude_vec_func['axis'] == 'z':
+                    poly_2d_coords = [(pt.X(), pt.Y()) for pt in filtered_polygon_3d]
+                elif extrude_vec_func['axis'] == 'x':
+                    poly_2d_coords = [(pt.Y(), pt.Z()) for pt in filtered_polygon_3d]
+                else:
+                    poly_2d_coords = [(pt.X(), pt.Z()) for pt in filtered_polygon_3d]
+                
+                # Close the polygon for area calculation
+                poly_2d_coords.append(poly_2d_coords[0])
+                rounded_poly = Polygon(poly_2d_coords)
+                
+                # Skip if polygon area is too small (< 1.0 mm²) after rounding
+                # With 0.5mm tolerance, need larger minimum area to avoid degenerate geometry
+                if not rounded_poly.is_valid or rounded_poly.area < 1.0:
+                    print(f"[DEBUG] Polygon too small or invalid after rounding (area={rounded_poly.area:.6f}), skipping")
+                    continue
+                
                 polygon_wire_builder = BRepBuilderAPI_MakeWire()
-                for i in range(len(polygon_3d)-1):
+                for i in range(len(filtered_polygon_3d)-1):
                     from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeEdge
                     edge = BRepBuilderAPI_MakeEdge(
-                        polygon_3d[i], polygon_3d[i + 1]
+                        filtered_polygon_3d[i], filtered_polygon_3d[i + 1]
                     ).Edge()
                     polygon_wire_builder.Add(edge)
                 polygon_wire = polygon_wire_builder.Wire()
@@ -553,12 +647,29 @@ def build_solid_with_polygons(seed, quiet):
                 if not cut_op.IsDone() or cut_op.HasErrors():
                     continue
                 else:
-                    result_solid = cut_op.Shape()
+                    temp_result = cut_op.Shape()
+                    
+                    # Validate shell count after cut
+                    shell_explorer = TopExp_Explorer(temp_result, TopAbs_SHELL)
+                    shell_count = 0
+                    while shell_explorer.More():
+                        shell_count += 1
+                        shell_explorer.Next()
+                    
+                    if shell_count > 1:
+                        print(f"✗ Polygon cut produced {shell_count} shells. "
+                              f"Skipping this polygon operation.")
+                        # Don't update result_solid - keep the previous state
+                    else:
+                        result_solid = temp_result
 
         # Call the generalized function for up_faces and x_faces
     # 50% chance: call add_polygons_to_faces as before, else generate rectangle and call build_oriented_solid
         for selected_face, selected_normal, selected_idx, outer_vertices in up_faces:
-            if random.random() < 0.5:
+            if no_lettering:
+                # Skip lettering operations when flag is set
+                continue
+            if random.random() < 0.85:
                 # Add polygon to this face
                 add_polygons_to_faces(
                     [(selected_face, selected_normal, selected_idx, outer_vertices)],
@@ -611,10 +722,27 @@ def build_solid_with_polygons(seed, quiet):
                 cut_op = BRepAlgoAPI_Cut(result_solid, lettering_solid)
                 cut_op.Build()
                 if cut_op.IsDone() and not cut_op.HasErrors():
-                    result_solid = cut_op.Shape()
+                    temp_result = cut_op.Shape()
+                    
+                    # Validate shell count after cut
+                    shell_explorer = TopExp_Explorer(temp_result, TopAbs_SHELL)
+                    shell_count = 0
+                    while shell_explorer.More():
+                        shell_count += 1
+                        shell_explorer.Next()
+                    
+                    if shell_count > 1:
+                        print(f"✗ Lettering cut produced {shell_count} shells. "
+                              f"Skipping this lettering operation.")
+                        # Don't update result_solid - keep the previous state
+                    else:
+                        result_solid = temp_result
         # 50% chance: call add_polygons_to_faces as before, else generate rectangle and call build_oriented_solid
         for selected_face, selected_normal, selected_idx, outer_vertices in x_faces:
-            if random.random() < 0.5:
+            if no_lettering:
+                # Skip lettering operations
+                continue
+            if random.random() < 0.85:
                 add_polygons_to_faces(
                     [(selected_face, selected_normal, selected_idx, outer_vertices)],
                     extrude_vec_func={
@@ -657,7 +785,41 @@ def build_solid_with_polygons(seed, quiet):
                 cut_op = BRepAlgoAPI_Cut(result_solid, lettering_solid)
                 cut_op.Build()
                 if cut_op.IsDone() and not cut_op.HasErrors():
-                    result_solid = cut_op.Shape()
+                    temp_result = cut_op.Shape()
+                    
+                    # Validate shell count after cut
+                    shell_explorer = TopExp_Explorer(temp_result, TopAbs_SHELL)
+                    shell_count = 0
+                    while shell_explorer.More():
+                        shell_count += 1
+                        shell_explorer.Next()
+                    
+                    if shell_count > 1:
+                        print(f"✗ Lettering cut produced {shell_count} shells. "
+                              f"Skipping this lettering operation.")
+                        # Don't update result_solid - keep the previous state
+                    else:
+                        result_solid = temp_result
+        
+        # Validate shell count after all operations
+        if result_solid is not None:
+            shell_explorer = TopExp_Explorer(result_solid, TopAbs_SHELL)
+            shell_count = 0
+            while shell_explorer.More():
+                shell_count += 1
+                shell_explorer.Next()
+            
+            if shell_count > 1:
+                print(f"✗ Final solid has {shell_count} shells "
+                      f"(expected 1). Attempt {attempt+1}/{max_attempts}, "
+                      f"trying seed {seed+1}...")
+                attempt += 1
+                seed += 1
+                continue
+            
+            print(f"✓ Final solid is valid with {shell_count} shell(s) "
+                  f"after {attempt+1} attempt(s)")
+        
         # Check result_solid validity
         if result_solid is not None:
             # Create XDE document with lettering tags if lettering solids exist
@@ -837,7 +999,7 @@ def display_tagged_faces(display, solid, doc=None):
 if __name__ == "__main__":
     try:
         print("Debug: Entering main block.")
-        result_solid = build_solid_with_polygons(seed, quiet)
+        result_solid = build_solid_with_polygons(seed, quiet, no_lettering=False)
         print("Debug: Solid built, proceeding to OCC display.")
         display, start_display, add_menu, add_function_to_menu = init_display()
         

@@ -1,0 +1,405 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+% Code styling
+\lstset{
+    backgroundcolor=\color{gray!10},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    commentstyle=\color{green!60!black},
+    keywordstyle=\color{blue},
+    stringstyle=\color{red},
+    numberstyle=\tiny\color{gray},
+    numbers=left,
+    stepnumber=1,
+    tabsize=2,
+    frame=single,
+    rulecolor=\color{black!30}
+}
+
+% Header and footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Complete Algorithm Logic Flow}
+\fancyhead[R]{3D Boolean Operations}
+\fancyfoot[C]{\thepage}
+
+\title{Complete Algorithm Logic Flow: \\
+\large Sophisticated 3D Depth-Based Polygon Classification \\
+with Farthest Point Detection and Face Association}
+\author{3D Boolean Operations System}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Algorithm Overview}
+
+This document describes a sophisticated algorithm for depth-based polygon classification using 3D geometric analysis. The algorithm processes 2D polygon projections from 3D faces and uses multi-point sampling to determine which polygons are "farther" along a projection normal direction, applying boolean operations accordingly.
+
+\subsection{Key Features}
+\begin{itemize}
+    \item \textbf{Multi-point sampling}: Uses 3×3 grid sampling for accurate depth analysis
+    \item \textbf{Farthest point detection}: Finds the point that extends farthest along projection normal
+    \item \textbf{Face association}: Associates intersection regions with their originating faces
+    \item \textbf{Separate intersection tracking}: Creates distinct intersection rectangles for each polygon pair
+\end{itemize}
+
+\section{Algorithm Data Structures}
+
+\subsection{Polygon Data Structure}
+Each polygon is stored as a dictionary containing:
+\begin{lstlisting}[language=Python]
+polygon_data = {
+    'polygon': shapely.Polygon,      # The 2D polygon geometry
+    'name': str,                     # Face identifier (e.g., "Face_4")
+    'normal': np.array,              # 3D normal vector
+    'parent_face': OpenCASCADE_Face, # 3D face reference
+    'original_index': int            # Original position index
+}
+\end{lstlisting}
+
+\subsection{Array Definitions}
+\begin{itemize}
+    \item \textbf{array\_A}: Initial collection of all polygons to be processed
+    \item \textbf{array\_B}: Unclassified polygons (no intersections found yet)
+    \item \textbf{array\_C}: Classified results (intersections + remaining polygon pieces)
+\end{itemize}
+
+\section{Complete Algorithm Logic Flow}
+
+\subsection{Step 1: Array\_A Population}
+
+\begin{algorithm}
+\caption{Array\_A Population}
+\begin{algorithmic}[1]
+\STATE Initialize $\text{array\_A} \leftarrow \emptyset$
+\FOR{each $(polygon_i, name_i, normal_i)$ in $polygons_{2D}$}
+    \STATE $parent\_face_i \leftarrow face\_associations[i]$
+    \STATE $polygon\_data_i \leftarrow \{$
+    \STATE \quad $'polygon': polygon_i,$
+    \STATE \quad $'name': name_i,$
+    \STATE \quad $'normal': normal_i,$
+    \STATE \quad $'parent\_face': parent\_face_i,$
+    \STATE \quad $'original\_index': i$
+    \STATE $\}$
+    \STATE $\text{array\_A} \leftarrow \text{array\_A} \cup \{polygon\_data_i\}$
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Purpose}: Load all 2D polygons into array\_A with complete metadata including parent face associations for 3D depth calculations.
+
+\subsection{Step 2: Array Initialization and Seeding}
+
+\begin{algorithm}
+\caption{Array Initialization}
+\begin{algorithmic}[1]
+\STATE Initialize $\text{array\_B} \leftarrow \emptyset$
+\STATE Initialize $\text{array\_C} \leftarrow \emptyset$
+\IF{$\text{array\_A} \neq \emptyset$}
+    \STATE $first\_polygon \leftarrow \text{array\_A.pop}(0)$
+    \STATE $\text{array\_B} \leftarrow \{first\_polygon\}$
+\ENDIF
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Purpose}: Initialize empty result arrays and seed array\_B with the first polygon to start the iterative comparison process.
+
+\subsection{Step 3: Main Processing Loop}
+
+\subsubsection{Step 3a: Polygon Selection}
+
+\begin{algorithm}
+\caption{Main Processing Loop}
+\begin{algorithmic}[1]
+\WHILE{$\text{array\_A} \neq \emptyset$}
+    \STATE $P_i\_data \leftarrow \text{array\_A.pop}(0)$
+    \STATE $P_i \leftarrow P_i\_data['polygon']$
+    \STATE $P_i\_name \leftarrow P_i\_data['name']$
+    \STATE $P_i\_parent\_face \leftarrow P_i\_data['parent\_face']$
+    \STATE $intersection\_found \leftarrow \text{False}$
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Step 3b: Intersection Testing}
+
+\begin{algorithm}
+\caption{Intersection Testing Against array\_B}
+\begin{algorithmic}[1]
+\FOR{each $P_j\_data$ in $\text{array\_B}$}
+    \STATE $P_j \leftarrow P_j\_data['polygon']$
+    \STATE $P_j\_name \leftarrow P_j\_data['name']$
+    \STATE $P_j\_parent\_face \leftarrow P_j\_data['parent\_face']$
+    \STATE $intersection \leftarrow P_i \cap P_j$
+    \IF{$intersection.area > \epsilon$ AND $\neg intersection.is\_empty$}
+        \STATE $intersection\_found \leftarrow \text{True}$
+        \STATE Proceed to Step 3c (Enhanced Depth Analysis)
+    \ENDIF
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Step 3c: Enhanced Depth Analysis with Face Association}
+
+This is the core enhancement of the algorithm, featuring multi-point sampling and face association.
+
+\begin{algorithm}
+\caption{Enhanced Depth Analysis}
+\begin{algorithmic}[1]
+\STATE $interior\_point \leftarrow \text{find\_interior\_point}(intersection)$
+\STATE Create 3×3 grid sampling points within intersection region:
+\STATE $sample\_points \leftarrow \emptyset$
+\STATE $(x_{min}, y_{min}, x_{max}, y_{max}) \leftarrow intersection.bounds$
+\FOR{$i = 0$ to $2$}
+    \FOR{$j = 0$ to $2$}
+        \STATE $x \leftarrow x_{min} + (i + 0.5) \times \frac{x_{max} - x_{min}}{3}$
+        \STATE $y \leftarrow y_{min} + (j + 0.5) \times \frac{y_{max} - y_{min}}{3}$
+        \STATE $test\_point \leftarrow \text{Point}(x, y)$
+        \IF{$intersection.contains(test\_point)$}
+            \STATE $sample\_points \leftarrow sample\_points \cup \{test\_point\}$
+        \ENDIF
+    \ENDFOR
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{Farthest Point Detection}
+\begin{algorithmic}[1]
+\STATE $P_i\_max\_depth \leftarrow -\infty$
+\STATE $P_j\_max\_depth \leftarrow -\infty$
+\FOR{each $sample\_point$ in $sample\_points$}
+    \STATE $P_i\_intersection\_3d \leftarrow \text{intersect\_line\_with\_face}(sample\_point, \vec{n}_{proj}, P_i\_parent\_face)$
+    \STATE $P_j\_intersection\_3d \leftarrow \text{intersect\_line\_with\_face}(sample\_point, \vec{n}_{proj}, P_j\_parent\_face)$
+    \STATE $P_i\_depth \leftarrow \text{calculate\_depth\_along\_normal}(P_i\_intersection\_3d, \vec{n}_{proj})$
+    \STATE $P_j\_depth \leftarrow \text{calculate\_depth\_along\_normal}(P_j\_intersection\_3d, \vec{n}_{proj})$
+    \IF{$P_i\_depth > P_i\_max\_depth$}
+        \STATE $P_i\_max\_depth \leftarrow P_i\_depth$
+    \ENDIF
+    \IF{$P_j\_depth > P_j\_max\_depth$}
+        \STATE $P_j\_max\_depth \leftarrow P_j\_depth$
+    \ENDIF
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Mathematical Foundation}: 
+\begin{align}
+\text{depth}(\vec{p}) &= \vec{p} \cdot \hat{n}_{proj} \\
+\text{where } \hat{n}_{proj} &= \frac{\vec{n}_{proj}}{|\vec{n}_{proj}|}
+\end{align}
+
+\subsubsection{Step 3c.3: Face Association and Intersection Storage}
+
+\begin{algorithm}
+\caption{Face Association for Intersections}
+\begin{algorithmic}[1]
+\IF{$P_i\_max\_depth > P_j\_max\_depth$}
+    \STATE $farthest\_face \leftarrow P_i\_parent\_face$
+    \STATE $farthest\_name \leftarrow P_i\_name$
+\ELSE
+    \STATE $farthest\_face \leftarrow P_j\_parent\_face$
+    \STATE $farthest\_name \leftarrow P_j\_name$
+\ENDIF
+\STATE $intersection\_name \leftarrow \text{"Intersection\_"} + P_i\_name + \text{"\_"} + P_j\_name$
+\STATE $intersection\_data \leftarrow \{$
+\STATE \quad $'polygon': intersection,$
+\STATE \quad $'name': intersection\_name,$
+\STATE \quad $'normal': \text{"intersection"},$
+\STATE \quad $'parent\_face': farthest\_face,$
+\STATE \quad $'associated\_face\_name': farthest\_name,$
+\STATE \quad $'original\_index': -1$
+\STATE $\}$
+\STATE $\text{array\_C} \leftarrow \text{array\_C} \cup \{intersection\_data\}$
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Key Enhancement}: Each intersection rectangle is immediately associated with the face that has the farthest point along the projection normal direction.
+
+\subsubsection{Step 3c.4: Boolean Operations Based on Depth}
+
+\begin{algorithm}
+\caption{Depth-Based Boolean Operations}
+\begin{algorithmic}[1]
+\IF{$P_i\_max\_depth > P_j\_max\_depth$}
+    \STATE // $P_i$ is farther: modify $P_j = P_j - P_i$
+    \STATE $new\_P_j \leftarrow P_j \setminus P_i$
+    \IF{$new\_P_j.area > \epsilon$}
+        \STATE Update $P_j\_data$ in $\text{array\_B}$ with $new\_P_j$
+    \ELSE
+        \STATE Remove $P_j\_data$ from $\text{array\_B}$
+    \ENDIF
+\ELSE
+    \STATE // $P_j$ is farther: modify $P_i = P_i - P_j$
+    \STATE $new\_P_i \leftarrow P_i \setminus P_j$
+    \IF{$new\_P_i.area > \epsilon$}
+        \STATE $P_i \leftarrow new\_P_i$
+        \STATE Update $P_i\_data$ with $new\_P_i$
+    \ELSE
+        \STATE $P_i$ is completely consumed
+        \STATE \textbf{break} // Exit intersection testing loop
+    \ENDIF
+\ENDIF
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Step 3d: Final Polygon Placement}
+
+\begin{algorithm}
+\caption{Final Polygon Placement}
+\begin{algorithmic}[1]
+\STATE // Note: Intersections were already added to array\_C in Step 3c.3
+\IF{$intersection\_found = \text{True}$}
+    \IF{$P_i\_data['polygon'].area > \epsilon$}
+        \STATE $\text{array\_C} \leftarrow \text{array\_C} \cup \{P_i\_data\}$
+        \STATE // Remaining $P_i$ goes to array\_C (classified)
+    \ENDIF
+    \STATE // If $P_i$ was completely consumed, it's not added anywhere
+\ELSE
+    \STATE $\text{array\_B} \leftarrow \text{array\_B} \cup \{P_i\_data\}$
+    \STATE // No intersections: $P_i$ goes to array\_B for future comparisons
+\ENDIF
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+
+\section{Algorithm Enhancements}
+
+\subsection{Multi-Point Sampling Enhancement}
+
+Traditional algorithms use a single interior point for depth comparison. This enhanced algorithm uses a 3×3 grid sampling approach:
+
+\begin{equation}
+\text{Sample Points} = \left\{(x_i, y_j) : i,j \in \{0,1,2\}\right\}
+\end{equation}
+
+where:
+\begin{align}
+x_i &= x_{min} + (i + 0.5) \times \frac{x_{max} - x_{min}}{3} \\
+y_j &= y_{min} + (j + 0.5) \times \frac{y_{max} - y_{min}}{3}
+\end{align}
+
+\subsection{Farthest Point Detection}
+
+Instead of using a single depth value, the algorithm finds the maximum depth across all sample points:
+
+\begin{equation}
+\text{max\_depth}(P) = \max_{s \in \text{sample\_points}} \left\{ \text{depth}(\text{intersect\_line\_with\_face}(s, \vec{n}_{proj}, P_{\text{parent}})) \right\}
+\end{equation}
+
+\subsection{Face Association Logic}
+
+The algorithm associates each intersection with the face that contributes the farthest point:
+
+\begin{equation}
+\text{associated\_face} = \begin{cases}
+P_i\_parent\_face & \text{if } P_i\_max\_depth > P_j\_max\_depth \\
+P_j\_parent\_face & \text{if } P_j\_max\_depth > P_i\_max\_depth
+\end{cases}
+\end{equation}
+
+\section{Expected Results}
+
+\subsection{Intersection Rectangle Creation}
+
+For a scenario where Face 11 intersects with both Face 4 and Face 6:
+
+\begin{enumerate}
+    \item \textbf{First intersection} (Face 11 ∩ Face 4):
+    \begin{itemize}
+        \item Algorithm determines which face (11 or 4) has the farthest point
+        \item Creates \texttt{Intersection\_Face\_11\_Face\_4} associated with the farthest face
+        \item Adds it to array\_C immediately
+    \end{itemize}
+    
+    \item \textbf{Second intersection} (Face 11 ∩ Face 6):
+    \begin{itemize}
+        \item Algorithm determines which face (11 or 6) has the farthest point
+        \item Creates \texttt{Intersection\_Face\_11\_Face\_6} associated with the farthest face
+        \item Adds it to array\_C immediately
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Final Array Contents}
+
+\begin{itemize}
+    \item \textbf{array\_B}: Contains final polygons that didn't intersect with anything
+    \item \textbf{array\_C}: Contains:
+    \begin{itemize}
+        \item All intersection rectangles with face associations
+        \item Remaining classified polygon pieces
+    \end{itemize}
+\end{itemize}
+
+\section{Algorithmic Complexity}
+
+\subsection{Time Complexity}
+\begin{itemize}
+    \item \textbf{Main loop}: $O(n)$ where $n$ is the number of polygons
+    \item \textbf{Intersection testing}: $O(n \times m)$ where $m$ is the average size of array\_B
+    \item \textbf{Multi-point sampling}: $O(9 \times k)$ where $k$ is the cost of 3D line-face intersection
+    \item \textbf{Overall}: $O(n^2 \times k)$ in worst case
+\end{itemize}
+
+\subsection{Space Complexity}
+\begin{itemize}
+    \item \textbf{Polygon storage}: $O(n)$ for all polygon data structures
+    \item \textbf{Sample points}: $O(9)$ per intersection (constant)
+    \item \textbf{Overall}: $O(n)$ space complexity
+\end{itemize}
+
+\section{Key Algorithmic Improvements}
+
+\subsection{Problem Solved: Multiple Intersection Rectangles}
+
+\textbf{Previous Issue}: When Face 11 intersected with both Face 4 and Face 6, only one intersection rectangle was created because the algorithm modified polygons before storing intersections.
+
+\textbf{Solution}: The algorithm now adds intersection rectangles to array\_C \textbf{immediately} when found, \textbf{before} applying boolean operations:
+
+\begin{lstlisting}[language=Python]
+# This happens for EACH intersection found:
+# Face 11 ∩ Face 4 → Creates "Intersection_Face_11_Face_4" in array_C
+# Face 11 ∩ Face 6 → Creates "Intersection_Face_11_Face_6" in array_C
+\end{lstlisting}
+
+\subsection{Enhanced Depth Analysis}
+
+The algorithm uses sophisticated 3D depth analysis with:
+\begin{itemize}
+    \item Multi-point sampling for accuracy
+    \item Farthest point detection along projection normal
+    \item Proper face association for traceability
+\end{itemize}
+
+\section{Conclusion}
+
+This enhanced algorithm provides:
+\begin{enumerate}
+    \item \textbf{Accurate depth classification} using multi-point sampling
+    \item \textbf{Separate intersection tracking} for proper visualization
+    \item \textbf{Face association} for each intersection region
+    \item \textbf{Robust 3D geometric analysis} with farthest point detection
+\end{enumerate}
+
+The result is a sophisticated polygon classification system that correctly handles complex 3D boolean operations with proper depth-based analysis and comprehensive intersection tracking.
+
+\end{document}

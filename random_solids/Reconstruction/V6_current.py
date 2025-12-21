@@ -3,6 +3,7 @@ import numpy as np
 from OCC.Core.gp import gp_Trsf
 from OCC.Core.BRep import BRep_Tool
 from Reconstruction.edge_reconstruction import reconstruct_edges_from_views
+from Reconstruction.polygon_classifier import classify_polygons_by_visibility
 from unified_summary import (create_unified_summary, print_summary_info,
                              save_summary_to_file, save_summary_to_numpy,
                              visualize_adjacency_matrix)

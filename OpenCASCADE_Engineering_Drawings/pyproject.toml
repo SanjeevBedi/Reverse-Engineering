@@ -1,0 +1,97 @@
+# OpenCASCADE Engineering Drawings Generator - Configuration
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "opencascade-engineering-drawings"
+version = "1.0.0"
+description = "Generate engineering drawings from 3D CAD models using OpenCASCADE"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Engineering Drawings Team"},
+]
+keywords = ["cad", "engineering", "drawings", "opencascade", "3d", "modeling"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Computer Aided Design (CAD)",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "numpy>=1.19.0",
+    "matplotlib>=3.3.0",
+    "shapely>=1.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov>=2.10",
+    "black>=21.0",
+    "flake8>=3.8",
+    "isort>=5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/engineering-drawings/opencascade-drawings"
+Repository = "https://github.com/engineering-drawings/opencascade-drawings.git"
+Documentation = "https://opencascade-drawings.readthedocs.io/"
+"Bug Tracker" = "https://github.com/engineering-drawings/opencascade-drawings/issues"
+
+[project.scripts]
+engineering-drawings = "engineering_drawings.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+# Testing configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+# Code formatting with Black
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+# Import sorting with isort
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["engineering_drawings"]
+
+# Linting with flake8 (in setup.cfg since pyproject.toml not fully supported)
+# See setup.cfg for flake8 configuration

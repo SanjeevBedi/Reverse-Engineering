@@ -1,0 +1,2353 @@
+[WARNING] config_system not available, using hardcoded values
+[DEBUG] __name__ = Reconstruction.Base_Solid
+Running file: /Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_Sept_25.py
+
+======================================================================
+SOLID RECONSTRUCTION FROM ENGINEERING VIEWS
+======================================================================
+Seed: 1195
+
+[STEP 1] Loading saved connectivity matrices...
+
+[LOAD] Loading connectivity matrices from: Output/connectivity_matrices_seed_1195.npz
+
+[DEBUG] Validating connectivity matrix shapes...
+  - all_vertices shape: (58, 3)
+  - top_view_matrix shape: (33, 36)
+  - front_view_matrix shape: (31, 34)
+  - side_view_matrix shape: (29, 32)
+       - Drawing units: cm
+       - Drawing scale: 1.0:1.0
+       - Conversion to mm: 10.0 mm per cm
+       - Scale factor applied: 10.0
+       - Loaded 58 vertices
+       - Top view matrix: (33, 36)
+       - Front view matrix: (31, 34)
+       - Side view matrix: (29, 32)
+
+       - Sample vertices (rounded to 0.1 mm for display):
+         Vertex 0: [93.6, 370.0, 0.0] mm
+         Vertex 1: [93.6, 370.0, 517.5] mm
+         Vertex 2: [93.6, 576.4, 0.0] mm
+[LOAD] Loading face polygons from: Output/solid_faces_seed_1195.npy
+       - Loaded 34 faces (new format)
+       - Original volume: 23557.183654
+       - Scaled volume: 23557183.653929 mm³
+       - Applied scale factor: 10.0
+       - First face keys: ['outer_boundary', 'holes']
+       - First face has 'outer_boundary' with 7 vertices
+
+======================================================================
+ORIGINAL FACES FROM BUILD_SOLID
+======================================================================
+Original Face 0: 7 vertices, 0 holes
+Original Face 1: 11 vertices, 0 holes
+Original Face 2: 9 vertices, 0 holes
+Original Face 3: 5 vertices, 0 holes
+Original Face 4: 9 vertices, 0 holes
+Original Face 5: 5 vertices, 0 holes
+Original Face 6: 7 vertices, 0 holes
+Original Face 7: 5 vertices, 0 holes
+Original Face 8: 5 vertices, 0 holes
+Original Face 9: 5 vertices, 0 holes
+Original Face 10: 5 vertices, 0 holes
+Original Face 11: 5 vertices, 0 holes
+Original Face 12: 5 vertices, 0 holes
+Original Face 13: 5 vertices, 0 holes
+Original Face 14: 5 vertices, 0 holes
+Original Face 15: 5 vertices, 0 holes
+Original Face 16: 9 vertices, 0 holes
+Original Face 17: 5 vertices, 0 holes
+Original Face 18: 5 vertices, 0 holes
+Original Face 19: 5 vertices, 0 holes
+Original Face 20: 5 vertices, 0 holes
+Original Face 21: 5 vertices, 0 holes
+Original Face 22: 5 vertices, 0 holes
+Original Face 23: 5 vertices, 0 holes
+Original Face 24: 5 vertices, 0 holes
+Original Face 25: 5 vertices, 0 holes
+Original Face 26: 5 vertices, 0 holes
+Original Face 27: 5 vertices, 0 holes
+Original Face 28: 5 vertices, 0 holes
+Original Face 29: 5 vertices, 0 holes
+Original Face 30: 5 vertices, 0 holes
+Original Face 31: 5 vertices, 0 holes
+Original Face 32: 5 vertices, 0 holes
+Original Face 33: 5 vertices, 0 holes
+======================================================================
+
+[STEP 2] Filtering candidate vertices...
+
+======================================================================
+REVERSE ENGINEERING - VERTEX RECONSTRUCTION
+======================================================================
+
+Step 1: Extracting coordinates from connectivity matrices...
+  - Extracted (x,y) from top view: 33 coordinates
+  - Extracted z-levels from front view: 11 levels
+  - Z-levels in side view: 11 levels
+
+Step 2: Generating candidate vertices...
+  - Total candidates: 363
+  - Formula: 33 × 11 = 363
+
+Step 3: Filtering candidates by projection matching...
+  - Checking front and side view projections...
+
+  [DEBUG] Rejected 304 candidate vertices:
+  [DEBUG] No rejections with BOTH min_dists < 1.0 found
+
+Step 3 Complete: Filtered to 59 vertices
+  - Reduction: 363 → 59
+  - Filtered out: 304 fake vertices
+
+[SELECTED VERTICES] (rounded to 0.1 mm for display)
+  0: [409.7, 390.0, 50.0] mm
+  1: [270.0, 425.5, 430.8] mm
+  2: [270.0, 425.5, 517.5] mm
+  3: [93.6, 370.0, 0.0] mm
+  4: [93.6, 370.0, 517.5] mm
+  5: [233.8, 440.0, 55.0] mm
+  6: [267.2, 527.6, 371.7] mm
+  7: [267.2, 527.6, 517.5] mm
+  8: [233.8, 385.0, 100.0] mm
+  9: [409.7, 435.0, 105.0] mm
+  10: [409.7, 270.0, 0.0] mm
+  11: [409.7, 270.0, 142.0] mm
+  12: [165.0, 270.0, 0.0] mm
+  13: [165.0, 270.0, 142.0] mm
+  14: [178.4, 481.5, 388.1] mm
+  15: [178.4, 481.5, 517.5] mm
+  16: [249.6, 503.9, 407.5] mm
+  17: [249.6, 503.9, 517.5] mm
+  18: [270.0, 576.4, 0.0] mm
+  19: [270.0, 576.4, 517.5] mm
+  20: [160.6, 421.7, 388.1] mm
+  21: [160.6, 421.7, 517.5] mm
+  22: [267.2, 495.4, 371.7] mm
+  23: [267.2, 495.4, 517.5] mm
+  24: [209.2, 437.8, 430.8] mm
+  25: [209.2, 437.8, 517.5] mm
+  26: [249.6, 519.1, 407.5] mm
+  27: [249.6, 519.1, 517.5] mm
+  28: [165.0, 370.0, 0.0] mm
+  29: [165.0, 370.0, 142.0] mm
+  30: [233.8, 390.0, 50.0] mm
+  31: [93.6, 576.4, 0.0] mm
+  32: [93.6, 576.4, 517.5] mm
+  33: [270.0, 437.8, 430.8] mm
+  34: [270.0, 437.8, 517.5] mm
+  35: [409.7, 440.0, 55.0] mm
+  36: [249.6, 527.6, 371.7] mm
+  37: [249.6, 527.6, 517.5] mm
+  38: [409.7, 385.0, 100.0] mm
+  39: [215.3, 503.9, 407.5] mm
+  40: [215.3, 503.9, 517.5] mm
+  41: [409.7, 472.6, 0.0] mm
+  42: [409.7, 472.6, 142.0] mm
+  43: [215.3, 519.1, 407.5] mm
+  44: [215.3, 519.1, 517.5] mm
+  45: [178.4, 421.7, 388.1] mm
+  46: [178.4, 421.7, 517.5] mm
+  47: [233.8, 435.0, 105.0] mm
+  48: [270.0, 370.0, 0.0] mm
+  49: [270.0, 370.0, 142.0] mm
+  50: [270.0, 370.0, 517.5] mm
+  51: [209.2, 425.5, 430.8] mm
+  52: [209.2, 425.5, 517.5] mm
+  53: [249.6, 495.4, 371.7] mm
+  54: [249.6, 495.4, 517.5] mm
+  55: [270.0, 472.6, 0.0] mm
+  56: [270.0, 472.6, 142.0] mm
+  57: [160.6, 481.5, 388.1] mm
+  58: [160.6, 481.5, 517.5] mm
+
+[STEP 3] Building square connectivity matrices...
+
+======================================================================
+BUILDING CONNECTIVITY MATRICES
+======================================================================
+Projecting 59 vertices to each view...
+Built connectivity matrices:
+  - Top view: 171 edges
+  - Front view: 206 edges
+  - Side view: 190 edges
+
+[STEP 4] Building merged connectivity matrix...
+Merged connectivity matrix summary:
+  - Total potential edges: 265
+  - Edges with conn=3 (all views): 93
+  - Edges with conn=2 (two views): 116
+  - Edges with conn=1 (one view): 56
+
+[DEBUG] BEFORE deduplication:
+[DEBUG]   Vertices: 59
+[DEBUG]   Edges conn=3: 93
+[DEBUG]   Sample merged_conn values (rows 0-5, cols 0-5):
+[[0 0 0 0 0]
+ [0 0 3 0 0]
+ [0 3 0 0 2]
+ [0 0 0 0 3]
+ [0 0 2 3 0]]
+
+[STEP 5] Visualizing reconstructed solid with edges (SKIPPED - see Step 7 for polygon plot)...
+
+[STEP 5.5] Vertex coordinate precision check...
+   NOTE: Vertices should already be at 0.1mm precision from Build_Solid
+   (Rounding now happens at solid creation time, not during reconstruction)
+
+   Sample vertices (first 5):
+      Vertex 0: [409.7, 390.0, 50.0] mm
+      Vertex 1: [270.0, 425.5, 430.8] mm
+      Vertex 2: [270.0, 425.5, 517.5] mm
+      Vertex 3: [93.6, 370.0, 0.0] mm
+      Vertex 4: [93.6, 370.0, 517.5] mm
+
+[STEP 5.6] Connectivity matrix status...
+   NOTE: Using merged_conn from Step 4 without remapping
+   (Vertices already have 0.1mm precision from source)
+
+[STEP 5.7] Deduplicating vertices (merging vertices closer than 0.1mm)...
+   Reduced from 59 to 59 unique vertices
+
+======================================================================
+FINAL SELECTED VERTICES (After Step 3)
+======================================================================
+Total vertices: 59
+
+Vertex list (index: [x, y, z] in mm):
+    0: [  409.7,   390.0,    50.0]
+    1: [  270.0,   425.5,   430.8]
+    2: [  270.0,   425.5,   517.5]
+    3: [   93.6,   370.0,     0.0]
+    4: [   93.6,   370.0,   517.5]
+    5: [  233.8,   440.0,    55.0]
+    6: [  267.2,   527.6,   371.7]
+    7: [  267.2,   527.6,   517.5]
+    8: [  233.8,   385.0,   100.0]
+    9: [  409.7,   435.0,   105.0]
+   10: [  409.7,   270.0,     0.0]
+   11: [  409.7,   270.0,   142.0]
+   12: [  165.0,   270.0,     0.0]
+   13: [  165.0,   270.0,   142.0]
+   14: [  178.4,   481.5,   388.1]
+   15: [  178.4,   481.5,   517.5]
+   16: [  249.6,   503.9,   407.5]
+   17: [  249.6,   503.9,   517.5]
+   18: [  270.0,   576.4,     0.0]
+   19: [  270.0,   576.4,   517.5]
+   20: [  160.6,   421.7,   388.1]
+   21: [  160.6,   421.7,   517.5]
+   22: [  267.2,   495.4,   371.7]
+   23: [  267.2,   495.4,   517.5]
+   24: [  209.2,   437.8,   430.8]
+   25: [  209.2,   437.8,   517.5]
+   26: [  249.6,   519.1,   407.5]
+   27: [  249.6,   519.1,   517.5]
+   28: [  165.0,   370.0,     0.0]
+   29: [  165.0,   370.0,   142.0]
+   30: [  233.8,   390.0,    50.0]
+   31: [   93.6,   576.4,     0.0]
+   32: [   93.6,   576.4,   517.5]
+   33: [  270.0,   437.8,   430.8]
+   34: [  270.0,   437.8,   517.5]
+   35: [  409.7,   440.0,    55.0]
+   36: [  249.6,   527.6,   371.7]
+   37: [  249.6,   527.6,   517.5]
+   38: [  409.7,   385.0,   100.0]
+   39: [  215.3,   503.9,   407.5]
+   40: [  215.3,   503.9,   517.5]
+   41: [  409.7,   472.6,     0.0]
+   42: [  409.7,   472.6,   142.0]
+   43: [  215.3,   519.1,   407.5]
+   44: [  215.3,   519.1,   517.5]
+   45: [  178.4,   421.7,   388.1]
+   46: [  178.4,   421.7,   517.5]
+   47: [  233.8,   435.0,   105.0]
+   48: [  270.0,   370.0,     0.0]
+   49: [  270.0,   370.0,   142.0]
+   50: [  270.0,   370.0,   517.5]
+   51: [  209.2,   425.5,   430.8]
+   52: [  209.2,   425.5,   517.5]
+   53: [  249.6,   495.4,   371.7]
+   54: [  249.6,   495.4,   517.5]
+   55: [  270.0,   472.6,     0.0]
+   56: [  270.0,   472.6,   142.0]
+   57: [  160.6,   481.5,   388.1]
+   58: [  160.6,   481.5,   517.5]
+
+[DEBUG] About to call extract_polygon_faces_from_connectivity...
+[DEBUG] selected_vertices shape: (59, 3)
+[DEBUG] merged_conn shape: (59, 59)
+[DEBUG] tolerance: 0.05
+[DEBUG] Sample vertices (first 5):
+  Vertex 0: [409.66014955 390.          50.        ]
+  Vertex 1: [270.         425.4617488  430.77881669]
+  Vertex 2: [270.         425.4617488  517.47072718]
+  Vertex 3: [9.36110102e+01 3.70000000e+02 1.49999998e-06]
+  Vertex 4: [ 93.6110102  370.         517.47072718]
+[DEBUG] Sample connectivity (first 5x5):
+[[0 0 0 0 0]
+ [0 0 3 0 0]
+ [0 3 0 0 2]
+ [0 0 0 0 3]
+ [0 0 2 3 0]]
+
+======================================================================
+[POLY FORM] POLYGON FACE EXTRACTION FROM CONNECTIVITY MATRIX
+======================================================================
+
+[POLY FORM] Step 1-2: Generating face ranges from connectivity
+----------------------------------------------------------------------
+[POLY FORM]   93 edges, 204 pairs checked, 204 valid ranges
+
+[POLY FORM] Generated 204 plane equations
+[POLY FORM] Unique normal directions (before merge): 7
+[POLY FORM]   n=[ 0.000, -0.995, -0.100]
+[POLY FORM]   n=[ 0.000, -0.100,  0.995]
+[POLY FORM]   n=[ 0.000,  0.000,  1.000]
+[POLY FORM]   n=[ 0.000,  0.100, -0.995]
+[POLY FORM]   n=[ 0.000,  0.995,  0.100]
+[POLY FORM]   n=[ 0.000,  1.000,  0.000]
+[POLY FORM]   n=[ 1.000,  0.000,  0.000]
+
+[POLY FORM] Step 3: Removing duplicate face ranges
+[POLY FORM] F 1: n=[ 0.000, 0.100,-0.995] d=  10.95
+[POLY FORM] F 2: n=[ 0.000, 0.995, 0.100] d=-393.04
+[POLY FORM] F 3: n=[ 1.000, 0.000, 0.000] d=-409.66
+[POLY FORM] F 4: n=[ 1.000, 0.000, 0.000] d=-270.00
+[POLY FORM] F 5: n=[ 0.000, 1.000, 0.000] d=-425.46
+[POLY FORM] F 6: n=[ 0.000, 0.000, 1.000] d=-430.78
+[POLY FORM] F 7: n=[ 0.000, 0.000, 1.000] d=-517.47
+[POLY FORM] F 8: n=[ 0.000, 1.000, 0.000] d=-370.00
+[POLY FORM] F 9: n=[ 1.000, 0.000, 0.000] d= -93.61
+[POLY FORM] F10: n=[ 0.000, 0.000, 1.000] d=  -0.00
+[POLY FORM] F11: n=[ 1.000, 0.000, 0.000] d=-233.85
+[POLY FORM] F12: n=[ 0.000,-0.995,-0.100] d= 443.29
+[POLY FORM] F13: n=[ 1.000, 0.000, 0.000] d=-267.24
+[POLY FORM] F14: n=[ 0.000, 1.000, 0.000] d=-527.60
+[POLY FORM] F15: n=[ 0.000, 0.000, 1.000] d=-371.73
+[POLY FORM] F16: n=[ 0.000,-0.100, 0.995] d= -61.19
+[POLY FORM] F17: n=[ 0.000, 1.000, 0.000] d=-270.00
+[POLY FORM] F18: n=[ 0.000, 0.000, 1.000] d=-141.97
+[POLY FORM] F19: n=[ 1.000, 0.000, 0.000] d=-165.00
+[POLY FORM] F20: n=[ 1.000, 0.000, 0.000] d=-178.44
+[POLY FORM] F21: n=[ 0.000, 1.000, 0.000] d=-481.50
+[POLY FORM] F22: n=[ 0.000, 0.000, 1.000] d=-388.08
+[POLY FORM] F23: n=[ 1.000, 0.000, 0.000] d=-249.59
+[POLY FORM] F24: n=[ 0.000, 1.000, 0.000] d=-503.85
+[POLY FORM] F25: n=[ 0.000, 0.000, 1.000] d=-407.48
+[POLY FORM] F26: n=[ 0.000, 1.000, 0.000] d=-576.37
+[POLY FORM] F27: n=[ 0.000, 1.000, 0.000] d=-421.72
+[POLY FORM] F28: n=[ 1.000, 0.000, 0.000] d=-160.55
+[POLY FORM] F29: n=[ 0.000, 1.000, 0.000] d=-495.36
+[POLY FORM] F30: n=[ 0.000, 1.000, 0.000] d=-437.84
+[POLY FORM] F31: n=[ 1.000, 0.000, 0.000] d=-209.20
+[POLY FORM] F32: n=[ 0.000, 1.000, 0.000] d=-519.11
+[POLY FORM] F33: n=[ 1.000, 0.000, 0.000] d=-215.27
+[POLY FORM] F34: n=[ 0.000, 1.000, 0.000] d=-472.63
+[POLY FORM] 34 unique faces found (170 duplicates merged)
+
+[POLY FORM] Step 4: Finding vertices on each face
+[POLY FORM] ----------------------------------------------------------------------
+[DEBUG]   Vertex 6: distance = 33.387824 mm
+[DEBUG]   Vertex 7: distance = 33.387824 mm
+[DEBUG]   Vertex 14: distance = 55.409179 mm
+[DEBUG]   Vertex 15: distance = 55.409179 mm
+[DEBUG]   Vertex 20: distance = 73.296078 mm
+[DEBUG]   Vertex 21: distance = 73.296078 mm
+[DEBUG]   Vertex 30: distance = 0.000000 mm
+[DEBUG]   Vertex 31: distance = 140.236396 mm
+[POLY FORM]   All vertices assigned to ≥3 faces with tolerance 0.0500mm
+
+[POLY FORM] Step 4.5: Detecting missing faces from under-assigned vertices
+[POLY FORM] ----------------------------------------------------------------------
+[POLY FORM]   All vertices assigned to ≥3 faces, no missing faces detected
+
+[POLY FORM]   Final assignments (tolerance=0.0500mm):
+[POLY FORM] F 1:  4 vertices: [1, 6, 31, 36]
+[POLY FORM] F 2:  4 vertices: [1, 9, 31, 39]
+[POLY FORM] F 3:  8 vertices: [1, 10, 11, 12, 36, 39, 42, 43]
+[POLY FORM] F 4: 11 vertices: [2, 3, 19, 20, 34, 35, 49, 50, 51, 56, 57]
+[POLY FORM] F 5:  4 vertices: [2, 3, 52, 53]
+[POLY FORM] F 6:  4 vertices: [2, 25, 34, 52]
+[POLY FORM] F 7: 20 vertices: [3, 5, 8, 16, 18, 20, 22, 24, 26, 28, 33, 35, 38, 41, 45, 47, 51, 53, 55, 59]
+[POLY FORM] F 8:  7 vertices: [4, 5, 29, 30, 49, 50, 51]
+[POLY FORM] F 9:  4 vertices: [4, 5, 32, 33]
+[POLY FORM] F10:  9 vertices: [4, 11, 13, 19, 29, 32, 42, 49, 56]
+[POLY FORM] F11:  4 vertices: [6, 9, 31, 48]
+[POLY FORM] F12:  4 vertices: [6, 10, 36, 48]
+[POLY FORM] F13:  4 vertices: [7, 8, 23, 24]
+[POLY FORM] F14:  4 vertices: [7, 8, 37, 38]
+[POLY FORM] F15:  4 vertices: [7, 23, 37, 54]
+[POLY FORM] F16:  4 vertices: [9, 10, 39, 48]
+[POLY FORM] F17:  4 vertices: [11, 12, 13, 14]
+[POLY FORM] F18:  6 vertices: [12, 14, 30, 43, 50, 57]
+[POLY FORM] F19:  4 vertices: [13, 14, 29, 30]
+[POLY FORM] F20:  4 vertices: [15, 16, 46, 47]
+[POLY FORM] F21:  4 vertices: [15, 16, 58, 59]
+[POLY FORM] F22:  4 vertices: [15, 21, 46, 58]
+[POLY FORM] F23:  8 vertices: [17, 18, 27, 28, 37, 38, 54, 55]
+[POLY FORM] F24:  4 vertices: [17, 18, 40, 41]
+[POLY FORM] F25:  4 vertices: [17, 27, 40, 44]
+[POLY FORM] F26:  4 vertices: [19, 20, 32, 33]
+[POLY FORM] F27:  4 vertices: [21, 22, 46, 47]
+[POLY FORM] F28:  4 vertices: [21, 22, 58, 59]
+[POLY FORM] F29:  4 vertices: [23, 24, 54, 55]
+[POLY FORM] F30:  4 vertices: [25, 26, 34, 35]
+[POLY FORM] F31:  4 vertices: [25, 26, 52, 53]
+[POLY FORM] F32:  4 vertices: [27, 28, 44, 45]
+[POLY FORM] F33:  4 vertices: [40, 41, 44, 45]
+[POLY FORM] F34:  4 vertices: [42, 43, 56, 57]
+[POLY FORM]   Face 1: 4 edges with conn=3: [(0, 30), (0, 35), (5, 30), (5, 35)]
+[POLY FORM]   Face 2: 4 edges with conn=3: [(0, 30), (0, 38), (8, 30), (8, 38)]
+[POLY FORM]   Face 3: 8 edges with conn=3: [(0, 35), (0, 38), (9, 35), (9, 38), (10, 11), (10, 41), (11, 42), (41, 42)]
+[POLY FORM]   Face 4: 13 edges with conn=3: [(1, 2), (1, 33), (2, 34), (2, 50), (18, 19), (18, 55), (19, 34), (33, 34), (48, 49), (48, 50), (49, 50), (49, 56), (55, 56)]
+[POLY FORM]   Face 5: 4 edges with conn=3: [(1, 2), (1, 51), (2, 52), (51, 52)]
+[POLY FORM]   Face 6: 4 edges with conn=3: [(1, 33), (1, 51), (24, 33), (24, 51)]
+[POLY FORM]   Face 7: 23 edges with conn=3: [(2, 34), (2, 50), (2, 52), (4, 32), (4, 50), (7, 23), (7, 37), (15, 46), (15, 58), (17, 27), (17, 40), (17, 54), (19, 32), (19, 34), (21, 46), (21, 58), (23, 54), (25, 34), (25, 52), (27, 37), (27, 44), (37, 54), (40, 44)]
+[POLY FORM]   Face 8: 9 edges with conn=3: [(3, 4), (3, 28), (3, 48), (4, 50), (28, 29), (29, 49), (48, 49), (48, 50), (49, 50)]
+[POLY FORM]   Face 9: 4 edges with conn=3: [(3, 4), (3, 31), (4, 32), (31, 32)]
+[POLY FORM]   Face 10: 9 edges with conn=3: [(3, 28), (3, 31), (3, 48), (10, 12), (10, 41), (12, 28), (18, 31), (18, 55), (41, 55)]
+[POLY FORM]   Face 11: 4 edges with conn=3: [(5, 30), (5, 47), (8, 30), (8, 47)]
+[POLY FORM]   Face 12: 4 edges with conn=3: [(5, 35), (5, 47), (9, 35), (9, 47)]
+[POLY FORM]   Face 13: 4 edges with conn=3: [(6, 7), (6, 22), (7, 23), (22, 23)]
+[POLY FORM]   Face 14: 4 edges with conn=3: [(6, 7), (6, 36), (7, 37), (36, 37)]
+[POLY FORM]   Face 15: 4 edges with conn=3: [(6, 22), (6, 36), (22, 53), (36, 53)]
+[POLY FORM]   Face 16: 4 edges with conn=3: [(8, 38), (8, 47), (9, 38), (9, 47)]
+[POLY FORM]   Face 17: 4 edges with conn=3: [(10, 11), (10, 12), (11, 13), (12, 13)]
+[POLY FORM]   Face 18: 6 edges with conn=3: [(11, 13), (11, 42), (13, 29), (29, 49), (42, 56), (49, 56)]
+[POLY FORM]   Face 19: 4 edges with conn=3: [(12, 13), (12, 28), (13, 29), (28, 29)]
+[POLY FORM]   Face 20: 4 edges with conn=3: [(14, 15), (14, 45), (15, 46), (45, 46)]
+[POLY FORM]   Face 21: 4 edges with conn=3: [(14, 15), (14, 57), (15, 58), (57, 58)]
+[POLY FORM]   Face 22: 4 edges with conn=3: [(14, 45), (14, 57), (20, 45), (20, 57)]
+[POLY FORM]   Face 23: 10 edges with conn=3: [(16, 17), (16, 26), (17, 27), (17, 54), (26, 27), (27, 37), (36, 37), (36, 53), (37, 54), (53, 54)]
+[POLY FORM]   Face 24: 4 edges with conn=3: [(16, 17), (16, 39), (17, 40), (39, 40)]
+[POLY FORM]   Face 25: 4 edges with conn=3: [(16, 26), (16, 39), (26, 43), (39, 43)]
+[POLY FORM]   Face 26: 4 edges with conn=3: [(18, 19), (18, 31), (19, 32), (31, 32)]
+[POLY FORM]   Face 27: 4 edges with conn=3: [(20, 21), (20, 45), (21, 46), (45, 46)]
+[POLY FORM]   Face 28: 4 edges with conn=3: [(20, 21), (20, 57), (21, 58), (57, 58)]
+[POLY FORM]   Face 29: 4 edges with conn=3: [(22, 23), (22, 53), (23, 54), (53, 54)]
+[POLY FORM]   Face 30: 4 edges with conn=3: [(24, 25), (24, 33), (25, 34), (33, 34)]
+[POLY FORM]   Face 31: 4 edges with conn=3: [(24, 25), (24, 51), (25, 52), (51, 52)]
+[POLY FORM]   Face 32: 4 edges with conn=3: [(26, 27), (26, 43), (27, 44), (43, 44)]
+[POLY FORM]   Face 33: 4 edges with conn=3: [(39, 40), (39, 43), (40, 44), (43, 44)]
+[POLY FORM]   Face 34: 4 edges with conn=3: [(41, 42), (41, 55), (42, 56), (55, 56)]
+
+[POLY FORM] Step 5.5: Processing collinear edges
+----------------------------------------------------------------------
+
+[POLY FORM]   Processing Face 1: 4 edges
+
+[POLY FORM]   Processing Face 2: 4 edges
+
+[POLY FORM]   Processing Face 3: 8 edges
+
+[POLY FORM]   Processing Face 4: 13 edges
+      Edge (48, 50): Found 1 collinear vertices: [49]
+         Vertex sequence: [48, 49, 50]
+         Added edge: (48, 49) - exists in conn matrix
+         Added edge: (49, 50) - exists in conn matrix
+      Updating edges: removing 1, adding 2
+      Face 4 now has 14 edges
+
+[POLY FORM]   Processing Face 5: 4 edges
+
+[POLY FORM]   Processing Face 6: 4 edges
+
+[POLY FORM]   Processing Face 7: 23 edges
+      Edge (37, 54): Found 2 collinear vertices: [17, 27]
+         Vertex sequence: [37, 27, 17, 54]
+         Added edge: (37, 27) - exists in conn matrix
+         Added edge: (27, 17) - exists in conn matrix
+         Added edge: (17, 54) - exists in conn matrix
+      Updating edges: removing 1, adding 3
+      Face 7 now has 25 edges
+
+[POLY FORM]   Processing Face 8: 9 edges
+      Edge (3, 48): Found 1 collinear vertices: [28]
+         Vertex sequence: [3, 28, 48]
+         Added edge: (3, 28) - exists in conn matrix
+         SKIPPED edge: (28, 48) - NOT in conn=3 matrix! (current value: 1)
+      Edge (48, 50): Found 1 collinear vertices: [49]
+         Vertex sequence: [48, 49, 50]
+         Added edge: (48, 49) - exists in conn matrix
+         Added edge: (49, 50) - exists in conn matrix
+      Updating edges: removing 2, adding 3
+      Face 8 now has 10 edges
+
+[POLY FORM]   Processing Face 9: 4 edges
+
+[POLY FORM]   Processing Face 10: 9 edges
+      Edge (3, 48): Found 1 collinear vertices: [28]
+         Vertex sequence: [3, 28, 48]
+         Added edge: (3, 28) - exists in conn matrix
+         SKIPPED edge: (28, 48) - NOT in conn=3 matrix! (current value: 1)
+      Updating edges: removing 1, adding 1
+      Face 10 now has 9 edges
+
+[POLY FORM]   Processing Face 11: 4 edges
+
+[POLY FORM]   Processing Face 12: 4 edges
+
+[POLY FORM]   Processing Face 13: 4 edges
+
+[POLY FORM]   Processing Face 14: 4 edges
+
+[POLY FORM]   Processing Face 15: 4 edges
+
+[POLY FORM]   Processing Face 16: 4 edges
+
+[POLY FORM]   Processing Face 17: 4 edges
+
+[POLY FORM]   Processing Face 18: 6 edges
+
+[POLY FORM]   Processing Face 19: 4 edges
+
+[POLY FORM]   Processing Face 20: 4 edges
+
+[POLY FORM]   Processing Face 21: 4 edges
+
+[POLY FORM]   Processing Face 22: 4 edges
+
+[POLY FORM]   Processing Face 23: 10 edges
+      Edge (37, 54): Found 2 collinear vertices: [17, 27]
+         Vertex sequence: [37, 27, 17, 54]
+         Added edge: (37, 27) - exists in conn matrix
+         Added edge: (27, 17) - exists in conn matrix
+         Added edge: (17, 54) - exists in conn matrix
+      Updating edges: removing 1, adding 3
+      Face 23 now has 12 edges
+
+[POLY FORM]   Processing Face 24: 4 edges
+
+[POLY FORM]   Processing Face 25: 4 edges
+
+[POLY FORM]   Processing Face 26: 4 edges
+
+[POLY FORM]   Processing Face 27: 4 edges
+
+[POLY FORM]   Processing Face 28: 4 edges
+
+[POLY FORM]   Processing Face 29: 4 edges
+
+[POLY FORM]   Processing Face 30: 4 edges
+
+[POLY FORM]   Processing Face 31: 4 edges
+
+[POLY FORM]   Processing Face 32: 4 edges
+
+[POLY FORM]   Processing Face 33: 4 edges
+
+[POLY FORM]   Processing Face 34: 4 edges
+
+[POLY FORM] Step 5.5 Complete: Collinear edge processing finished
+
+[POLY FORM] Step 6: Forming polygons from edges (REVISED)
+----------------------------------------------------------------------
+
+[POLY FORM]   Face 1: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=8834.481014
+  [STEP 6.3]   boundary_poly (vertex list): [0, 30, 5, 35]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 1: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=8834.481014
+[POLY FORM]       Vertices: [0, 30, 5, 35]
+
+[POLY FORM]   Face 2: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=8834.481014
+  [STEP 6.3]   boundary_poly (vertex list): [0, 30, 8, 38]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 2: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=8834.481014
+[POLY FORM]       Vertices: [0, 30, 8, 38]
+
+[POLY FORM]   Face 3: Total edges available: 8
+  [STEP 6.1] Iteration 1: 8 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 8 edges...
+  [STEP 6.2.5] After deduplication: 2 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=28767.995906
+  [STEP 6.3]   boundary_poly (vertex list): [10, 11, 42, 41]
+  [STEP 6.4] Polygon 1: HOLE (contained within boundary, no edge sharing)
+  [STEP 6.4]   Vertices: [0, 35, 9, 38]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+  [STEP 6.7] Hole from vertices: 4 verts
+[POLY FORM]   Face 3: Found 2 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=28767.995906
+[POLY FORM]       Vertices: [10, 11, 42, 41]
+[POLY FORM]     Polygon 2: 4 vertices, area=2525.000000
+[POLY FORM]       Vertices: [0, 35, 9, 38]
+
+[POLY FORM]   Face 4: Total edges available: 14
+  [STEP 6.1] Iteration 1: 12 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 12 edges...
+  [STEP 6.2.5] After deduplication: 2 unique, 1 alternates kept
+  [STEP 6.3] Selected boundary: 10 verts, area=91146.864059
+  [STEP 6.3]   boundary_poly (vertex list): [1, 2, 50, 49, 56, 55, 18, 19, 34, 33]
+  [STEP 6.4] Polygon 1: ARTIFACT (overlaps boundary + shares 7 edges) - deleting
+  [STEP 6.4]   Vertices: [2, 34, 19, 18, 55, 56, 49, 50], intersection area=91146.864059
+  [STEP 6.4] Polygon 2: ALTERNATE (shares 3 edges, zero intersection)
+  [STEP 6.4]   Vertices: [1, 2, 34, 33]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+  [STEP 6.8.0] Alternate 1 is subset of boundary (shares 3 edges)
+  [STEP 6.8.0]   Alternate vertices: [1, 2, 34, 33]
+  [STEP 6.8.0]   Boundary vertices: [1, 2, 50, 49, 56, 55, 18, 19, 34, 33]
+  [STEP 6.8.0]   Replacing boundary with alternate 1
+  [STEP 6.8] Stored 1 alternates (validated)
+  [STEP 6.8] 1 outside verts → next iteration
+  [STEP 6.1] Iteration 2: 2 remaining edges before filter
+  [STEP 6.1] merged_conn available, filtering edges...
+  [STEP 6.1] Filtered out 0 edges with conn≠3 (2 edges remain)
+  [STEP 6.1] Remaining edges with conn=3: [(2, 34), (48, 49)]
+  [STEP 6.1] Finding all polygons from 2 edges...
+  [STEP 6.1] No polygons found, attempting closure...
+  [STEP 6.1] Found 4 endpoints: [48, 49, 2, 34]
+  [STEP 6.1] Attempting to connect endpoint pairs with conn=3 edges...
+  [STEP 6.1]   Connecting V48-V49 (conn=3)
+  [STEP 6.1]   Connecting V2-V34 (conn=3)
+  [STEP 6.1] Added 2 closing edge(s)
+  [STEP 6.1] No polygons formed after adding edges
+  [STEP 6] WARNING: 2 unused edges
+[POLY FORM]   Face 4: Found 2 polygon(s)
+[POLY FORM]   WARNING: 2 unused edges remain!
+[POLY FORM]     Polygon 1: 4 vertices, area=1073.270680
+[POLY FORM]       Vertices: [1, 2, 34, 33]
+[POLY FORM]     Polygon 2: 10 vertices, area=91146.864059
+[POLY FORM]       Vertices: [1, 2, 50, 49, 56, 55, 18, 19, 34, 33]
+
+[POLY FORM]   Face 5: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=5270.701260
+  [STEP 6.3]   boundary_poly (vertex list): [1, 51, 52, 2]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 5: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=5270.701260
+[POLY FORM]       Vertices: [1, 2, 52, 51]
+
+[POLY FORM]   Face 6: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=752.697579
+  [STEP 6.3]   boundary_poly (vertex list): [1, 51, 24, 33]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 6: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=752.697579
+[POLY FORM]       Vertices: [1, 33, 24, 51]
+
+[POLY FORM]   Face 7: Total edges available: 25
+  [STEP 6.1] Iteration 1: 22 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 22 edges...
+  [STEP 6.2.5] After deduplication: 5 unique, 2 alternates kept
+  [STEP 6.3] Selected boundary: 8 verts, area=35648.950339
+  [STEP 6.3]   boundary_poly (vertex list): [2, 50, 4, 32, 19, 34, 25, 52]
+  [STEP 6.4] Polygon 1: HOLE (contained within boundary, no edge sharing)
+  [STEP 6.4]   Vertices: [7, 23, 54, 17, 40, 44, 27, 37]
+  [STEP 6.4] Polygon 2: ARTIFACT (overlaps boundary + shares 5 edges) - deleting
+  [STEP 6.4]   Vertices: [2, 34, 19, 32, 4, 50], intersection area=35648.950339
+  [STEP 6.4] Polygon 3: HOLE (contained within boundary, no edge sharing)
+  [STEP 6.4]   Vertices: [7, 23, 54, 17, 27, 37]
+  [STEP 6.4] Polygon 4: HOLE (contained within boundary, no edge sharing)
+  [STEP 6.4]   Vertices: [15, 46, 21, 58]
+  [STEP 6.4] Polygon 5: ALTERNATE (shares 3 edges, zero intersection)
+  [STEP 6.4]   Vertices: [2, 34, 25, 52]
+  [STEP 6.4] Polygon 6: HOLE (contained within boundary, no edge sharing)
+  [STEP 6.4]   Vertices: [17, 27, 44, 40]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+  [STEP 6.7] Hole from vertices: 8 verts
+  [STEP 6.7] Hole from vertices: 4 verts
+  [STEP 6.8.0] Alternate 1 is subset of boundary (shares 3 edges)
+  [STEP 6.8.0]   Alternate vertices: [2, 34, 25, 52]
+  [STEP 6.8.0]   Boundary vertices: [2, 50, 4, 32, 19, 34, 25, 52]
+  [STEP 6.8.0]   Replacing boundary with alternate 1
+  [STEP 6.8] Stored 1 alternates (validated)
+  [STEP 6] WARNING: 2 unused edges
+[POLY FORM]   Face 7: Found 4 polygon(s)
+[POLY FORM]   WARNING: 2 unused edges remain!
+[POLY FORM]     Polygon 1: 4 vertices, area=752.697579
+[POLY FORM]       Vertices: [2, 34, 25, 52]
+[POLY FORM]     Polygon 2: 8 vertices, area=35648.950339
+[POLY FORM]       Vertices: [2, 50, 4, 32, 19, 34, 25, 52]
+[POLY FORM]     Polygon 3: 8 vertices, area=1092.388958
+[POLY FORM]       Vertices: [37, 27, 44, 40, 17, 54, 23, 7]
+[POLY FORM]     Polygon 4: 4 vertices, area=1069.282746
+[POLY FORM]       Vertices: [46, 21, 58, 15]
+
+[POLY FORM]   Face 8: Total edges available: 10
+  [STEP 6.1] Iteration 1: 7 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 7 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 6 verts, area=76369.333258
+  [STEP 6.3]   boundary_poly (vertex list): [3, 28, 29, 49, 50, 4]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+  [STEP 6.8] 1 outside verts → next iteration
+  [STEP 6.1] Iteration 2: 1 remaining edges before filter
+  [STEP 6.1] merged_conn available, filtering edges...
+  [STEP 6.1] Filtered out 0 edges with conn≠3 (1 edges remain)
+  [STEP 6.1] Remaining edges with conn=3: [(48, 49)]
+  [STEP 6.1] Finding all polygons from 1 edges...
+  [STEP 6.1] No polygons found, attempting closure...
+  [STEP 6.1] Chain endpoints: V48, V49
+  [STEP 6.1] merged_conn[48,49] = 3
+  [STEP 6.1] Adding closing edge (48, 49)
+  [STEP 6.1] ERROR: Still no polygons
+  [STEP 6] WARNING: 1 unused edges
+[POLY FORM]   Face 8: Found 1 polygon(s)
+[POLY FORM]   WARNING: 1 unused edges remain!
+[POLY FORM]     Polygon 1: 6 vertices, area=76369.333258
+[POLY FORM]       Vertices: [3, 4, 50, 49, 29, 28]
+
+[POLY FORM]   Face 9: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=106791.173222
+  [STEP 6.3]   boundary_poly (vertex list): [3, 4, 32, 31]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 9: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=106791.173222
+[POLY FORM]       Vertices: [3, 4, 32, 31]
+
+[POLY FORM]   Face 10: Total edges available: 9
+  [STEP 6.1] Iteration 1: 8 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 8 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 8 verts, area=75201.673697
+  [STEP 6.3]   boundary_poly (vertex list): [3, 31, 18, 55, 41, 10, 12, 28]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+  [STEP 6.1] Iteration 2: 0 remaining edges before filter
+  [STEP 6.1] merged_conn available, filtering edges...
+  [STEP 6.1] Filtered out 0 edges with conn≠3 (0 edges remain)
+[POLY FORM]   Face 10: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 8 vertices, area=75201.673697
+[POLY FORM]       Vertices: [3, 28, 12, 10, 41, 55, 18, 31]
+
+[POLY FORM]   Face 11: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=2525.000000
+  [STEP 6.3]   boundary_poly (vertex list): [5, 47, 8, 30]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 11: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=2525.000000
+[POLY FORM]       Vertices: [5, 30, 8, 47]
+
+[POLY FORM]   Face 12: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=8834.481014
+  [STEP 6.3]   boundary_poly (vertex list): [5, 47, 9, 35]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 12: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=8834.481014
+[POLY FORM]       Vertices: [5, 35, 9, 47]
+
+[POLY FORM]   Face 13: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=4698.111019
+  [STEP 6.3]   boundary_poly (vertex list): [6, 7, 23, 22]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 13: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=4698.111019
+[POLY FORM]       Vertices: [6, 7, 23, 22]
+
+[POLY FORM]   Face 14: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=2572.357620
+  [STEP 6.3]   boundary_poly (vertex list): [6, 7, 37, 36]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 14: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=2572.357620
+[POLY FORM]       Vertices: [6, 7, 37, 36]
+
+[POLY FORM]   Face 15: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=568.957846
+  [STEP 6.3]   boundary_poly (vertex list): [6, 36, 53, 22]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 15: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=568.957846
+[POLY FORM]       Vertices: [6, 22, 53, 36]
+
+[POLY FORM]   Face 16: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=8834.481014
+  [STEP 6.3]   boundary_poly (vertex list): [8, 47, 9, 38]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 16: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=8834.481014
+[POLY FORM]       Vertices: [8, 38, 9, 47]
+
+[POLY FORM]   Face 17: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=34734.297263
+  [STEP 6.3]   boundary_poly (vertex list): [10, 11, 13, 12]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 17: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=34734.297263
+[POLY FORM]       Vertices: [10, 11, 13, 12]
+
+[POLY FORM]   Face 18: Total edges available: 6
+  [STEP 6.1] Iteration 1: 6 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 6 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 6 verts, area=38800.025779
+  [STEP 6.3]   boundary_poly (vertex list): [11, 13, 29, 49, 56, 42]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 18: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 6 vertices, area=38800.025779
+[POLY FORM]       Vertices: [11, 13, 29, 49, 56, 42]
+
+[POLY FORM]   Face 19: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=14196.957423
+  [STEP 6.3]   boundary_poly (vertex list): [12, 28, 29, 13]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 19: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=14196.957423
+[POLY FORM]       Vertices: [12, 13, 29, 28]
+
+[POLY FORM]   Face 20: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=7734.975848
+  [STEP 6.3]   boundary_poly (vertex list): [14, 45, 46, 15]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 20: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=7734.975848
+[POLY FORM]       Vertices: [14, 15, 46, 45]
+
+[POLY FORM]   Face 21: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=2314.389725
+  [STEP 6.3]   boundary_poly (vertex list): [14, 57, 58, 15]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 21: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=2314.389725
+[POLY FORM]       Vertices: [14, 15, 58, 57]
+
+[POLY FORM]   Face 22: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=1069.282746
+  [STEP 6.3]   boundary_poly (vertex list): [14, 57, 20, 45]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 22: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=1069.282746
+[POLY FORM]       Vertices: [14, 45, 20, 57]
+
+[POLY FORM]   Face 23: Total edges available: 12
+  [STEP 6.1] Iteration 1: 9 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 9 edges...
+  [STEP 6.2.5] After deduplication: 3 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 8 verts, area=3020.319518
+  [STEP 6.3]   boundary_poly (vertex list): [16, 26, 27, 37, 36, 53, 54, 17]
+  [STEP 6.4] Polygon 1: ARTIFACT (overlaps boundary + shares 5 edges) - deleting
+  [STEP 6.4]   Vertices: [17, 27, 37, 36, 53, 54], intersection area=3020.319518
+  [STEP 6.4] Polygon 2: ALTERNATE (shares 3 edges, zero intersection)
+  [STEP 6.4]   Vertices: [16, 17, 27, 26]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+  [STEP 6.8.0] Alternate 1 is subset of boundary (shares 3 edges)
+  [STEP 6.8.0]   Alternate vertices: [16, 17, 27, 26]
+  [STEP 6.8.0]   Boundary vertices: [16, 17, 54, 53, 36, 37, 27, 26]
+  [STEP 6.8.0]   Replacing boundary with alternate 1
+  [STEP 6.8] Stored 1 alternates (validated)
+  [STEP 6] WARNING: 1 unused edges
+[POLY FORM]   Face 23: Found 2 polygon(s)
+[POLY FORM]   WARNING: 1 unused edges remain!
+[POLY FORM]     Polygon 1: 4 vertices, area=1677.791502
+[POLY FORM]       Vertices: [16, 17, 27, 26]
+[POLY FORM]     Polygon 2: 8 vertices, area=3020.319518
+[POLY FORM]       Vertices: [16, 17, 54, 53, 36, 37, 27, 26]
+
+[POLY FORM]   Face 24: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=3773.993788
+  [STEP 6.3]   boundary_poly (vertex list): [16, 39, 40, 17]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 24: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=3773.993788
+[POLY FORM]       Vertices: [16, 17, 40, 39]
+
+[POLY FORM]   Face 25: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=523.431111
+  [STEP 6.3]   boundary_poly (vertex list): [16, 26, 43, 39]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 25: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=523.431111
+[POLY FORM]       Vertices: [16, 26, 43, 39]
+
+[POLY FORM]   Face 26: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=91276.138552
+  [STEP 6.3]   boundary_poly (vertex list): [18, 19, 32, 31]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 26: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=91276.138552
+[POLY FORM]       Vertices: [18, 19, 32, 31]
+
+[POLY FORM]   Face 27: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=2314.389725
+  [STEP 6.3]   boundary_poly (vertex list): [20, 45, 46, 21]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 27: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=2314.389725
+[POLY FORM]       Vertices: [20, 21, 46, 45]
+
+[POLY FORM]   Face 28: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=7734.975848
+  [STEP 6.3]   boundary_poly (vertex list): [20, 21, 58, 57]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 28: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=7734.975848
+[POLY FORM]       Vertices: [20, 21, 58, 57]
+
+[POLY FORM]   Face 29: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=2572.357620
+  [STEP 6.3]   boundary_poly (vertex list): [22, 53, 54, 23]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 29: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=2572.357620
+[POLY FORM]       Vertices: [22, 23, 54, 53]
+
+[POLY FORM]   Face 30: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=5270.701260
+  [STEP 6.3]   boundary_poly (vertex list): [24, 33, 34, 25]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 30: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=5270.701260
+[POLY FORM]       Vertices: [24, 25, 34, 33]
+
+[POLY FORM]   Face 31: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=1073.270680
+  [STEP 6.3]   boundary_poly (vertex list): [24, 25, 52, 51]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 31: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=1073.270680
+[POLY FORM]       Vertices: [24, 25, 52, 51]
+
+[POLY FORM]   Face 32: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=3773.993788
+  [STEP 6.3]   boundary_poly (vertex list): [26, 27, 44, 43]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 32: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=3773.993788
+[POLY FORM]       Vertices: [26, 27, 44, 43]
+
+[POLY FORM]   Face 33: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=1677.791502
+  [STEP 6.3]   boundary_poly (vertex list): [39, 40, 44, 43]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 33: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=1677.791502
+[POLY FORM]       Vertices: [39, 40, 44, 43]
+
+[POLY FORM]   Face 34: Total edges available: 4
+  [STEP 6.1] Iteration 1: 4 remaining edges before filter
+  [STEP 6.1] Finding all polygons from 4 edges...
+  [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
+  [STEP 6.3] Selected boundary: 4 verts, area=19827.491969
+  [STEP 6.3]   boundary_poly (vertex list): [41, 42, 56, 55]
+  [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
+[POLY FORM]   Face 34: Found 1 polygon(s)
+[POLY FORM]     Polygon 1: 4 vertices, area=19827.491969
+[POLY FORM]       Vertices: [41, 42, 56, 55]
+
+[POLY FORM] Step 6.4: Validating edge-face topology
+[POLY FORM]   Total edges: 89
+----------------------------------------------------------------------
+
+[POLY FORM]   Classifying polygons as BOUNDARY, HOLES, or ALT...
+[POLY FORM]   Face 1: Using visibility-based classification...
+[POLY FORM]     Face 1: Polygon 0 vertices: [0, 30, 5, 35]
+[POLY FORM]     Face 1: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 1: Edge visibility: 0 solid, 1 dashed, 0 mixed
+[POLY FORM]     Face 1: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 2: Using visibility-based classification...
+[POLY FORM]     Face 2: Polygon 0 vertices: [0, 30, 8, 38]
+[POLY FORM]     Face 2: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 2: Edge visibility: 0 solid, 1 dashed, 0 mixed
+[POLY FORM]     Face 2: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 3: Using visibility-based classification...
+[POLY FORM]     Face 3: Polygon 0 vertices: [10, 11, 42, 41]
+[POLY FORM]     Face 3: Edge types: [1, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 3: Polygon 1 vertices: [0, 35, 9, 38]
+[POLY FORM]     Face 3: Edge types: [1, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 3: Edge visibility: 2 solid, 0 dashed, 0 mixed
+[POLY FORM]     Face 3: Processing 2 solid-edge polygon(s) for BOUNDARY
+[POLY FORM]   Face 4: Using visibility-based classification...
+[POLY FORM]     Face 4: Polygon 0 vertices: [1, 2, 34, 33]
+[POLY FORM]     Face 4: Edge types: [1, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 4: Polygon 1 vertices: [1, 2, 50, 49, 56, 55, 18, 19, 34, 33]
+[POLY FORM]     Face 4: Edge types: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 4: Edge visibility: 2 solid, 0 dashed, 0 mixed
+[POLY FORM]     Face 4: Processing 2 solid-edge polygon(s) for BOUNDARY
+[POLY FORM]   Face 5: Using visibility-based classification...
+[POLY FORM]     Face 5: Polygon 0 vertices: [1, 2, 52, 51]
+[POLY FORM]     Face 5: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 5: Edge visibility: 0 solid, 1 dashed, 0 mixed
+[POLY FORM]     Face 5: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 6: Using visibility-based classification...
+[POLY FORM]     Face 6: Polygon 0 vertices: [1, 33, 24, 51]
+[POLY FORM]     Face 6: Edge types: [1, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 6: Edge visibility: 1 solid, 0 dashed, 0 mixed
+[POLY FORM]     Face 6: Processing 1 solid-edge polygon(s) for BOUNDARY
+[POLY FORM]   Face 7: Using visibility-based classification...
+[POLY FORM]     Face 7: Polygon 0 vertices: [2, 34, 25, 52]
+[POLY FORM]     Face 7: Edge types: [1, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 7: Polygon 1 vertices: [2, 50, 4, 32, 19, 34, 25, 52]
+[POLY FORM]     Face 7: Edge types: [1, 1, 1, 1, 1, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 7: Polygon 2 vertices: [37, 27, 44, 40, 17, 54, 23, 7]
+[POLY FORM]     Face 7: Edge types: [2, 1, 1, 1, 2, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 7: Polygon 3 vertices: [46, 21, 58, 15]
+[POLY FORM]     Face 7: Edge types: [1, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 7: Edge visibility: 3 solid, 0 dashed, 1 mixed
+[POLY FORM]     Face 7: Processing 3 solid-edge polygon(s) for BOUNDARY
+[POLY FORM]     Face 7: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:2640: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show(block=False)
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:2641: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.pause(0.5)  # Give time for the plot to render
+[POLY FORM]   Face 8: Using visibility-based classification...
+[POLY FORM]     Face 8: Polygon 0 vertices: [3, 4, 50, 49, 29, 28]
+[POLY FORM]     Face 8: Edge types: [1, 1, 1, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 8: Edge visibility: 1 solid, 0 dashed, 0 mixed
+[POLY FORM]     Face 8: Processing 1 solid-edge polygon(s) for BOUNDARY
+[POLY FORM]   Face 9: Using visibility-based classification...
+[POLY FORM]     Face 9: Polygon 0 vertices: [3, 4, 32, 31]
+[POLY FORM]     Face 9: Edge types: [2, 2, 1, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 9: Edge visibility: 0 solid, 0 dashed, 1 mixed
+[POLY FORM]     Face 9: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 10: Using visibility-based classification...
+[POLY FORM]     Face 10: Polygon 0 vertices: [3, 28, 12, 10, 41, 55, 18, 31]
+[POLY FORM]     Face 10: Edge types: [2, 1, 1, 1, 1, 2, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 10: Edge visibility: 0 solid, 0 dashed, 1 mixed
+[POLY FORM]     Face 10: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 11: Using visibility-based classification...
+[POLY FORM]     Face 11: Polygon 0 vertices: [5, 30, 8, 47]
+[POLY FORM]     Face 11: Edge types: [1, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 11: Edge visibility: 1 solid, 0 dashed, 0 mixed
+[POLY FORM]     Face 11: Processing 1 solid-edge polygon(s) for BOUNDARY
+[POLY FORM]   Face 12: Using visibility-based classification...
+[POLY FORM]     Face 12: Polygon 0 vertices: [5, 35, 9, 47]
+[POLY FORM]     Face 12: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 12: Edge visibility: 0 solid, 1 dashed, 0 mixed
+[POLY FORM]     Face 12: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 13: Using visibility-based classification...
+[POLY FORM]     Face 13: Polygon 0 vertices: [6, 7, 23, 22]
+[POLY FORM]     Face 13: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 13: Edge visibility: 0 solid, 1 dashed, 0 mixed
+[POLY FORM]     Face 13: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 14: Using visibility-based classification...
+[POLY FORM]     Face 14: Polygon 0 vertices: [6, 7, 37, 36]
+[POLY FORM]     Face 14: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 14: Edge visibility: 0 solid, 1 dashed, 0 mixed
+[POLY FORM]     Face 14: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 15: Using visibility-based classification...
+[POLY FORM]     Face 15: Polygon 0 vertices: [6, 22, 53, 36]
+[POLY FORM]     Face 15: Edge types: [1, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 15: Edge visibility: 1 solid, 0 dashed, 0 mixed
+[POLY FORM]     Face 15: Processing 1 solid-edge polygon(s) for BOUNDARY
+[POLY FORM]   Face 16: Using visibility-based classification...
+[POLY FORM]     Face 16: Polygon 0 vertices: [8, 38, 9, 47]
+[POLY FORM]     Face 16: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 16: Edge visibility: 0 solid, 1 dashed, 0 mixed
+[POLY FORM]     Face 16: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 17: Using visibility-based classification...
+[POLY FORM]     Face 17: Polygon 0 vertices: [10, 11, 13, 12]
+[POLY FORM]     Face 17: Edge types: [1, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 17: Edge visibility: 1 solid, 0 dashed, 0 mixed
+[POLY FORM]     Face 17: Processing 1 solid-edge polygon(s) for BOUNDARY
+[POLY FORM]   Face 18: Using visibility-based classification...
+[POLY FORM]     Face 18: Polygon 0 vertices: [11, 13, 29, 49, 56, 42]
+[POLY FORM]     Face 18: Edge types: [1, 1, 1, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 18: Edge visibility: 1 solid, 0 dashed, 0 mixed
+[POLY FORM]     Face 18: Processing 1 solid-edge polygon(s) for BOUNDARY
+[POLY FORM]   Face 19: Using visibility-based classification...
+[POLY FORM]     Face 19: Polygon 0 vertices: [12, 13, 29, 28]
+[POLY FORM]     Face 19: Edge types: [1, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 19: Edge visibility: 0 solid, 0 dashed, 1 mixed
+[POLY FORM]     Face 19: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 20: Using visibility-based classification...
+[POLY FORM]     Face 20: Polygon 0 vertices: [14, 15, 46, 45]
+[POLY FORM]     Face 20: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 20: Edge visibility: 0 solid, 1 dashed, 0 mixed
+[POLY FORM]     Face 20: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 21: Using visibility-based classification...
+[POLY FORM]     Face 21: Polygon 0 vertices: [14, 15, 58, 57]
+[POLY FORM]     Face 21: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 21: Edge visibility: 0 solid, 1 dashed, 0 mixed
+[POLY FORM]     Face 21: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 22: Using visibility-based classification...
+[POLY FORM]     Face 22: Polygon 0 vertices: [14, 45, 20, 57]
+[POLY FORM]     Face 22: Edge types: [1, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 22: Edge visibility: 1 solid, 0 dashed, 0 mixed
+[POLY FORM]     Face 22: Processing 1 solid-edge polygon(s) for BOUNDARY
+[POLY FORM]   Face 23: Using visibility-based classification...
+[POLY FORM]     Face 23: Polygon 0 vertices: [16, 17, 27, 26]
+[POLY FORM]     Face 23: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 23: Polygon 1 vertices: [16, 17, 54, 53, 36, 37, 27, 26]
+[POLY FORM]     Face 23: Edge types: [2, 2, 2, 2, 2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 23: Edge visibility: 0 solid, 2 dashed, 0 mixed
+[POLY FORM]     Face 23: Processing 2 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 24: Using visibility-based classification...
+[POLY FORM]     Face 24: Polygon 0 vertices: [16, 17, 40, 39]
+[POLY FORM]     Face 24: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 24: Edge visibility: 0 solid, 1 dashed, 0 mixed
+[POLY FORM]     Face 24: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 25: Using visibility-based classification...
+[POLY FORM]     Face 25: Polygon 0 vertices: [16, 26, 43, 39]
+[POLY FORM]     Face 25: Edge types: [1, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 25: Edge visibility: 1 solid, 0 dashed, 0 mixed
+[POLY FORM]     Face 25: Processing 1 solid-edge polygon(s) for BOUNDARY
+[POLY FORM]   Face 26: Using visibility-based classification...
+[POLY FORM]     Face 26: Polygon 0 vertices: [18, 19, 32, 31]
+[POLY FORM]     Face 26: Edge types: [2, 1, 1, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 26: Edge visibility: 0 solid, 0 dashed, 1 mixed
+[POLY FORM]     Face 26: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 27: Using visibility-based classification...
+[POLY FORM]     Face 27: Polygon 0 vertices: [20, 21, 46, 45]
+[POLY FORM]     Face 27: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 27: Edge visibility: 0 solid, 1 dashed, 0 mixed
+[POLY FORM]     Face 27: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 28: Using visibility-based classification...
+[POLY FORM]     Face 28: Polygon 0 vertices: [20, 21, 58, 57]
+[POLY FORM]     Face 28: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 28: Edge visibility: 0 solid, 1 dashed, 0 mixed
+[POLY FORM]     Face 28: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 29: Using visibility-based classification...
+[POLY FORM]     Face 29: Polygon 0 vertices: [22, 23, 54, 53]
+[POLY FORM]     Face 29: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 29: Edge visibility: 0 solid, 1 dashed, 0 mixed
+[POLY FORM]     Face 29: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 30: Using visibility-based classification...
+[POLY FORM]     Face 30: Polygon 0 vertices: [24, 25, 34, 33]
+[POLY FORM]     Face 30: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 30: Edge visibility: 0 solid, 1 dashed, 0 mixed
+[POLY FORM]     Face 30: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 31: Using visibility-based classification...
+[POLY FORM]     Face 31: Polygon 0 vertices: [24, 25, 52, 51]
+[POLY FORM]     Face 31: Edge types: [1, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 31: Edge visibility: 1 solid, 0 dashed, 0 mixed
+[POLY FORM]     Face 31: Processing 1 solid-edge polygon(s) for BOUNDARY
+[POLY FORM]   Face 32: Using visibility-based classification...
+[POLY FORM]     Face 32: Polygon 0 vertices: [26, 27, 44, 43]
+[POLY FORM]     Face 32: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 32: Edge visibility: 0 solid, 1 dashed, 0 mixed
+[POLY FORM]     Face 32: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 33: Using visibility-based classification...
+[POLY FORM]     Face 33: Polygon 0 vertices: [39, 40, 44, 43]
+[POLY FORM]     Face 33: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 33: Edge visibility: 0 solid, 1 dashed, 0 mixed
+[POLY FORM]     Face 33: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]   Face 34: Using visibility-based classification...
+[POLY FORM]     Face 34: Polygon 0 vertices: [41, 42, 56, 55]
+[POLY FORM]     Face 34: Edge types: [1, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
+[POLY FORM]     Face 34: Edge visibility: 0 solid, 0 dashed, 1 mixed
+[POLY FORM]     Face 34: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
+[POLY FORM]     Face 3: Selected polygon [10, 11, 42, 41] as BOUNDARY
+[POLY FORM]       Contains 1 HOLE(s), 0 ALT(s), area=28768.00)
+[POLY FORM]         HOLE: [0, 35, 9, 38]
+[POLY FORM]     Face 4: Selected polygon [1, 2, 50, 49, 56, 55, 18, 19, 34, 33] as BOUNDARY
+[POLY FORM]       Contains 0 HOLE(s), 1 ALT(s), area=91146.86)
+[POLY FORM]         ALT: [1, 2, 34, 33]
+[POLY FORM]       Checking 2 holes for shared edges...
+[POLY FORM]     Face 7: Selected polygon [2, 50, 4, 32, 19, 34, 25, 52] as BOUNDARY
+[POLY FORM]       Contains 2 HOLE(s), 1 ALT(s), area=35648.95)
+[POLY FORM]         HOLE: [37, 27, 44, 40, 17, 54, 23, 7]
+[POLY FORM]         HOLE: [46, 21, 58, 15]
+[POLY FORM]         ALT: [2, 34, 25, 52]
+[POLY FORM]     Face 23: Selected polygon [16, 17, 54, 53, 36, 37, 27, 26] as BOUNDARY
+[POLY FORM]       Contains 0 HOLE(s), 1 ALT(s), area=3020.32)
+[POLY FORM]         ALT: [16, 17, 27, 26]
+
+[POLY FORM]   Detecting independent boundary polygons...
+
+[POLY FORM]   Deduplicating polygons in each face...
+
+[POLY FORM]   Building initial edge distribution with ALL polygons (BOUNDARY + HOLES + ALL ALTs)...
+[POLY FORM]     Registered 40 total polygons
+[POLY FORM]     Including 3 ALT polygons
+
+[POLY FORM]   Initial edge distribution (ALL polygons included):
+[POLY FORM]     - Boundary edges (1 face): 1
+[POLY FORM]     - Manifold edges (2 faces): 79
+[POLY FORM]     - Invalid edges (3+ faces): 9
+
+[POLY FORM] Face Summary (After Initial Edge Analysis)
+[POLY FORM]   - Total faces: 34
+[POLY FORM]   - Faces with holes: 2
+[POLY FORM]   - Total holes: 3
+[POLY FORM]   - Faces with alternates: 3
+[POLY FORM]   Face 1: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [0, 30, 5, 35]
+[POLY FORM]   Face 2: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [0, 30, 8, 38]
+[POLY FORM]   Face 3: 4 vertices, 1 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [10, 11, 42, 41]
+[POLY FORM]     Hole 1: [0, 35, 9, 38]
+[POLY FORM]   Face 4: 10 vertices, 0 hole(s), 1 alternate(s)
+[POLY FORM]     Boundary vertices: [1, 2, 50, 49, 56, 55, 18, 19, 34, 33]
+[POLY FORM]     Alternate 0: [1, 2, 34, 33]
+[POLY FORM]   Face 5: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [1, 2, 52, 51]
+[POLY FORM]   Face 6: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [1, 33, 24, 51]
+[POLY FORM]   Face 7: 8 vertices, 2 hole(s), 1 alternate(s)
+[POLY FORM]     Boundary vertices: [2, 50, 4, 32, 19, 34, 25, 52]
+[POLY FORM]     Hole 2: [37, 27, 44, 40, 17, 54, 23, 7]
+[POLY FORM]     Hole 3: [46, 21, 58, 15]
+[POLY FORM]     Alternate 0: [2, 34, 25, 52]
+[POLY FORM]   Face 8: 6 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [3, 4, 50, 49, 29, 28]
+[POLY FORM]   Face 9: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [3, 4, 32, 31]
+[POLY FORM]   Face 10: 8 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [3, 28, 12, 10, 41, 55, 18, 31]
+[POLY FORM]   Face 11: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [5, 30, 8, 47]
+[POLY FORM]   Face 12: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [5, 35, 9, 47]
+[POLY FORM]   Face 13: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [6, 7, 23, 22]
+[POLY FORM]   Face 14: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [6, 7, 37, 36]
+[POLY FORM]   Face 15: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [6, 22, 53, 36]
+[POLY FORM]   Face 16: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [8, 38, 9, 47]
+[POLY FORM]   Face 17: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [10, 11, 13, 12]
+[POLY FORM]   Face 18: 6 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [11, 13, 29, 49, 56, 42]
+[POLY FORM]   Face 19: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [12, 13, 29, 28]
+[POLY FORM]   Face 20: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [14, 15, 46, 45]
+[POLY FORM]   Face 21: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [14, 15, 58, 57]
+[POLY FORM]   Face 22: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [14, 45, 20, 57]
+[POLY FORM]   Face 23: 8 vertices, 0 hole(s), 1 alternate(s)
+[POLY FORM]     Boundary vertices: [16, 17, 54, 53, 36, 37, 27, 26]
+[POLY FORM]     Alternate 0: [16, 17, 27, 26]
+[POLY FORM]   Face 24: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [16, 17, 40, 39]
+[POLY FORM]   Face 25: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [16, 26, 43, 39]
+[POLY FORM]   Face 26: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [18, 19, 32, 31]
+[POLY FORM]   Face 27: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [20, 21, 46, 45]
+[POLY FORM]   Face 28: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [20, 21, 58, 57]
+[POLY FORM]   Face 29: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [22, 23, 54, 53]
+[POLY FORM]   Face 30: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [24, 25, 34, 33]
+[POLY FORM]   Face 31: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [24, 25, 52, 51]
+[POLY FORM]   Face 32: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [26, 27, 44, 43]
+[POLY FORM]   Face 33: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [39, 40, 44, 43]
+[POLY FORM]   Face 34: 4 vertices, 0 hole(s), 0 alternate(s)
+[POLY FORM]     Boundary vertices: [41, 42, 56, 55]
+
+[POLY FORM]   Creating debug plot...
+
+[DEBUG PLOT] First base polygon (Face 0, Poly 0):
+  Raw verts: [0, 30, 5, 35]... (type: <class 'int'>)
+  Num selected_vertices: 59
+[DEBUG PLOT] Plotted 9 invalid edges in current state
+
+[POLY FORM]   Extracting polygons with invalid edges...
+[POLY FORM]     Found 13 polygons with invalid edges (before filtering)
+[POLY FORM]     Filtering to keep only ALT and their BOUNDARY polygons...
+[POLY FORM]     SKIPPING FILTERING: All polygons with invalid edges sent to pruning
+[POLY FORM]     Created 13 polygon units from 13 polygons
+[POLY FORM]     Polygons for combination testing:
+
+[POLY FORM]   ========== Pruning Iteration 1 ==========
+[POLY FORM]   Current extracted set size: 13 polygons
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:10348: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
+  plt.tight_layout()
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:10350: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show(block=True)
+[POLY FORM]   Extracted set has < 20 polygons - stopping pruning
+
+[POLY FORM]   Pruning complete after 1 iteration(s)
+
+[POLY FORM]   ========== PRUNING RESULTS ==========
+[POLY FORM]   Total polygons in extracted set: 13
+[POLY FORM]   Total polygons in pruned set: 0
+[POLY FORM]   Final extracted set edge statistics:
+[POLY FORM]     - Boundary edges (1 face): 19
+[POLY FORM]     - Manifold edges (2 faces): 10
+[POLY FORM]     - Invalid edges (3+ faces): 9
+[POLY FORM]   ======================================
+
+[POLY FORM]     --- Polygons after pruning ---
+[POLY FORM]       [A] Face 5, Type: BOUNDARY, Vertices: [1, 2, 52, 51]
+[POLY FORM]       [B] Face 4, Type: BOUNDARY, Vertices: [1, 2, 50, 49, 56, 55, 18, 19, 34, 33]
+[POLY FORM]       [C] Face 7, Type: BOUNDARY, Vertices: [2, 50, 4, 32, 19, 34, 25, 52]
+[POLY FORM]       [D] Face 23, Type: BOUNDARY, Vertices: [16, 17, 54, 53, 36, 37, 27, 26]
+[POLY FORM]       [E] Face 24, Type: BOUNDARY, Vertices: [16, 17, 40, 39]
+[POLY FORM]       [F] Face 30, Type: BOUNDARY, Vertices: [24, 25, 34, 33]
+[POLY FORM]       [G] Face 25, Type: BOUNDARY, Vertices: [16, 26, 43, 39]
+[POLY FORM]       [H] Face 31, Type: BOUNDARY, Vertices: [24, 25, 52, 51]
+[POLY FORM]       [I] Face 4, Type: ALT, Vertices: [1, 2, 34, 33]
+[POLY FORM]       [J] Face 32, Type: BOUNDARY, Vertices: [26, 27, 44, 43]
+[POLY FORM]       [K] Face 6, Type: BOUNDARY, Vertices: [1, 33, 24, 51]
+[POLY FORM]       [L] Face 23, Type: ALT, Vertices: [16, 17, 27, 26]
+[POLY FORM]       [M] Face 7, Type: ALT, Vertices: [2, 34, 25, 52]
+[POLY FORM]     --- Edges after pruning (38 total) ---
+[POLY FORM]       Edge (1, 2)
+[POLY FORM]       Edge (1, 33)
+[POLY FORM]       Edge (1, 51)
+[POLY FORM]       Edge (2, 34)
+[POLY FORM]       Edge (2, 50)
+[POLY FORM]       Edge (2, 52)
+[POLY FORM]       Edge (4, 32)
+[POLY FORM]       Edge (4, 50)
+[POLY FORM]       Edge (16, 17)
+[POLY FORM]       Edge (16, 26)
+[POLY FORM]       Edge (16, 39)
+[POLY FORM]       Edge (17, 27)
+[POLY FORM]       Edge (17, 40)
+[POLY FORM]       Edge (17, 54)
+[POLY FORM]       Edge (18, 19)
+[POLY FORM]       Edge (18, 55)
+[POLY FORM]       Edge (19, 32)
+[POLY FORM]       Edge (19, 34)
+[POLY FORM]       Edge (24, 25)
+[POLY FORM]       Edge (24, 33)
+[POLY FORM]       Edge (24, 51)
+[POLY FORM]       Edge (25, 34)
+[POLY FORM]       Edge (25, 52)
+[POLY FORM]       Edge (26, 27)
+[POLY FORM]       Edge (26, 43)
+[POLY FORM]       Edge (27, 37)
+[POLY FORM]       Edge (27, 44)
+[POLY FORM]       Edge (33, 34)
+[POLY FORM]       Edge (36, 37)
+[POLY FORM]       Edge (36, 53)
+[POLY FORM]       Edge (39, 40)
+[POLY FORM]       Edge (39, 43)
+[POLY FORM]       Edge (43, 44)
+[POLY FORM]       Edge (49, 50)
+[POLY FORM]       Edge (49, 56)
+[POLY FORM]       Edge (51, 52)
+[POLY FORM]       Edge (53, 54)
+[POLY FORM]       Edge (55, 56)
+
+[POLY FORM]   ========== INVALID EDGE LOOP MATCHING ==========
+[POLY FORM]   Analyzing invalid edges for closed loops...
+[POLY FORM]   Found 38 total edges from invalid polygons
+[POLY FORM]   Filtered to 9 edges with 3+ faces (truly invalid)
+[POLY FORM]     Edge (1, 2): 3 faces [F5(BOUNDARY), F4(BOUNDARY), F4(ALT)]
+[POLY FORM]     Edge (1, 33): 3 faces [F4(BOUNDARY), F4(ALT), F6(BOUNDARY)]
+[POLY FORM]     Edge (2, 52): 3 faces [F5(BOUNDARY), F7(BOUNDARY), F7(ALT)]
+[POLY FORM]     Edge (16, 17): 3 faces [F23(BOUNDARY), F24(BOUNDARY), F23(ALT)]
+[POLY FORM]     Edge (16, 26): 3 faces [F23(BOUNDARY), F25(BOUNDARY), F23(ALT)]
+[POLY FORM]     Edge (25, 34): 3 faces [F7(BOUNDARY), F30(BOUNDARY), F7(ALT)]
+[POLY FORM]     Edge (25, 52): 3 faces [F7(BOUNDARY), F31(BOUNDARY), F7(ALT)]
+[POLY FORM]     Edge (26, 27): 3 faces [F23(BOUNDARY), F32(BOUNDARY), F23(ALT)]
+[POLY FORM]     Edge (33, 34): 3 faces [F4(BOUNDARY), F30(BOUNDARY), F4(ALT)]
+
+[POLY FORM]   Finding loops with common polygon ownership...
+[POLY FORM]   Found 0 loop(s) with common polygon ownership
+[POLY FORM]   These loops belong to 0 unique polygon(s)
+
+[POLY FORM]   No polygon matches found for invalid edge loops
+
+[POLY FORM]   Rebuilding global edge map after loop matching...
+[POLY FORM]     Global edge map: 1 boundary, 79 manifold, 9 invalid
+[POLY FORM]   ========== END LOOP MATCHING ==========
+
+[POLY FORM]   ========== AUGMENTATION STRATEGY ==========
+[POLY FORM]   Goal: Add polygons from extraction set to base set
+[POLY FORM]   Constraint: Keep invalid edges = 0
+[POLY FORM]   Objective: Minimize boundary edges
+
+[POLY FORM]   Current state:
+[POLY FORM]     Base set: 18 boundary, 51 manifold, 0 invalid edges
+[POLY FORM]     Extraction set: 13 polygons
+
+[POLY FORM]   ========== SKIPPING AUGMENTATION ==========
+[POLY FORM]   Reason: Base set already has 0 invalid edges
+[POLY FORM]   No augmentation needed - mesh is already valid
+
+[POLY FORM]   Skipping augmentation: Extraction set is empty
+
+[POLY FORM]   Proceeding with combination testing: 9 invalid edges remain
+[POLY FORM]   Extraction set after filtering removed polygons: 13 polygons
+
+[POLY FORM]   Grouping polygons by face...
+[POLY FORM]     Found 10 faces with polygons:
+[POLY FORM]       Face 4: [B, I]
+[POLY FORM]       Face 5: [A]
+[POLY FORM]       Face 6: [K]
+[POLY FORM]       Face 7: [C, M]
+[POLY FORM]       Face 23: [D, L]
+[POLY FORM]       Face 24: [E]
+[POLY FORM]       Face 25: [G]
+[POLY FORM]       Face 30: [F]
+[POLY FORM]       Face 31: [H]
+[POLY FORM]       Face 32: [J]
+
+[POLY FORM]   Generating valid combinations...
+[POLY FORM]     Each face must have at least one polygon
+[POLY FORM]     Total combinations to test: 27
+[POLY FORM]       ✓ PERFECT: Combo [A, B, C, D, E, F, G, H, J, K] → Invalid: 0, Boundary: 0
+[POLY FORM]     Found perfect solution!
+
+[POLY FORM]   Optimal combination found:
+[POLY FORM]     Polygons to KEEP:
+[POLY FORM]       [A] Face 5, Type: BOUNDARY, Vertices: [1, 2, 52, 51]
+[POLY FORM]       [B] Face 4, Type: BOUNDARY, Vertices: [1, 2, 50, 49, 56, 55, 18, 19, 34, 33]
+[POLY FORM]       [C] Face 7, Type: BOUNDARY, Vertices: [2, 50, 4, 32, 19, 34, 25, 52]
+[POLY FORM]       [D] Face 23, Type: BOUNDARY, Vertices: [16, 17, 54, 53, 36, 37, 27, 26]
+[POLY FORM]       [E] Face 24, Type: BOUNDARY, Vertices: [16, 17, 40, 39]
+[POLY FORM]       [F] Face 30, Type: BOUNDARY, Vertices: [24, 25, 34, 33]
+[POLY FORM]       [G] Face 25, Type: BOUNDARY, Vertices: [16, 26, 43, 39]
+[POLY FORM]       [H] Face 31, Type: BOUNDARY, Vertices: [24, 25, 52, 51]
+[POLY FORM]       [J] Face 32, Type: BOUNDARY, Vertices: [26, 27, 44, 43]
+[POLY FORM]       [K] Face 6, Type: BOUNDARY, Vertices: [1, 33, 24, 51]
+[POLY FORM]     Polygons to DELETE:
+[POLY FORM]       [I, L, M]
+[POLY FORM]       [I] Face 4, Type: ALT, Vertices: [1, 2, 34, 33]
+[POLY FORM]       [L] Face 23, Type: ALT, Vertices: [16, 17, 27, 26]
+[POLY FORM]       [M] Face 7, Type: ALT, Vertices: [2, 34, 25, 52]
+
+[POLY FORM]   Applying optimal combination...
+[POLY FORM]     Removed 3 polygons
+[POLY FORM]     Kept 10 polygons from invalid-edge list
+[POLY FORM]     Updated edge statistics:
+[POLY FORM]       - Boundary edges: 0
+[POLY FORM]       - Manifold edges: 87
+[POLY FORM]       - Invalid edges: 0
+
+[POLY FORM]   ✓ Invalid edges already resolved: 0 invalid edges
+[POLY FORM]   Skipping ALT vs BOUNDARY+HOLES testing
+
+[POLY FORM] Step 6.5: Removing duplicate polygons
+----------------------------------------------------------------------
+
+[POLY FORM] Step 7: Compiling face results
+----------------------------------------------------------------------
+[POLY FORM]   Processing 34 validated face(s)...
+
+======================================================================
+[POLY FORM] FINAL ALTERNATE RESOLUTION
+======================================================================
+[POLY FORM] Checking for faces with multiple alternates...
+[POLY FORM] Found 0 face(s) with alternates
+
+======================================================================
+[POLY FORM] EXTRACTION COMPLETE: 34 faces found
+======================================================================
+[POLY FORM] Summary:
+[POLY FORM]   - Total faces: 34
+[POLY FORM]   - Faces with holes: 2
+[POLY FORM]   - Total holes: 3
+[POLY FORM]   - Faces with alternates: 0
+[POLY FORM]   Face 1: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [0, 30, 5, 35]
+[POLY FORM]   Face 2: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [0, 30, 8, 38]
+[POLY FORM]   Face 3: 4 vertices, 1 hole(s)
+[POLY FORM]     Outer boundary vertices: [10, 11, 42, 41]
+[POLY FORM]     Hole 1: 4 vertices
+[POLY FORM]       Vertices: [0, 35, 9, 38]
+[POLY FORM]       Hole area (2D projection): 2525.000000
+[POLY FORM]       Hole center (3D): [409.66, 412.50, 77.50]
+[POLY FORM]   Face 4: 10 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [1, 2, 50, 49, 56, 55, 18, 19, 34, 33]
+[POLY FORM]   Face 5: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [1, 2, 52, 51]
+[POLY FORM]   Face 6: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [1, 33, 24, 51]
+[POLY FORM]   Face 7: 8 vertices, 2 hole(s)
+[POLY FORM]     Outer boundary vertices: [2, 50, 4, 32, 19, 34, 25, 52]
+[POLY FORM]     Hole 1: 8 vertices
+[POLY FORM]       Vertices: [37, 27, 44, 40, 17, 54, 23, 7]
+[POLY FORM]       Hole area (2D projection): 1092.388958
+[POLY FORM]       Hole center (3D): [245.42, 511.48, 517.47]
+[POLY FORM]     Hole 2: 4 vertices
+[POLY FORM]       Vertices: [46, 21, 58, 15]
+[POLY FORM]       Hole area (2D projection): 1069.282746
+[POLY FORM]       Hole center (3D): [169.49, 451.61, 517.47]
+[POLY FORM]   Face 8: 6 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [3, 4, 50, 49, 29, 28]
+[POLY FORM]   Face 9: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [3, 4, 32, 31]
+[POLY FORM]   Face 10: 8 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [3, 28, 12, 10, 41, 55, 18, 31]
+[POLY FORM]   Face 11: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [5, 30, 8, 47]
+[POLY FORM]   Face 12: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [5, 35, 9, 47]
+[POLY FORM]   Face 13: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [6, 7, 23, 22]
+[POLY FORM]   Face 14: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [6, 7, 37, 36]
+[POLY FORM]   Face 15: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [6, 22, 53, 36]
+[POLY FORM]   Face 16: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [8, 38, 9, 47]
+[POLY FORM]   Face 17: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [10, 11, 13, 12]
+[POLY FORM]   Face 18: 6 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [11, 13, 29, 49, 56, 42]
+[POLY FORM]   Face 19: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [12, 13, 29, 28]
+[POLY FORM]   Face 20: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [14, 15, 46, 45]
+[POLY FORM]   Face 21: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [14, 15, 58, 57]
+[POLY FORM]   Face 22: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [14, 45, 20, 57]
+[POLY FORM]   Face 23: 8 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [16, 17, 54, 53, 36, 37, 27, 26]
+[POLY FORM]   Face 24: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [16, 17, 40, 39]
+[POLY FORM]   Face 25: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [16, 26, 43, 39]
+[POLY FORM]   Face 26: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [18, 19, 32, 31]
+[POLY FORM]   Face 27: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [20, 21, 46, 45]
+[POLY FORM]   Face 28: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [20, 21, 58, 57]
+[POLY FORM]   Face 29: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [22, 23, 54, 53]
+[POLY FORM]   Face 30: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [24, 25, 34, 33]
+[POLY FORM]   Face 31: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [24, 25, 52, 51]
+[POLY FORM]   Face 32: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [26, 27, 44, 43]
+[POLY FORM]   Face 33: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [39, 40, 44, 43]
+[POLY FORM]   Face 34: 4 vertices, 0 hole(s)
+[POLY FORM]     Vertices: [41, 42, 56, 55]
+
+[POLY FORM] Step 7.5: Checking for touching holes within faces
+----------------------------------------------------------------------
+[POLY FORM]   No touching holes found
+
+[CRITICAL] Extracted 34 faces
+
+======================================================================
+EXTRACTED FACES DETAIL
+======================================================================
+Face 0: 4 vertices, 0 holes
+  Normal: [0.000000, 0.099504, -0.995037], d=10.945409
+  Vertices: [0, 30, 5, 35]
+Face 1: 4 vertices, 0 holes
+  Normal: [0.000000, 0.995037, 0.099504], d=-393.039690
+  Vertices: [0, 30, 8, 38]
+Face 2: 4 vertices, 1 holes
+  Normal: [1.000000, 0.000000, 0.000000], d=-409.660150
+  Vertices: [10, 11, 42, 41]
+Face 3: 10 vertices, 0 holes
+  Normal: [1.000000, 0.000000, 0.000000], d=-270.000000
+  Vertices: [1, 2, 50, 49, 56, 55, 18, 19, 34, 33]
+Face 4: 4 vertices, 0 holes
+  Normal: [0.000000, 1.000000, 0.000000], d=-425.461749
+  Vertices: [1, 2, 52, 51]
+Face 5: 4 vertices, 0 holes
+  Normal: [0.000000, 0.000000, 1.000000], d=-430.778817
+  Vertices: [1, 33, 24, 51]
+Face 6: 8 vertices, 2 holes
+  Normal: [0.000000, 0.000000, 1.000000], d=-517.470727
+  Vertices: [2, 50, 4, 32, 19, 34, 25, 52]
+Face 7: 6 vertices, 0 holes
+  Normal: [0.000000, 1.000000, 0.000000], d=-370.000000
+  Vertices: [3, 4, 50, 49, 29, 28]
+Face 8: 4 vertices, 0 holes
+  Normal: [1.000000, 0.000000, 0.000000], d=-93.611010
+  Vertices: [3, 4, 32, 31]
+Face 9: 8 vertices, 0 holes
+  Normal: [0.000000, 0.000000, 1.000000], d=-0.000001
+  Vertices: [3, 28, 12, 10, 41, 55, 18, 31]
+Face 10: 4 vertices, 0 holes
+  Normal: [1.000000, 0.000000, 0.000000], d=-233.847406
+  Vertices: [5, 30, 8, 47]
+Face 11: 4 vertices, 0 holes
+  Normal: [0.000000, -0.995037, -0.099504], d=443.289068
+  Vertices: [5, 35, 9, 47]
+Face 12: 4 vertices, 0 holes
+  Normal: [1.000000, 0.000000, 0.000000], d=-267.235230
+  Vertices: [6, 7, 23, 22]
+Face 13: 4 vertices, 0 holes
+  Normal: [0.000000, 1.000000, 0.000000], d=-527.597105
+  Vertices: [6, 7, 37, 36]
+Face 14: 4 vertices, 0 holes
+  Normal: [0.000000, 0.000000, 1.000000], d=-371.727875
+  Vertices: [6, 22, 53, 36]
+Face 15: 4 vertices, 0 holes
+  Normal: [0.000000, -0.099504, 0.995037], d=-61.194787
+  Vertices: [8, 38, 9, 47]
+Face 16: 4 vertices, 0 holes
+  Normal: [0.000000, 1.000000, 0.000000], d=-270.000000
+  Vertices: [10, 11, 13, 12]
+Face 17: 6 vertices, 0 holes
+  Normal: [0.000000, 0.000000, 1.000000], d=-141.969576
+  Vertices: [11, 13, 29, 49, 56, 42]
+Face 18: 4 vertices, 0 holes
+  Normal: [1.000000, 0.000000, 0.000000], d=-165.000000
+  Vertices: [12, 13, 29, 28]
+Face 19: 4 vertices, 0 holes
+  Normal: [1.000000, 0.000000, 0.000000], d=-178.438227
+  Vertices: [14, 15, 46, 45]
+Face 20: 4 vertices, 0 holes
+  Normal: [0.000000, 1.000000, 0.000000], d=-481.498853
+  Vertices: [14, 15, 58, 57]
+Face 21: 4 vertices, 0 holes
+  Normal: [0.000000, 0.000000, 1.000000], d=-388.080508
+  Vertices: [14, 45, 20, 57]
+Face 22: 8 vertices, 0 holes
+  Normal: [1.000000, 0.000000, 0.000000], d=-249.585256
+  Vertices: [16, 17, 54, 53, 36, 37, 27, 26]
+Face 23: 4 vertices, 0 holes
+  Normal: [0.000000, 1.000000, 0.000000], d=-503.852042
+  Vertices: [16, 17, 40, 39]
+Face 24: 4 vertices, 0 holes
+  Normal: [0.000000, 0.000000, 1.000000], d=-407.484116
+  Vertices: [16, 26, 43, 39]
+Face 25: 4 vertices, 0 holes
+  Normal: [0.000000, 1.000000, 0.000000], d=-576.371429
+  Vertices: [18, 19, 32, 31]
+Face 26: 4 vertices, 0 holes
+  Normal: [0.000000, 1.000000, 0.000000], d=-421.718633
+  Vertices: [20, 21, 46, 45]
+Face 27: 4 vertices, 0 holes
+  Normal: [1.000000, 0.000000, 0.000000], d=-160.551328
+  Vertices: [20, 21, 58, 57]
+Face 28: 4 vertices, 0 holes
+  Normal: [0.000000, 1.000000, 0.000000], d=-495.361486
+  Vertices: [22, 23, 54, 53]
+Face 29: 4 vertices, 0 holes
+  Normal: [0.000000, 1.000000, 0.000000], d=-437.842035
+  Vertices: [24, 25, 34, 33]
+Face 30: 4 vertices, 0 holes
+  Normal: [1.000000, 0.000000, 0.000000], d=-209.201925
+  Vertices: [24, 25, 52, 51]
+Face 31: 4 vertices, 0 holes
+  Normal: [0.000000, 1.000000, 0.000000], d=-519.106549
+  Vertices: [26, 27, 44, 43]
+Face 32: 4 vertices, 0 holes
+  Normal: [1.000000, 0.000000, 0.000000], d=-215.272045
+  Vertices: [39, 40, 44, 43]
+Face 33: 4 vertices, 0 holes
+  Normal: [0.000000, 1.000000, 0.000000], d=-472.634938
+  Vertices: [41, 42, 56, 55]
+======================================================================
+
+[STEP 6.5] Determining face orientations (CCW relative to outward normal)...
+   Reference point: Bottom face centroid at (238.50, 416.45, 0.00)
+   (9 vertices on bottom face)
+   Bounding box: X=[93.61, 409.66], Y=[270.00, 576.37], Z=[0.00, 517.47]
+
+======================================================================
+[STEP 8] BUILDING SOLID FROM WIRE-BASED FACES
+======================================================================
+   Bounding box: X=[93.61, 409.66], Y=[270.00, 576.37], Z=[0.00, 517.47]
+   Center: (251.64, 423.19, 258.74)
+   Face 1: CORRECTED (reversed vertices & normal) - dot=-0.532, area=8790.6
+   Face 2: CORRECTED (reversed vertices & normal) - dot=-0.184, area=8790.6
+   Face 4: CORRECTED (reversed vertices & normal) - dot=0.097, area=-91146.9
+   Face 5: CORRECTED (reversed vertices & normal) - dot=0.019, area=-5270.7
+   Face 6: CORRECTED (reversed vertices & normal) - dot=0.999, area=-752.7
+   Face 8: CORRECTED (reversed vertices & normal) - dot=-0.199, area=76369.3
+   Face 9: CORRECTED (reversed vertices & normal) - dot=-0.480, area=106791.2
+   Face 11: CORRECTED (reversed vertices & normal) - dot=-0.060, area=2525.0
+   Face 13: CORRECTED (reversed vertices & normal) - dot=0.063, area=-4698.1
+   Face 14: CORRECTED (reversed vertices & normal) - dot=0.242, area=-2572.4
+   Face 16: CORRECTED (reversed vertices & normal) - dot=0.776, area=-8790.6
+   Face 19: CORRECTED (reversed vertices & normal) - dot=-0.523, area=14197.0
+   Face 21: CORRECTED (reversed vertices & normal) - dot=0.141, area=-2314.4
+   Face 23: CORRECTED (reversed vertices & normal) - dot=0.024, area=-3020.3
+   Face 24: CORRECTED (reversed vertices & normal) - dot=0.186, area=-3774.0
+   Face 25: CORRECTED (reversed vertices & normal) - dot=0.974, area=-523.4
+   Face 26: CORRECTED (reversed vertices & normal) - dot=0.517, area=-91276.1
+   Face 28: CORRECTED (reversed vertices & normal) - dot=-0.169, area=7735.0
+   Face 29: CORRECTED (reversed vertices & normal) - dot=0.175, area=-2572.4
+   Face 32: CORRECTED (reversed vertices & normal) - dot=0.217, area=-3774.0
+   Face 33: CORRECTED (reversed vertices & normal) - dot=-0.049, area=1677.8
+   Face 34: CORRECTED (reversed vertices & normal) - dot=0.414, area=-19827.5
+
+   Orientation summary: 12 faces correct, 22 faces corrected
+
+[STEP 6] Displaying extracted polygon faces (original solid visualization)...
+[DEBUG] Passing 34 extracted faces to plot
+[DEBUG] Passing 34 original faces to plot
+[DEBUG] Original face structure has keys: ['outer_boundary', 'holes']
+[DEBUG] plot_extracted_polygon_faces: About to call plt.show(block=True)...
+[DEBUG] plot_extracted_polygon_faces: Returned from plt.show(block=True)
+[DEBUG] plot_extracted_polygon_faces: Closed figure, returning from function
+[STEP 6] Plot closed.
+
+======================================================================
+[STEP 8] BUILDING SOLID FROM WIRE-BASED FACES
+======================================================================
+
+[STEP 8.1] Creating OCC faces from wires...
+   Successfully created face 1
+   Successfully created face 2
+   Face 3: Adding 1 hole(s) as internal wires
+   Hole 1: Reversing to match outer winding (both CCW)
+   Added hole 1 as internal wire (4 vertices)
+   Successfully created face 3
+   Successfully created face 4
+   Successfully created face 5
+   Successfully created face 6
+   Face 7: Adding 2 hole(s) as internal wires
+   Hole 1: Reversing to match outer winding (both CCW)
+   Added hole 1 as internal wire (8 vertices)
+   Hole 2: Winding matches outer (both CCW)
+   Added hole 2 as internal wire (4 vertices)
+   Successfully created face 7
+   Successfully created face 8
+   Successfully created face 9
+   Successfully created face 10
+   Successfully created face 11
+   Successfully created face 12
+   Successfully created face 13
+   Successfully created face 14
+   Successfully created face 15
+   Successfully created face 16
+   Successfully created face 17
+   Successfully created face 18
+   Successfully created face 19
+   Successfully created face 20
+   Successfully created face 21
+   Successfully created face 22
+   Successfully created face 23
+   Successfully created face 24
+   Successfully created face 25
+   Successfully created face 26
+   Successfully created face 27
+   Successfully created face 28
+   Successfully created face 29
+   Successfully created face 30
+   Successfully created face 31
+   Successfully created face 32
+   Successfully created face 33
+   Successfully created face 34
+
+   Created 34 outer faces from extracted faces
+   Created 3 hole faces
+
+[STEP 8.2] Creating hole wall faces...
+   Note: Hole wall face creation not yet implemented
+   Holes are currently internal wires only (no connecting walls)
+
+[STEP 8.3] Stitching all faces into solid (single-stage)...
+   Face summary:
+     Face 1: 4 vertices: [35, 5, 30, 0]
+     Face 2: 4 vertices: [38, 8, 30, 0]
+     Face 3: 4 vertices: [10, 11, 42, 41]
+       Hole 1: 4 vertices: [0, 35, 9, 38]
+     Face 4: 10 vertices: [33, 34, 19, 18, 55, 56, 49, 50, 2, 1]
+     Face 5: 4 vertices: [51, 52, 2, 1]
+     Face 6: 4 vertices: [51, 24, 33, 1]
+     Face 7: 8 vertices: [2, 50, 4, 32, 19, 34, 25, 52]
+       Hole 1: 8 vertices: [37, 27, 44, 40, 17, 54, 23, 7]
+       Hole 2: 4 vertices: [46, 21, 58, 15]
+     Face 8: 6 vertices: [28, 29, 49, 50, 4, 3]
+     Face 9: 4 vertices: [31, 32, 4, 3]
+     Face 10: 8 vertices: [3, 28, 12, 10, 41, 55, 18, 31]
+     Face 11: 4 vertices: [47, 8, 30, 5]
+     Face 12: 4 vertices: [5, 35, 9, 47]
+     Face 13: 4 vertices: [22, 23, 7, 6]
+     Face 14: 4 vertices: [36, 37, 7, 6]
+     Face 15: 4 vertices: [6, 22, 53, 36]
+     Face 16: 4 vertices: [47, 9, 38, 8]
+     Face 17: 4 vertices: [10, 11, 13, 12]
+     Face 18: 6 vertices: [11, 13, 29, 49, 56, 42]
+     Face 19: 4 vertices: [28, 29, 13, 12]
+     Face 20: 4 vertices: [14, 15, 46, 45]
+     Face 21: 4 vertices: [57, 58, 15, 14]
+     Face 22: 4 vertices: [14, 45, 20, 57]
+     Face 23: 8 vertices: [26, 27, 37, 36, 53, 54, 17, 16]
+     Face 24: 4 vertices: [39, 40, 17, 16]
+     Face 25: 4 vertices: [39, 43, 26, 16]
+     Face 26: 4 vertices: [31, 32, 19, 18]
+     Face 27: 4 vertices: [20, 21, 46, 45]
+     Face 28: 4 vertices: [57, 58, 21, 20]
+     Face 29: 4 vertices: [53, 54, 23, 22]
+     Face 30: 4 vertices: [24, 25, 34, 33]
+     Face 31: 4 vertices: [24, 25, 52, 51]
+     Face 32: 4 vertices: [43, 44, 27, 26]
+     Face 33: 4 vertices: [43, 44, 40, 39]
+     Face 34: 4 vertices: [55, 56, 42, 41]
+   Total outer faces: 34
+   Hole information stored: 3 holes
+     (Holes are internal wires, not separate faces)
+
+
+   Sewing 34 outer faces...
+   (Note: 3 holes are internal wires, not sewn separately)
+   Sewing diagnostics:
+     - Number of free edges: 0
+     - Number of multiple edges: 0
+     - Number of contigous edges: 87
+     - Number of degenerated shapes: 0
+     - Number of deleted faces: 0
+
+   Counting faces in sewn shape...
+   Sewn shape contains 34 faces
+   Fixing sewn shape with ShapeFix_Shape...
+   Fixed sewn shape contains 34 faces
+   Shell 1 contains 34 faces
+   Total shells found: 1
+   Using shell 1 with 34 faces as main shell
+   Fixed main shell contains 34 faces
+   Added main shell to solid
+   Solid created: Valid=True
+   Solid volume: 23557183.653929293
+   SUCCESS: Valid solid created!
+
+[STEP 8.3] Extracting faces from OCC solid and comparing with original...
+   Processing Face 1...
+          Traversing Wire 1.1 edges...
+            Wire 1.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (270.0,437.8,517.5)
+              Edge 1: vertex (270.0,437.8,430.8)
+              Edge 2: vertex (270.0,425.5,430.8)
+              Edge 3: vertex (270.0,425.5,517.5)
+              Edge 4: vertex (270.0,370.0,517.5)
+              Edge 5: vertex (270.0,370.0,142.0)
+              Edge 6: vertex (270.0,472.6,142.0)
+              Edge 7: vertex (270.0,472.6,0.0)
+              Edge 8: vertex (270.0,576.4,0.0)
+              Edge 9: vertex (270.0,576.4,517.5)
+            ✓ Wire traversal complete: 10 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (270.0,437.8,517.5) → (270.0,437.8,430.8) → (270.0,425.5,430.8) → (270.0,425.5,517.5) → (270.0,370.0,517.5) → (270.0,370.0,142.0) → (270.0,472.6,142.0) → (270.0,472.6,0.0) → (270.0,576.4,0.0) → (270.0,576.4,517.5) → (270.0,437.8,517.5)
+   Processing Face 2...
+          Traversing Wire 2.1 edges...
+            Wire 2.1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (209.2,425.5,430.8)
+              Edge 1: vertex (209.2,425.5,517.5)
+              Edge 2: vertex (270.0,425.5,517.5)
+              Edge 3: vertex (270.0,425.5,430.8)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (209.2,425.5,430.8) → (209.2,425.5,517.5) → (270.0,425.5,517.5) → (270.0,425.5,430.8) → (209.2,425.5,430.8)
+   Processing Face 3...
+          Traversing Wire 3.1 edges...
+            Wire 3.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (209.2,437.8,430.8)
+              Edge 1: vertex (209.2,425.5,430.8)
+              Edge 2: vertex (270.0,425.5,430.8)
+              Edge 3: vertex (270.0,437.8,430.8)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (209.2,437.8,430.8) → (209.2,425.5,430.8) → (270.0,425.5,430.8) → (270.0,437.8,430.8) → (209.2,437.8,430.8)
+   Processing Face 4...
+          Traversing Wire 4.1 edges...
+            Wire 4.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (270.0,370.0,517.5)
+              Edge 1: vertex (270.0,425.5,517.5)
+              Edge 2: vertex (209.2,425.5,517.5)
+              Edge 3: vertex (209.2,437.8,517.5)
+              Edge 4: vertex (270.0,437.8,517.5)
+              Edge 5: vertex (270.0,576.4,517.5)
+              Edge 6: vertex (93.6,576.4,517.5)
+              Edge 7: vertex (93.6,370.0,517.5)
+            ✓ Wire traversal complete: 8 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (270.0,370.0,517.5) → (270.0,425.5,517.5) → (209.2,425.5,517.5) → (209.2,437.8,517.5) → (270.0,437.8,517.5) → (270.0,576.4,517.5) → (93.6,576.4,517.5) → (93.6,370.0,517.5) → (270.0,370.0,517.5)
+          Traversing Wire 4.2 edges...
+            Wire 4.2 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (267.2,527.6,517.5)
+              Edge 1: vertex (267.2,495.4,517.5)
+              Edge 2: vertex (249.6,495.4,517.5)
+              Edge 3: vertex (249.6,503.9,517.5)
+              Edge 4: vertex (215.3,503.9,517.5)
+              Edge 5: vertex (215.3,519.1,517.5)
+              Edge 6: vertex (249.6,519.1,517.5)
+              Edge 7: vertex (249.6,527.6,517.5)
+            ✓ Wire traversal complete: 8 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (267.2,527.6,517.5) → (267.2,495.4,517.5) → (249.6,495.4,517.5) → (249.6,503.9,517.5) → (215.3,503.9,517.5) → (215.3,519.1,517.5) → (249.6,519.1,517.5) → (249.6,527.6,517.5) → (267.2,527.6,517.5)
+          Traversing Wire 4.3 edges...
+            Wire 4.3 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (178.4,421.7,517.5)
+              Edge 1: vertex (160.6,421.7,517.5)
+              Edge 2: vertex (160.6,481.5,517.5)
+              Edge 3: vertex (178.4,481.5,517.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (178.4,421.7,517.5) → (160.6,421.7,517.5) → (160.6,481.5,517.5) → (178.4,481.5,517.5) → (178.4,421.7,517.5)
+   Processing Face 5...
+          Traversing Wire 5.1 edges...
+            Wire 5.1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (165.0,370.0,0.0)
+              Edge 1: vertex (165.0,370.0,142.0)
+              Edge 2: vertex (270.0,370.0,142.0)
+              Edge 3: vertex (270.0,370.0,517.5)
+              Edge 4: vertex (93.6,370.0,517.5)
+              Edge 5: vertex (93.6,370.0,0.0)
+            ✓ Wire traversal complete: 6 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (165.0,370.0,0.0) → (165.0,370.0,142.0) → (270.0,370.0,142.0) → (270.0,370.0,517.5) → (93.6,370.0,517.5) → (93.6,370.0,0.0) → (165.0,370.0,0.0)
+   Processing Face 6...
+          Traversing Wire 6.1 edges...
+            Wire 6.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (93.6,576.4,517.5)
+              Edge 1: vertex (93.6,576.4,0.0)
+              Edge 2: vertex (93.6,370.0,0.0)
+              Edge 3: vertex (93.6,370.0,517.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (93.6,576.4,517.5) → (93.6,576.4,0.0) → (93.6,370.0,0.0) → (93.6,370.0,517.5) → (93.6,576.4,517.5)
+   Processing Face 7...
+          Traversing Wire 7.1 edges...
+            Wire 7.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (165.0,370.0,0.0)
+              Edge 1: vertex (93.6,370.0,0.0)
+              Edge 2: vertex (93.6,576.4,0.0)
+              Edge 3: vertex (270.0,576.4,0.0)
+              Edge 4: vertex (270.0,472.6,0.0)
+              Edge 5: vertex (409.7,472.6,0.0)
+              Edge 6: vertex (409.7,270.0,0.0)
+              Edge 7: vertex (165.0,270.0,0.0)
+            ✓ Wire traversal complete: 8 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (165.0,370.0,0.0) → (93.6,370.0,0.0) → (93.6,576.4,0.0) → (270.0,576.4,0.0) → (270.0,472.6,0.0) → (409.7,472.6,0.0) → (409.7,270.0,0.0) → (165.0,270.0,0.0) → (165.0,370.0,0.0)
+   Processing Face 8...
+          Traversing Wire 8.1 edges...
+            Wire 8.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (409.7,270.0,142.0)
+              Edge 1: vertex (409.7,270.0,0.0)
+              Edge 2: vertex (409.7,472.6,0.0)
+              Edge 3: vertex (409.7,472.6,142.0)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (409.7,270.0,142.0) → (409.7,270.0,0.0) → (409.7,472.6,0.0) → (409.7,472.6,142.0) → (409.7,270.0,142.0)
+          Traversing Wire 8.2 edges...
+            Wire 8.2 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (409.7,385.0,100.0)
+              Edge 1: vertex (409.7,435.0,105.0)
+              Edge 2: vertex (409.7,440.0,55.0)
+              Edge 3: vertex (409.7,390.0,50.0)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (409.7,385.0,100.0) → (409.7,435.0,105.0) → (409.7,440.0,55.0) → (409.7,390.0,50.0) → (409.7,385.0,100.0)
+   Processing Face 9...
+          Traversing Wire 9.1 edges...
+            Wire 9.1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (409.7,440.0,55.0)
+              Edge 1: vertex (233.8,440.0,55.0)
+              Edge 2: vertex (233.8,390.0,50.0)
+              Edge 3: vertex (409.7,390.0,50.0)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (409.7,440.0,55.0) → (233.8,440.0,55.0) → (233.8,390.0,50.0) → (409.7,390.0,50.0) → (409.7,440.0,55.0)
+   Processing Face 10...
+          Traversing Wire 10.1 edges...
+            Wire 10.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (233.8,385.0,100.0)
+              Edge 1: vertex (409.7,385.0,100.0)
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/Reconstruct_Solid.py:5087: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
+  plt.tight_layout()
+              Edge 2: vertex (409.7,390.0,50.0)
+              Edge 3: vertex (233.8,390.0,50.0)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (233.8,385.0,100.0) → (409.7,385.0,100.0) → (409.7,390.0,50.0) → (233.8,390.0,50.0) → (233.8,385.0,100.0)
+   Processing Face 11...
+          Traversing Wire 11.1 edges...
+            Wire 11.1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (233.8,435.0,105.0)
+              Edge 1: vertex (233.8,385.0,100.0)
+              Edge 2: vertex (233.8,390.0,50.0)
+              Edge 3: vertex (233.8,440.0,55.0)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (233.8,435.0,105.0) → (233.8,385.0,100.0) → (233.8,390.0,50.0) → (233.8,440.0,55.0) → (233.8,435.0,105.0)
+   Processing Face 12...
+          Traversing Wire 12.1 edges...
+            Wire 12.1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (233.8,440.0,55.0)
+              Edge 1: vertex (409.7,440.0,55.0)
+              Edge 2: vertex (409.7,435.0,105.0)
+              Edge 3: vertex (233.8,435.0,105.0)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (233.8,440.0,55.0) → (409.7,440.0,55.0) → (409.7,435.0,105.0) → (233.8,435.0,105.0) → (233.8,440.0,55.0)
+   Processing Face 13...
+          Traversing Wire 13.1 edges...
+            Wire 13.1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (267.2,495.4,371.7)
+              Edge 1: vertex (267.2,495.4,517.5)
+              Edge 2: vertex (267.2,527.6,517.5)
+              Edge 3: vertex (267.2,527.6,371.7)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (267.2,495.4,371.7) → (267.2,495.4,517.5) → (267.2,527.6,517.5) → (267.2,527.6,371.7) → (267.2,495.4,371.7)
+   Processing Face 14...
+          Traversing Wire 14.1 edges...
+            Wire 14.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (249.6,527.6,517.5)
+              Edge 1: vertex (249.6,527.6,371.7)
+              Edge 2: vertex (267.2,527.6,371.7)
+              Edge 3: vertex (267.2,527.6,517.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (249.6,527.6,517.5) → (249.6,527.6,371.7) → (267.2,527.6,371.7) → (267.2,527.6,517.5) → (249.6,527.6,517.5)
+   Processing Face 15...
+          Traversing Wire 15.1 edges...
+            Wire 15.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (267.2,495.4,371.7)
+              Edge 1: vertex (267.2,527.6,371.7)
+              Edge 2: vertex (249.6,527.6,371.7)
+              Edge 3: vertex (249.6,495.4,371.7)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (267.2,495.4,371.7) → (267.2,527.6,371.7) → (249.6,527.6,371.7) → (249.6,495.4,371.7) → (267.2,495.4,371.7)
+   Processing Face 16...
+          Traversing Wire 16.1 edges...
+            Wire 16.1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (233.8,435.0,105.0)
+              Edge 1: vertex (409.7,435.0,105.0)
+              Edge 2: vertex (409.7,385.0,100.0)
+              Edge 3: vertex (233.8,385.0,100.0)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (233.8,435.0,105.0) → (409.7,435.0,105.0) → (409.7,385.0,100.0) → (233.8,385.0,100.0) → (233.8,435.0,105.0)
+   Processing Face 17...
+          Traversing Wire 17.1 edges...
+            Wire 17.1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (409.7,270.0,0.0)
+              Edge 1: vertex (409.7,270.0,142.0)
+              Edge 2: vertex (165.0,270.0,142.0)
+              Edge 3: vertex (165.0,270.0,0.0)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (409.7,270.0,0.0) → (409.7,270.0,142.0) → (165.0,270.0,142.0) → (165.0,270.0,0.0) → (409.7,270.0,0.0)
+   Processing Face 18...
+          Traversing Wire 18.1 edges...
+            Wire 18.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (165.0,270.0,142.0)
+              Edge 1: vertex (409.7,270.0,142.0)
+              Edge 2: vertex (409.7,472.6,142.0)
+              Edge 3: vertex (270.0,472.6,142.0)
+              Edge 4: vertex (270.0,370.0,142.0)
+              Edge 5: vertex (165.0,370.0,142.0)
+            ✓ Wire traversal complete: 6 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (165.0,270.0,142.0) → (409.7,270.0,142.0) → (409.7,472.6,142.0) → (270.0,472.6,142.0) → (270.0,370.0,142.0) → (165.0,370.0,142.0) → (165.0,270.0,142.0)
+   Processing Face 19...
+          Traversing Wire 19.1 edges...
+            Wire 19.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (165.0,370.0,142.0)
+              Edge 1: vertex (165.0,370.0,0.0)
+              Edge 2: vertex (165.0,270.0,0.0)
+              Edge 3: vertex (165.0,270.0,142.0)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (165.0,370.0,142.0) → (165.0,370.0,0.0) → (165.0,270.0,0.0) → (165.0,270.0,142.0) → (165.0,370.0,142.0)
+   Processing Face 20...
+          Traversing Wire 20.1 edges...
+            Wire 20.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (178.4,481.5,517.5)
+              Edge 1: vertex (178.4,481.5,388.1)
+              Edge 2: vertex (178.4,421.7,388.1)
+              Edge 3: vertex (178.4,421.7,517.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (178.4,481.5,517.5) → (178.4,481.5,388.1) → (178.4,421.7,388.1) → (178.4,421.7,517.5) → (178.4,481.5,517.5)
+   Processing Face 21...
+          Traversing Wire 21.1 edges...
+            Wire 21.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (160.6,481.5,517.5)
+              Edge 1: vertex (160.6,481.5,388.1)
+              Edge 2: vertex (178.4,481.5,388.1)
+              Edge 3: vertex (178.4,481.5,517.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (160.6,481.5,517.5) → (160.6,481.5,388.1) → (178.4,481.5,388.1) → (178.4,481.5,517.5) → (160.6,481.5,517.5)
+   Processing Face 22...
+          Traversing Wire 22.1 edges...
+            Wire 22.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (178.4,421.7,388.1)
+              Edge 1: vertex (178.4,481.5,388.1)
+              Edge 2: vertex (160.6,481.5,388.1)
+              Edge 3: vertex (160.6,421.7,388.1)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (178.4,421.7,388.1) → (178.4,481.5,388.1) → (160.6,481.5,388.1) → (160.6,421.7,388.1) → (178.4,421.7,388.1)
+   Processing Face 23...
+          Traversing Wire 23.1 edges...
+            Wire 23.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (249.6,519.1,517.5)
+              Edge 1: vertex (249.6,519.1,407.5)
+              Edge 2: vertex (249.6,503.9,407.5)
+              Edge 3: vertex (249.6,503.9,517.5)
+              Edge 4: vertex (249.6,495.4,517.5)
+              Edge 5: vertex (249.6,495.4,371.7)
+              Edge 6: vertex (249.6,527.6,371.7)
+              Edge 7: vertex (249.6,527.6,517.5)
+            ✓ Wire traversal complete: 8 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (249.6,519.1,517.5) → (249.6,519.1,407.5) → (249.6,503.9,407.5) → (249.6,503.9,517.5) → (249.6,495.4,517.5) → (249.6,495.4,371.7) → (249.6,527.6,371.7) → (249.6,527.6,517.5) → (249.6,519.1,517.5)
+   Processing Face 24...
+          Traversing Wire 24.1 edges...
+            Wire 24.1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (215.3,503.9,407.5)
+              Edge 1: vertex (215.3,503.9,517.5)
+              Edge 2: vertex (249.6,503.9,517.5)
+              Edge 3: vertex (249.6,503.9,407.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (215.3,503.9,407.5) → (215.3,503.9,517.5) → (249.6,503.9,517.5) → (249.6,503.9,407.5) → (215.3,503.9,407.5)
+   Processing Face 25...
+          Traversing Wire 25.1 edges...
+            Wire 25.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (215.3,519.1,407.5)
+              Edge 1: vertex (215.3,503.9,407.5)
+              Edge 2: vertex (249.6,503.9,407.5)
+              Edge 3: vertex (249.6,519.1,407.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (215.3,519.1,407.5) → (215.3,503.9,407.5) → (249.6,503.9,407.5) → (249.6,519.1,407.5) → (215.3,519.1,407.5)
+   Processing Face 26...
+          Traversing Wire 26.1 edges...
+            Wire 26.1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (93.6,576.4,0.0)
+              Edge 1: vertex (93.6,576.4,517.5)
+              Edge 2: vertex (270.0,576.4,517.5)
+              Edge 3: vertex (270.0,576.4,0.0)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (93.6,576.4,0.0) → (93.6,576.4,517.5) → (270.0,576.4,517.5) → (270.0,576.4,0.0) → (93.6,576.4,0.0)
+   Processing Face 27...
+          Traversing Wire 27.1 edges...
+            Wire 27.1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (160.6,421.7,388.1)
+              Edge 1: vertex (160.6,421.7,517.5)
+              Edge 2: vertex (178.4,421.7,517.5)
+              Edge 3: vertex (178.4,421.7,388.1)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (160.6,421.7,388.1) → (160.6,421.7,517.5) → (178.4,421.7,517.5) → (178.4,421.7,388.1) → (160.6,421.7,388.1)
+   Processing Face 28...
+          Traversing Wire 28.1 edges...
+            Wire 28.1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (160.6,481.5,388.1)
+              Edge 1: vertex (160.6,481.5,517.5)
+              Edge 2: vertex (160.6,421.7,517.5)
+              Edge 3: vertex (160.6,421.7,388.1)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (160.6,481.5,388.1) → (160.6,481.5,517.5) → (160.6,421.7,517.5) → (160.6,421.7,388.1) → (160.6,481.5,388.1)
+   Processing Face 29...
+          Traversing Wire 29.1 edges...
+            Wire 29.1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (249.6,495.4,371.7)
+              Edge 1: vertex (249.6,495.4,517.5)
+              Edge 2: vertex (267.2,495.4,517.5)
+              Edge 3: vertex (267.2,495.4,371.7)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (249.6,495.4,371.7) → (249.6,495.4,517.5) → (267.2,495.4,517.5) → (267.2,495.4,371.7) → (249.6,495.4,371.7)
+   Processing Face 30...
+          Traversing Wire 30.1 edges...
+            Wire 30.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (209.2,437.8,517.5)
+              Edge 1: vertex (209.2,437.8,430.8)
+              Edge 2: vertex (270.0,437.8,430.8)
+              Edge 3: vertex (270.0,437.8,517.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (209.2,437.8,517.5) → (209.2,437.8,430.8) → (270.0,437.8,430.8) → (270.0,437.8,517.5) → (209.2,437.8,517.5)
+   Processing Face 31...
+          Traversing Wire 31.1 edges...
+            Wire 31.1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (209.2,437.8,430.8)
+              Edge 1: vertex (209.2,437.8,517.5)
+              Edge 2: vertex (209.2,425.5,517.5)
+              Edge 3: vertex (209.2,425.5,430.8)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (209.2,437.8,430.8) → (209.2,437.8,517.5) → (209.2,425.5,517.5) → (209.2,425.5,430.8) → (209.2,437.8,430.8)
+   Processing Face 32...
+          Traversing Wire 32.1 edges...
+            Wire 32.1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (215.3,519.1,517.5)
+              Edge 1: vertex (215.3,519.1,407.5)
+              Edge 2: vertex (249.6,519.1,407.5)
+              Edge 3: vertex (249.6,519.1,517.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (215.3,519.1,517.5) → (215.3,519.1,407.5) → (249.6,519.1,407.5) → (249.6,519.1,517.5) → (215.3,519.1,517.5)
+   Processing Face 33...
+          Traversing Wire 33.1 edges...
+            Wire 33.1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (215.3,519.1,407.5)
+              Edge 1: vertex (215.3,519.1,517.5)
+              Edge 2: vertex (215.3,503.9,517.5)
+              Edge 3: vertex (215.3,503.9,407.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (215.3,519.1,407.5) → (215.3,519.1,517.5) → (215.3,503.9,517.5) → (215.3,503.9,407.5) → (215.3,519.1,407.5)
+   Processing Face 34...
+          Traversing Wire 34.1 edges...
+            Wire 34.1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (270.0,472.6,0.0)
+              Edge 1: vertex (270.0,472.6,142.0)
+              Edge 2: vertex (409.7,472.6,142.0)
+              Edge 3: vertex (409.7,472.6,0.0)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (270.0,472.6,0.0) → (270.0,472.6,142.0) → (409.7,472.6,142.0) → (409.7,472.6,0.0) → (270.0,472.6,0.0)
+   Extracted 34 faces from reconstructed solid
+   Faces with holes: 2
+
+[STEP 8.3.1] Comparing reconstructed faces with original faces...
+
+   Debug: First reconstructed face has 11 vertices
+          Sample vertex: [270.         437.84203519 517.47072718]
+   Debug: First original face has 7 vertices
+          Sample vertex: [270.         370.         141.96957573]
+      Faces not coplanar: Normal angle too large (90.00° > 0.57°)
+
+   Face Matching Results:
+   - Original faces: 34
+   - Reconstructed faces: 34
+   - Matched faces (as outer boundaries): 34
+   - Matched faces (as holes): 0
+   - Total matched: 34
+   - Unmatched reconstructed faces: 0
+   - Missing original faces: 0
+
+[STEP 8.3.2] Plotting reconstructed solid faces with match highlighting...
+   Number of faces to plot: 34
+   Face 0 vertices: 11 (should be 7)
+   DEBUG: Plotting Face 0 with 11 vertices
+[STEP 8.3] Reconstructed solid plot created.
+[STEP 8.5] Saving all graphics to PDFfiles/reconstruct_solid_seed_1195.pdf...
+[STEP 8.5] Graphics saved to PDF: PDFfiles/reconstruct_solid_seed_1195.pdf
+
+======================================================================
+RECONSTRUCTION SUMMARY STATISTICS
+======================================================================
+Original Solid:
+  - Number of faces: 34
+  - Volume: 23557183.653929 mm³
+
+Reconstructed Solid:
+  - Number of shells: 1
+    - Shell 1: 34 faces
+  - Total faces: 34
+  - Volume: 23557183.653929 mm³
+
+Face Matching:
+  - Matched faces: 34/34
+  - Unmatched reconstructed faces: 0
+  - Missing original faces: 0
+
+Summary saved to: Summary/reconstruction_summary_seed_1195.txt
+
+======================================================================
+[COMPLETED] Reconstruction process finished.
+======================================================================
+[DEBUG] Exiting main() function...
+[DEBUG] Returned from main(), program should exit now...

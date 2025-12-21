@@ -24,22 +24,29 @@ def run_command(cmd, output_file, timeout=900):
         tuple: (returncode, timed_out)
     """
     try:
+        # Capture output instead of redirecting to file handle
+        result = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=False,
+            timeout=timeout
+        )
+        # Write captured output to file
         with open(output_file, 'w') as f:
-            result = subprocess.run(
-                cmd,
-                stdout=f,
-                stderr=subprocess.STDOUT,
-                text=True,
-                check=False,
-                timeout=timeout
-            )
+            f.write(result.stdout)
         return result.returncode, False
-    except subprocess.TimeoutExpired:
-        with open(output_file, 'a') as f:
+    except subprocess.TimeoutExpired as e:
+        # Write any partial output captured before timeout
+        with open(output_file, 'w') as f:
+            if e.stdout:
+                f.write(e.stdout.decode() if isinstance(e.stdout, bytes)
+                        else e.stdout)
             f.write(f"\n\nTIMEOUT: Process exceeded {timeout}s limit\n")
         return -2, True
     except Exception as e:
-        with open(output_file, 'a') as f:
+        with open(output_file, 'w') as f:
             f.write(f"\n\nERROR: {str(e)}\n")
         return -1, False
 
@@ -49,34 +56,61 @@ def check_reconstruction_success(output_file):
         with open(output_file, 'r') as f:
             content = f.read()
         
-        # Look for success indicators
-        has_extraction = 'EXTRACTION COMPLETE' in content
-        has_completed = ('COMPLETED' in content and
-                        'Reconstruction process finished' in content)
+        # Look for completion marker
+        has_completed = '[COMPLETED] Reconstruction process finished.' in content
         
-        # Only count as error if there's a Traceback (actual Python exception)
-        # STEP 6.x errors are expected during polygon tracing
+        # Check for critical errors (Traceback)
         has_error = 'Traceback' in content
         
-        # Extract face count if available
-        face_count = None
-        match = re.search(r'EXTRACTION COMPLETE:\s*(\d+)\s*faces found', content)
+        # Check shell quality
+        has_no_free_edges = 'Number of free edges: 0' in content
+        has_positive_volume = 'Volume is positive' in content
+        
+        # Extract face counts
+        reconstructed_faces = None
+        matched_faces = None
+        original_faces = None
+        
+        match = re.search(r'Total faces:\s*(\d+)', content)
         if match:
-            face_count = int(match.group(1))
+            reconstructed_faces = int(match.group(1))
+        
+        match = re.search(r'Matched faces:\s*(\d+)/(\d+)', content)
+        if match:
+            matched_faces = int(match.group(1))
+            original_faces = int(match.group(2))
+        
+        # Extract volume
+        volume = None
+        match = re.search(r'Volume:\s*([\d.]+)\s*mm³', content)
+        if match:
+            volume = float(match.group(1))
+        
+        # Calculate success: completed, no errors, no free edges, has faces
+        # Note: solid may be "invalid" by OCC standards but still reconstructed
+        success = (has_completed and not has_error and 
+                   has_no_free_edges and reconstructed_faces and 
+                   reconstructed_faces > 0)
         
         return {
-            'has_extraction': has_extraction,
             'has_completed': has_completed,
+            'has_no_free_edges': has_no_free_edges,
+            'has_positive_volume': has_positive_volume,
             'has_error': has_error,
-            'face_count': face_count,
-            'success': has_extraction and has_completed and not has_error
+            'reconstructed_faces': reconstructed_faces,
+            'original_faces': original_faces,
+            'matched_faces': matched_faces,
+            'volume': volume,
+            'success': success
         }
     except Exception as e:
         return {
-            'has_extraction': False,
-            'has_solid': False,
+            'has_valid_solid': False,
+            'has_no_free_edges': False,
+            'has_solid_created': False,
             'has_error': True,
             'face_count': None,
+            'volume': None,
             'success': False,
             'error': str(e)
         }
@@ -97,15 +131,18 @@ def main():
     args = parser.parse_args()
     
     # Configuration
-    seeds = [1, 11, 21, 31, 41, 51, 61, 71, 81, 91,
-             2, 12, 22, 32, 42, 52, 62, 72, 82, 92,
-             3, 13, 23, 33, 43, 53, 63, 73, 83, 93,
-             4, 14, 24, 34, 44, 54, 64, 74, 84, 94,
-             5, 15, 25, 35, 45, 55, 65, 75, 85, 95,
-             7, 17, 27, 37, 47, 57, 67, 77, 87, 97,
-             8, 18, 28, 38, 48, 58, 68, 78, 88, 98,
-             9, 19, 29, 39, 49, 59, 69, 79, 89, 99,
-             10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    seeds = range(1000, 1301, 5)  # Seeds from 1000 to 1300 inclusive 
+    # [201, 211, 221, 231, 241, 251, 261, 271, 281, 291,
+    #             202, 212, 222, 232, 242, 252, 262, 272, 282, 292,
+    #             203, 213, 223, 233, 243, 253, 263, 273, 283, 293,
+    #             204, 214, 224, 234, 244, 254, 264, 274, 284, 294,
+    #             205, 215, 225, 235, 245, 255, 265, 275, 285, 295,
+    #             206, 216, 226, 236, 246, 256, 266, 276, 286, 296,
+    #             207, 217, 227, 237, 247, 257, 267, 277, 287, 297,
+    #             208, 218, 228, 238, 248, 258, 268, 278, 288, 298,
+    #             209, 219, 229, 239, 249, 259, 269, 279, 289, 299,
+    #             210, 220, 230, 240, 250, 260, 270, 280, 290, 300]         
+
     python_exe = '/opt/anaconda3/envs/pyocc/bin/python'
     work_dir = '/Users/sbedi/Nextcloud/Python/Solid/random_solids'
     
@@ -158,7 +195,8 @@ def main():
         print(f"[{seed}] Step 2: Reconstructing solid from connectivity...")
         recon_output = f"txtFiles/output_recon_{seed}.txt"
         recon_cmd = [python_exe, 'Reconstruct_Solid.py', '--seed',
-                     str(seed), '--no-occ-viewer', '--no-graphics']
+                     str(seed), '--no-occ-viewer', '--no-graphics',
+                     '--tolerance', '0.05']
         
         recon_return, recon_timeout = run_command(
             recon_cmd, recon_output, timeout=args.timeout)
@@ -184,7 +222,13 @@ def main():
         
         # Print immediate result
         status = "✓ SUCCESS" if analysis['success'] else "✗ FAILED"
-        face_info = f" ({analysis['face_count']} faces)" if analysis['face_count'] else ""
+        if analysis['matched_faces'] and analysis['original_faces']:
+            face_info = (f" ({analysis['matched_faces']}/{analysis['original_faces']} "
+                        f"matched, {analysis['reconstructed_faces']} total)")
+        elif analysis['reconstructed_faces']:
+            face_info = f" ({analysis['reconstructed_faces']} faces)"
+        else:
+            face_info = ""
         print(f"[{seed}] Result: {status}{face_info}")
     
     # Generate summary
@@ -225,8 +269,14 @@ def main():
         else:
             recon_code = f"ERR({r['recon_exit_code']})"
         
-        faces = str(r['analysis']['face_count']) if \
-                r['analysis']['face_count'] else "N/A"
+        # Format face information
+        if r['analysis']['matched_faces'] and r['analysis']['original_faces']:
+            faces = f"{r['analysis']['matched_faces']}/{r['analysis']['original_faces']}"
+        elif r['analysis']['reconstructed_faces']:
+            faces = str(r['analysis']['reconstructed_faces'])
+        else:
+            faces = "N/A"
+        
         status = "✓ SUCCESS" if r['analysis']['success'] else "✗ FAILED"
         
         print(f"{seed:<8} {build_code:<10} {recon_code:<10} {faces:<8} "
@@ -284,8 +334,15 @@ def main():
             else:
                 recon_code = f"ERR({r['recon_exit_code']})"
             
-            faces = str(r['analysis']['face_count']) if \
-                    r['analysis']['face_count'] else "N/A"
+            # Format face information for file output
+            if r['analysis']['matched_faces'] and r['analysis']['original_faces']:
+                faces = (f"{r['analysis']['matched_faces']}/"
+                        f"{r['analysis']['original_faces']}")
+            elif r['analysis']['reconstructed_faces']:
+                faces = str(r['analysis']['reconstructed_faces'])
+            else:
+                faces = "N/A"
+            
             status = "SUCCESS" if r['analysis']['success'] else "FAILED"
             
             f.write(f"{seed:<8} {build_code:<10} {recon_code:<10} "

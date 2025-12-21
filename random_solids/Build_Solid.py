@@ -65,8 +65,8 @@ from V6_current import (
 from OCC.Display.SimpleGui import init_display
 
 
-def save_face_polygons(face_polygons, seed, output_dir="Output"):
-    """Save face polygons to file"""
+def save_face_polygons(face_polygons, seed, output_dir="Output", volume=None):
+    """Save face polygons to file with optional volume"""
     os.makedirs(output_dir, exist_ok=True)
     filename = os.path.join(output_dir, f"solid_faces_seed_{seed}.npy")
     
@@ -79,8 +79,17 @@ def save_face_polygons(face_polygons, seed, output_dir="Output"):
         }
         face_data.append(face_dict)
     
-    np.save(filename, face_data, allow_pickle=True)
+    # Create data structure with faces and metadata
+    save_data = {
+        'faces': face_data,
+        'volume': volume,
+        'num_faces': len(face_data)
+    }
+    
+    np.save(filename, save_data, allow_pickle=True)
     print(f"\n[SAVE] Saved face polygons to: {filename}")
+    if volume is not None:
+        print(f"[SAVE] Saved volume: {volume:.6f}")
     return filename
 
 
@@ -310,6 +319,10 @@ def main():
         '--no-graphics', action='store_true',
         help='Save graphics to PDF instead of displaying interactively'
     )
+    parser.add_argument(
+        '--no-lettering', action='store_true',
+        help='Skip lettering operations for faster testing'
+    )
     
     args = parser.parse_args()
     
@@ -353,7 +366,7 @@ def main():
     
     # Build solid
     print("\n[STEP 1] Building 3D solid...")
-    solid = build_solid_with_polygons_test(config=config, quiet=args.quiet)
+    solid = build_solid_with_polygons_test(config=config, quiet=args.quiet, no_lettering=args.no_lettering)
     print(f"Solid created: {type(solid)}")
     
     # Apply rotation if requested
@@ -405,6 +418,19 @@ def main():
     print("\n[STEP 2] Extracting face polygons from solid...")
     face_polygons = extract_and_visualize_faces(solid, visualize=True)
     print(f"Extracted {len(face_polygons)} faces")
+    
+    # Compute volume of original solid
+    print("\n[STEP 2.1] Computing volume of original solid...")
+    original_volume = None
+    try:
+        from OCC.Core.BRepGProp import brepgprop_VolumeProperties
+        from OCC.Core.GProp import GProp_GProps
+        props = GProp_GProps()
+        brepgprop_VolumeProperties(solid, props)
+        original_volume = props.Mass()
+        print(f"[VOLUME] Original solid volume: {original_volume:.6f}")
+    except Exception as e:
+        print(f"[ERROR] Volume calculation failed: {e}")
     
     # Build solid from extracted face polygons
     print("\n[DIAGNOSTIC] Attempting to build solid from extracted face polygons...")
@@ -473,7 +499,8 @@ def main():
     
     # Save data files
     print("\n[STEP 6] Saving face polygons and connectivity matrices...")
-    face_file = save_face_polygons(face_polygons, seed, args.output_dir)
+    face_file = save_face_polygons(face_polygons, seed, args.output_dir, 
+                                    volume=original_volume)
     matrix_file = save_connectivity_matrices(
         view_connectivity_matrices, all_vertices_sorted, seed, args.output_dir
     )

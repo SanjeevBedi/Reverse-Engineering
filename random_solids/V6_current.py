@@ -5260,14 +5260,19 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             print(f"[POLY FORM]       Checking {len(holes_for_boundary)} holes for shared edges...")
             
             # Build a graph of hole connectivity based on shared edges
+            # But only connect holes that share CONSECUTIVE edges (single connection point)
             hole_graph = {i: set() for i in range(len(holes_for_boundary))}
+            hole_graph_non_consecutive = {}  # Separate dict for non-consecutive connections
             
             for i, (idx_i, hole_i) in enumerate(holes_for_boundary):
                 # Get edges of hole_i
                 edges_i = set()
+                edges_i_list = []  # Ordered list of edges
                 for k in range(len(hole_i['vertices'])):
                     v1, v2 = hole_i['vertices'][k], hole_i['vertices'][(k+1) % len(hole_i['vertices'])]
-                    edges_i.add((min(v1, v2), max(v1, v2)))
+                    edge_norm = (min(v1, v2), max(v1, v2))
+                    edges_i.add(edge_norm)
+                    edges_i_list.append((k, edge_norm))
                 
                 # Check against all other holes
                 for j, (idx_j, hole_j) in enumerate(holes_for_boundary):
@@ -5276,16 +5281,220 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     
                     # Get edges of hole_j
                     edges_j = set()
+                    edges_j_list = []
                     for k in range(len(hole_j['vertices'])):
                         v1, v2 = hole_j['vertices'][k], hole_j['vertices'][(k+1) % len(hole_j['vertices'])]
-                        edges_j.add((min(v1, v2), max(v1, v2)))
+                        edge_norm = (min(v1, v2), max(v1, v2))
+                        edges_j.add(edge_norm)
+                        edges_j_list.append((k, edge_norm))
                     
                     # Check if they share any edges
                     shared_edges = edges_i & edges_j
                     if len(shared_edges) > 0:
-                        hole_graph[i].add(j)
-                        hole_graph[j].add(i)
-                        print(f"[POLY FORM]         Hole {i+1} and Hole {j+1} share {len(shared_edges)} edge(s)")
+                        # Check if shared edges are consecutive in hole_i
+                        shared_indices_i = [k for k, edge in edges_i_list if edge in shared_edges]
+                        shared_indices_j = [k for k, edge in edges_j_list if edge in shared_edges]
+                        
+                        # Check for consecutive segments in both polygons
+                        def are_consecutive(indices):
+                            """Check if indices form a single consecutive sequence (with wraparound)"""
+                            if len(indices) <= 1:
+                                return True
+                            indices_sorted = sorted(indices)
+                            # Check normal consecutive
+                            is_consecutive_normal = all(
+                                indices_sorted[k+1] - indices_sorted[k] == 1 
+                                for k in range(len(indices_sorted) - 1)
+                            )
+                            # Check wraparound (e.g., [0, 1, n-1] where n is polygon size)
+                            if not is_consecutive_normal and len(indices_sorted) >= 2:
+                                # Could be wraparound if first is 0 and last is close to max
+                                return False  # For now, don't allow wraparound merges
+                            return is_consecutive_normal
+                        
+                        consecutive_i = are_consecutive(shared_indices_i)
+                        consecutive_j = are_consecutive(shared_indices_j)
+                        
+                        if consecutive_i and consecutive_j:
+                            # Shared edges form a single consecutive segment - safe to merge
+                            hole_graph[i].add(j)
+                            hole_graph[j].add(i)
+                            print(f"[POLY FORM]         Hole {i+1} and Hole {j+1} share {len(shared_edges)} consecutive edge(s) - can merge")
+                        else:
+                            # Shared edges are non-consecutive - use Shapely to handle properly
+                            print(f"[POLY FORM]         Hole {i+1} and Hole {j+1} share {len(shared_edges)} NON-consecutive edge(s) - using Shapely")
+                            print(f"[POLY FORM]           Shared edge positions in hole {i+1}: {shared_indices_i}")
+                            print(f"[POLY FORM]           Shared edge positions in hole {j+1}: {shared_indices_j}")
+                            # Mark these for Shapely-based merging
+                            if i not in hole_graph_non_consecutive:
+                                hole_graph_non_consecutive[i] = set()
+                            if j not in hole_graph_non_consecutive:
+                                hole_graph_non_consecutive[j] = set()
+                            hole_graph_non_consecutive[i].add(j)
+                            hole_graph_non_consecutive[j].add(i)
+            
+            # THIRD PASS A: Handle holes with non-consecutive shared edges using Shapely
+            # These likely have polygons within holes that should become separate faces
+            print(f"[POLY FORM]       Checking for non-consecutive edges: count={len(hole_graph_non_consecutive)}")
+            if hole_graph_non_consecutive:
+                print(f"[POLY FORM]         Non-consecutive connections: {dict(hole_graph_non_consecutive)}")
+            
+            if hole_graph_non_consecutive:
+                from shapely.geometry import Polygon, MultiPolygon
+                from shapely.ops import unary_union
+                
+                print(f"[POLY FORM]       Processing holes with non-consecutive edges using Shapely...")
+                
+                # Find groups of holes connected by non-consecutive edges
+                non_consec_visited = set()
+                non_consec_groups = []
+                
+                def dfs_non_consec(node, group):
+                    non_consec_visited.add(node)
+                    group.append(node)
+                    if node in hole_graph_non_consecutive:
+                        for neighbor in hole_graph_non_consecutive[node]:
+                            if neighbor not in non_consec_visited:
+                                dfs_non_consec(neighbor, group)
+                
+                for i in range(len(holes_for_boundary)):
+                    if i in hole_graph_non_consecutive and i not in non_consec_visited:
+                        group = []
+                        dfs_non_consec(i, group)
+                        non_consec_groups.append(group)
+                
+                # Process each group using Shapely
+                for group in non_consec_groups:
+                    print(f"[POLY FORM]         Processing {len(group)} holes with non-consecutive connections")
+                    
+                    # Convert group indices to polygon indices
+                    poly_indices = [holes_for_boundary[i][0] for i in group]
+                    group_polygons = [holes_for_boundary[i][1] for i in group]
+                    
+                    # Convert to Shapely polygons
+                    shapely_polys = []
+                    for poly in group_polygons:
+                        try:
+                            # Convert vertex indices to 3D coordinates
+                            coords_3d = [selected_vertices[v-1] for v in poly['vertices']]
+                            # Project to 2D (use first 2 coordinates for simplicity)
+                            coords_2d = [(c[0], c[1]) for c in coords_3d]
+                            shapely_poly = Polygon(coords_2d)
+                            if shapely_poly.is_valid:
+                                shapely_polys.append(shapely_poly)
+                            else:
+                                print(f"[POLY FORM]           WARNING: Invalid Shapely polygon, buffering...")
+                                shapely_poly = shapely_poly.buffer(0)
+                                if shapely_poly.is_valid:
+                                    shapely_polys.append(shapely_poly)
+                        except Exception as e:
+                            print(f"[POLY FORM]           ERROR creating Shapely polygon: {e}")
+                    
+                    if len(shapely_polys) < 2:
+                        print(f"[POLY FORM]           Insufficient valid polygons for Shapely merge")
+                        continue
+                    
+                    # Debug: Show polygon areas and relationships
+                    print(f"[POLY FORM]           Input: {len(shapely_polys)} polygons")
+                    for idx, poly in enumerate(shapely_polys):
+                        print(f"[POLY FORM]             Poly {idx}: area={poly.area:.2f}, vertices={len(poly.exterior.coords)-1}")
+                    
+                    # Check for containment relationships (holes within holes)
+                    # Strategy: Only mark the SMALLEST polygon as innermost if it's truly
+                    # contained (not touching) within the union of all others.
+                    # Larger polygons that touch are parts of the outer hole being merged.
+                    
+                    # Find valid polygons sorted by area (smallest first)
+                    valid_polys = [(idx, poly) for idx, poly in enumerate(shapely_polys) if poly.area >= 1e-6]
+                    
+                    if len(valid_polys) == 0:
+                        print(f"[POLY FORM]           No valid polygons for innermost check")
+                        innermost_polygons = []
+                    else:
+                        valid_polys.sort(key=lambda x: x[1].area)
+                        
+                        print(f"[POLY FORM]           Checking for innermost polygon (smallest candidate)")
+                        print(f"[POLY FORM]             Smallest polygon: Poly {valid_polys[0][0]} with area {valid_polys[0][1].area:.2f}")
+                        
+                        innermost_polygons = []
+                        
+                        # Check ONLY the smallest polygon as potential innermost
+                        smallest_idx, smallest_poly = valid_polys[0]
+                        
+                        # Get all OTHER polygons (excluding smallest)
+                        other_polys = [shapely_polys[i] for i in range(len(shapely_polys)) 
+                                      if i != smallest_idx and shapely_polys[i].area >= 1e-6]
+                        
+                        if len(other_polys) > 0:
+                            # Union all other polygons
+                            try:
+                                others_union = unary_union(other_polys)
+                                
+                                # Check if smallest is fully within the union AND not touching
+                                # (touching means it's part of the merged boundary, not an inner polygon)
+                                is_contained = others_union.contains(smallest_poly)
+                                is_touching = others_union.touches(smallest_poly)
+                                
+                                print(f"[POLY FORM]             Contained: {is_contained}, Touching: {is_touching}")
+                                
+                                if is_contained and not is_touching:
+                                    innermost_polygons.append(smallest_idx)
+                                    print(f"[POLY FORM]             Poly {smallest_idx} is INNERMOST - fully contained and not touching boundary")
+                                else:
+                                    print(f"[POLY FORM]             Poly {smallest_idx} is NOT innermost - {'touching boundary' if is_touching else 'not contained'}")
+                            except Exception as e:
+                                print(f"[POLY FORM]             WARNING: Could not check containment: {e}")
+                    
+                    # Store innermost polygons for later face creation
+                    if innermost_polygons:
+                        print(f"[POLY FORM]           Found {len(innermost_polygons)} innermost polygon(s) to extract as new faces")
+                        
+                        # Store on the face_eq dictionary so we can extract them later
+                        if '_innermost_to_extract' not in face_eq:
+                            face_eq['_innermost_to_extract'] = []
+                        
+                        for inner_idx in innermost_polygons:
+                            # Get the original hole index and polygon data
+                            orig_hole_idx = group[inner_idx]
+                            inner_poly = group_polygons[inner_idx]
+                            poly_idx_for_inner = poly_indices[inner_idx]
+                            
+                            # Store for new face creation
+                            face_eq['_innermost_to_extract'].append({
+                                'polygon_idx': poly_idx_for_inner,
+                                'vertices': inner_poly['vertices'].copy(),
+                                'source': 'innermost_from_non_consecutive'
+                            })
+                            
+                            # Mark the polygon as removed so it won't be processed as a hole
+                            polygons[poly_idx_for_inner]['removed'] = True
+                            polygons[poly_idx_for_inner]['_is_innermost'] = True
+                            
+                            print(f"[POLY FORM]             Marked polygon {poly_idx_for_inner} (vertices={inner_poly['vertices']}) as innermost, will create new face")
+                    
+                    # For merging: exclude innermost polygons, only merge the container polygons
+                    polys_to_merge = [shapely_polys[i] for i in range(len(shapely_polys)) 
+                                     if i not in innermost_polygons and shapely_polys[i].area >= 1e-6]
+                    
+                    if len(polys_to_merge) < 2:
+                        print(f"[POLY FORM]           After excluding innermost, insufficient polygons to merge")
+                        # Just merge the connected holes normally (non-Shapely way)
+                        # They will be processed below
+                    else:
+                        # Use unary_union to merge the remaining polygons
+                        try:
+                            merged_shapely = unary_union(polys_to_merge)
+                            print(f"[POLY FORM]           Shapely union result type: {type(merged_shapely).__name__}")
+                            print(f"[POLY FORM]           Merged {len(polys_to_merge)} polygons (excluding {len(innermost_polygons)} innermost)")
+                            
+                            # Note: We don't need to check for interiors here since we already 
+                            # identified and extracted the innermost polygons above
+                            
+                        except Exception as e:
+                            print(f"[POLY FORM]           ERROR in Shapely union: {e}")
+                    
+                    # Mark innermost holes as removed so they won't be merged with others
+                    # (They're already stored in 'contains_inner_polygon' above)
             
             # Find connected components (groups of holes that should be merged)
             visited = set()
@@ -5400,8 +5609,15 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                         else:
                             print(f"[POLY FORM]           Group {group_idx+1}: 1 edge, direction={'same' if group[0][3] else 'opposite'}")
                     
-                    # For now, use the first group for merging logic
-                    # (The existing merge logic assumes a single consecutive segment)
+                    # Check if there are multiple non-consecutive shared edge groups
+                    if len(edge_groups) > 1:
+                        print(f"[POLY FORM]         WARNING: Polygons touch at {len(edge_groups)} non-consecutive locations!")
+                        print(f"[POLY FORM]         Cannot merge polygons that touch at multiple non-consecutive points")
+                        print(f"[POLY FORM]         Keeping polygons separate (they will be validated later)")
+                        # Skip this merge - the polygons will remain separate
+                        continue
+                    
+                    # Use the first (and only) group for merging logic
                     shared_edges = edge_groups[0]
                     same_direction = shared_edges[0][3]
                     
@@ -5511,11 +5727,34 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                 print(f"[POLY FORM]         Final merged hole: {len(merged_vertices)} vertices")
                 print(f"[POLY FORM]         Vertices: {merged_vertices}")
                 
-                # VALIDATION: Check if merged hole shares edges with boundary or ALTs
+                # VALIDATION: Check for duplicate edges in merged polygon
                 merged_edges = set()
+                duplicate_edges = []
                 for k in range(len(merged_vertices)):
                     v1, v2 = merged_vertices[k], merged_vertices[(k+1) % len(merged_vertices)]
-                    merged_edges.add((min(v1, v2), max(v1, v2)))
+                    edge_norm = (min(v1, v2), max(v1, v2))
+                    if edge_norm in merged_edges:
+                        duplicate_edges.append(edge_norm)
+                    merged_edges.add(edge_norm)
+                
+                if duplicate_edges:
+                    print(f"[POLY FORM]         ERROR: Merged polygon contains duplicate edge(s): {duplicate_edges}")
+                    print(f"[POLY FORM]           This indicates invalid merge - marking merged polygon as ALT")
+                    # Reclassify as ALT
+                    polygons[first_idx]['polygon_type'] = 'ALT'
+                    polygons[first_idx]['is_alternate'] = True
+                    polygons[first_idx]['is_hole'] = False
+                    polygons[first_idx].pop('parent_polygon', None)
+                    actual_hole_count -= 1
+                    actual_alt_count += 1
+                    # Still mark other polygons as removed
+                    for idx in poly_indices[1:]:
+                        polygons[idx]['removed'] = True
+                        actual_hole_count -= 1
+                    continue  # Skip further validation for this group
+                
+                # VALIDATION: Check if merged hole shares edges with boundary or ALTs
+                # (merged_edges already computed above)
                 
                 # Check against boundary
                 boundary_verts = largest_poly['vertices']
@@ -5642,6 +5881,85 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             if len(alts_list) > 0:
                 for alt in alts_list:
                     print(f"[POLY FORM]         ALT: {alt['vertices']}")
+        
+    
+    # ==========================================================================
+    # CREATE NEW FACES FROM INNER POLYGONS DETECTED BY SHAPELY
+    # ==========================================================================
+    # Collect all inner polygons to spawn across all faces
+    all_inner_polygons_to_spawn = []
+    
+    for face_idx, face_eq in enumerate(unique_faces):
+        polygons = face_eq.get('polygons', [])
+        
+        # FIFTH PASS: Extract inner polygons from holes that were detected by Shapely
+        # These should become separate faces
+        inner_polygons_to_extract = []
+        
+        # Check for innermost polygons marked during non-consecutive processing
+        if '_innermost_to_extract' in face_eq and face_eq['_innermost_to_extract']:
+            print(f"[POLY FORM]       Face {face_idx+1}: Found {len(face_eq['_innermost_to_extract'])} innermost polygon(s) from non-consecutive edge analysis")
+            for inner_info in face_eq['_innermost_to_extract']:
+                inner_polygons_to_extract.append({
+                    'source_face': face_idx,
+                    'source_poly_idx': inner_info['polygon_idx'],
+                    'vertices': inner_info['vertices'],
+                    'coords_2d': None
+                })
+        
+        # Also check for contains_inner_polygon (from old code path)
+        for poly_idx, poly in enumerate(polygons):
+            if poly.get('contains_inner_polygon') and not poly.get('removed', False):
+                print(f"[POLY FORM]       Face {face_idx+1}: Hole polygon {poly_idx} contains {len(poly['contains_inner_polygon'])} inner polygon(s)")
+                for inner in poly['contains_inner_polygon']:
+                    inner_polygons_to_extract.append({
+                        'source_face': face_idx,
+                        'source_poly_idx': poly_idx,
+                        'vertices': inner['vertices'],
+                        'coords_2d': inner.get('coords_2d', None)
+                    })
+        
+        if inner_polygons_to_extract:
+            print(f"[POLY FORM]       Face {face_idx+1}: Extracting {len(inner_polygons_to_extract)} inner polygon(s) as new faces")
+            all_inner_polygons_to_spawn.extend(inner_polygons_to_extract)
+    
+    if all_inner_polygons_to_spawn:
+        print(f"\n[POLY FORM]   Creating {len(all_inner_polygons_to_spawn)} new face(s) from inner polygons...")
+        
+        new_faces_from_inner = []
+        for inner_info in all_inner_polygons_to_spawn:
+            source_face_idx = inner_info['source_face']
+            source_face = unique_faces[source_face_idx]
+            vertices = inner_info['vertices']
+            
+            print(f"[POLY FORM]     Creating new face from inner polygon with {len(vertices)} vertices")
+            print(f"[POLY FORM]       Source face: {source_face_idx+1}, vertices: {vertices}")
+            
+            # Create a new face with the same plane equation as source face
+            new_face = {
+                'face_idx': len(unique_faces) + len(new_faces_from_inner),
+                'normal': source_face['normal'].copy(),
+                'd': source_face['d'],
+                'vertices_on_face': vertices.copy(),  # Store as list of vertex indices
+                'polygons': [{
+                    'vertices': vertices,
+                    'polygon_type': 'BOUNDARY',
+                    'is_alternate': False,
+                    'is_hole': False,
+                    'area': 0.0,  # Will be calculated if needed
+                    'removed': False,
+                    'source': 'inner_polygon_from_hole'
+                }]
+            }
+            
+            new_faces_from_inner.append(new_face)
+            print(f"[POLY FORM]       Created face {new_face['face_idx']+1}")
+        
+        # Add new faces to unique_faces
+        if new_faces_from_inner:
+            print(f"[POLY FORM]     Adding {len(new_faces_from_inner)} new faces to face list")
+            unique_faces.extend(new_faces_from_inner)
+            print(f"[POLY FORM]     Total faces after spawning: {len(unique_faces)}")
     
     # ==========================================================================
     # SPLIT INDEPENDENT BOUNDARY POLYGONS INTO SEPARATE FACES
@@ -5898,18 +6216,21 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                       f"with {len(new_face['polygons'])} polygon(s)")
             
             # Remove independent boundaries and moved polygons from original
-            original_poly_count = len(face_eq['polygons'])
-            face_eq['polygons'] = [
-                p for p in polygons 
-                if not p.get('is_independent_boundary', False) and
-                   not p.get('moved_to_new_face', False)
-            ]
-            remaining_count = len(face_eq['polygons'])
-            if remaining_count > 0:
-                print(f"[POLY FORM]     Face {face_idx+1}: Keeping {remaining_count} polygon(s) "
-                      f"(BOUNDARY and attached HOLES/ALTs)")
-                for p in face_eq['polygons']:
-                    print(f"[POLY FORM]       Kept: {p['polygon_type']} {p['vertices']}")
+            if 'polygons' in face_eq:
+                original_poly_count = len(face_eq['polygons'])
+                face_eq['polygons'] = [
+                    p for p in polygons 
+                    if not p.get('is_independent_boundary', False) and
+                       not p.get('moved_to_new_face', False)
+                ]
+                remaining_count = len(face_eq['polygons'])
+                if remaining_count > 0:
+                    print(f"[POLY FORM]     Face {face_idx+1}: Keeping {remaining_count} polygon(s) "
+                          f"(BOUNDARY and attached HOLES/ALTs)")
+                    for p in face_eq['polygons']:
+                        print(f"[POLY FORM]       Kept: {p['polygon_type']} {p['vertices']}")
+            else:
+                print(f"[POLY FORM]     WARNING: Face {face_idx+1} has no 'polygons' key")
     
     # Add new faces to the list
     if new_faces_to_add:
@@ -6878,23 +7199,27 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                                     if action['type'] == 'convert_alt':
                                         # Convert ALT to BOUNDARY in the face data
                                         face_eq = unique_faces[action['face_idx']]
-                                        face_eq['polygons'][action['poly_idx']]['polygon_type'] = 'BOUNDARY'
-                                        # Mark as not removed (returned to base)
-                                        face_eq['polygons'][action['poly_idx']]['removed'] = False
+                                        if 'polygons' in face_eq:
+                                            face_eq['polygons'][action['poly_idx']]['polygon_type'] = 'BOUNDARY'
+                                            # Mark as not removed (returned to base)
+                                            face_eq['polygons'][action['poly_idx']]['removed'] = False
                                     elif action['type'] == 'remove_boundary':
                                         # Mark BOUNDARY as removed in face data
                                         face_eq = unique_faces[action['face_idx']]
-                                        face_eq['polygons'][action['poly_idx']]['removed'] = True
+                                        if 'polygons' in face_eq:
+                                            face_eq['polygons'][action['poly_idx']]['removed'] = True
                                     elif action['type'] == 'remove_alt':
                                         # Mark ALT as removed in face data
                                         face_eq = unique_faces[action['face_idx']]
-                                        face_eq['polygons'][action['poly_idx']]['removed'] = True
+                                        if 'polygons' in face_eq:
+                                            face_eq['polygons'][action['poly_idx']]['removed'] = True
                                     elif action['type'] == 'return_as_is':
                                         # Mark as not removed (returned to base)
                                         face_eq = unique_faces[action['face_idx']]
-                                        poly_idx = invalid_edge_polygons[action['clean_idx']]['polygon_idx']
-                                        if 'removed' not in face_eq['polygons'][poly_idx]:
-                                            face_eq['polygons'][poly_idx]['removed'] = False
+                                        if 'polygons' in face_eq:
+                                            poly_idx = invalid_edge_polygons[action['clean_idx']]['polygon_idx']
+                                            if 'removed' not in face_eq['polygons'][poly_idx]:
+                                                face_eq['polygons'][poly_idx]['removed'] = False
                                 
                                 # Remove all marked polygons from extracted set
                                 for idx in sorted(polygons_to_remove, reverse=True):
@@ -7304,6 +7629,10 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
         print(f"\n[POLY FORM]   Rebuilding global edge map after loop matching...")
         edge_face_map_all = {}
         for face_idx, face_eq in enumerate(unique_faces):
+            # Skip faces without polygons key
+            if 'polygons' not in face_eq:
+                print(f"[POLY FORM]     WARNING: Face {face_idx+1} has no 'polygons' key, skipping")
+                continue
             for poly_idx, poly in enumerate(face_eq['polygons']):
                 if poly.get('removed', False):
                     continue
@@ -7682,7 +8011,7 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     faces_with_returned_polygons.add(poly_info['face_idx'])
                     # Mark as returned to base
                     face_eq = unique_faces[poly_info['face_idx']]
-                    if poly_info['polygon_idx'] < len(face_eq['polygons']):
+                    if 'polygons' in face_eq and poly_info['polygon_idx'] < len(face_eq['polygons']):
                         face_eq['polygons'][poly_info['polygon_idx']]['removed'] = False
                 
                 print(f"[POLY FORM]   Remaining in extraction set: {len(invalid_edge_polygons)} polygons")
@@ -7702,7 +8031,7 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                             indices_to_remove.append(idx)
                             # Mark as removed
                             face_eq = unique_faces[poly_info['face_idx']]
-                            if poly_info['polygon_idx'] < len(face_eq['polygons']):
+                            if 'polygons' in face_eq and poly_info['polygon_idx'] < len(face_eq['polygons']):
                                 face_eq['polygons'][poly_info['polygon_idx']]['removed'] = True
                     
                     # Remove from extraction set
@@ -7777,7 +8106,7 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                         print(f"[POLY FORM]     Edge {edge} in {len(face_list)} faces: {face_list}")
                         for face_idx, poly_idx, poly_type in face_list:
                             face_eq = unique_faces[face_idx]
-                            if poly_idx < len(face_eq['polygons']):
+                            if 'polygons' in face_eq and poly_idx < len(face_eq['polygons']):
                                 poly = face_eq['polygons'][poly_idx]
                                 # Check if this polygon is not already removed/in extraction
                                 if not poly.get('removed', False):
@@ -7789,7 +8118,7 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     extracted_count = 0
                     for face_idx, poly_idx in base_polygons_to_extract:
                         face_eq = unique_faces[face_idx]
-                        if poly_idx < len(face_eq['polygons']):
+                        if 'polygons' in face_eq and poly_idx < len(face_eq['polygons']):
                             poly = face_eq['polygons'][poly_idx]
                             poly_type = poly.get('polygon_type', 'UNKNOWN')
                             is_alt = poly.get('is_alternate', False)
@@ -7819,6 +8148,8 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     print(f"[POLY FORM]   Rebuilding edge map after extraction...")
                     edge_face_map_all = {}
                     for face_idx, face_eq in enumerate(unique_faces):
+                        if 'polygons' not in face_eq:
+                            continue
                         for poly_idx, poly in enumerate(face_eq['polygons']):
                             if poly.get('removed', False):
                                 continue
@@ -7957,6 +8288,8 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             # polygon removals are reflected, then recompute stats.
             edge_face_map_all = {}
             for face_idx, face_eq in enumerate(unique_faces):
+                if 'polygons' not in face_eq:
+                    continue
                 for poly_idx, poly in enumerate(face_eq['polygons']):
                     if poly.get('removed', False):
                         continue
@@ -7978,7 +8311,7 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                 poly_idx = poly_info['polygon_idx']
                 if face_idx < len(unique_faces):
                     face_eq = unique_faces[face_idx]
-                    if poly_idx < len(face_eq['polygons']):
+                    if 'polygons' in face_eq and poly_idx < len(face_eq['polygons']):
                         poly = face_eq['polygons'][poly_idx]
                         if not poly.get('removed', False):
                             filtered_polygons.append(poly_info)
@@ -7996,6 +8329,8 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
         # are already resolved or there are no extraction polygons.
         edge_face_map_all = {}
         for face_idx, face_eq in enumerate(unique_faces):
+            if 'polygons' not in face_eq:
+                continue
             for poly_idx, poly in enumerate(face_eq['polygons']):
                 if poly.get('removed', False):
                     continue
@@ -8190,7 +8525,7 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                 face_idx = poly_info['face_idx']
                 poly_idx = poly_info['polygon_idx']
                 face_eq = unique_faces[face_idx]
-                if poly_idx < len(face_eq['polygons']):
+                if 'polygons' in face_eq and poly_idx < len(face_eq['polygons']):
                     face_eq['polygons'][poly_idx]['removed'] = True
                     face_eq['polygons'][poly_idx]['removal_reason'] = \
                         'COMBINATORIAL_FACE_OPTIMIZATION'
@@ -8403,6 +8738,8 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
         # removals made earlier are reflected in this analysis.
         edge_face_map_all = {}
         for face_idx, face_eq in enumerate(unique_faces):
+            if 'polygons' not in face_eq:
+                continue
             for poly_idx, poly in enumerate(face_eq['polygons']):
                 if poly.get('removed', False):
                     continue
@@ -8562,7 +8899,7 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             
             # Check if this polygon was removed during pruning
             face_eq = unique_faces[face_idx]
-            if poly_idx < len(face_eq['polygons']):
+            if 'polygons' in face_eq and poly_idx < len(face_eq['polygons']):
                 poly_data = face_eq['polygons'][poly_idx]
                 if poly_data.get('removed', False):
                     continue  # Skip removed polygons
@@ -9251,7 +9588,13 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                         
                         # Move second polygon to a new face
                         face_eq = unique_faces[face_idx]
+                        if 'polygons' not in face_eq:
+                            print(f"[POLY FORM]       WARNING: Face {face_idx+1} has no 'polygons' key")
+                            continue
                         second_poly_idx = poly2_info['polygon_idx']
+                        if second_poly_idx >= len(face_eq['polygons']):
+                            print(f"[POLY FORM]       WARNING: Invalid poly_idx {second_poly_idx}")
+                            continue
                         second_poly = face_eq['polygons'][second_poly_idx]
                         
                         # Create new face entry
@@ -9304,7 +9647,13 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     
                     # Move second polygon to a new face
                     face_eq = unique_faces[face_idx]
+                    if 'polygons' not in face_eq:
+                        print(f"[POLY FORM]       WARNING: Face {face_idx+1} has no 'polygons' key")
+                        continue
                     second_poly_idx = poly2_info['polygon_idx']
+                    if second_poly_idx >= len(face_eq['polygons']):
+                        print(f"[POLY FORM]       WARNING: Invalid poly_idx {second_poly_idx}")
+                        continue
                     second_poly = face_eq['polygons'][second_poly_idx]
                     
                     # Create new face entry
@@ -9398,7 +9747,13 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     print(f"[POLY FORM]       ERROR: Empty segments after removing common edges")
                     # Create new face for second polygon
                     face_eq = unique_faces[face_idx]
+                    if 'polygons' not in face_eq:
+                        print(f"[POLY FORM]       WARNING: Face {face_idx+1} has no 'polygons' key")
+                        continue
                     second_poly_idx = poly2_info['polygon_idx']
+                    if second_poly_idx >= len(face_eq['polygons']):
+                        print(f"[POLY FORM]       WARNING: Invalid poly_idx {second_poly_idx}")
+                        continue
                     second_poly = face_eq['polygons'][second_poly_idx]
                     
                     new_face_idx = len(unique_faces)
@@ -9460,7 +9815,13 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     
                     # Update the first polygon with merged vertices
                     face_eq = unique_faces[face_idx]
+                    if 'polygons' not in face_eq:
+                        print(f"[POLY FORM]       WARNING: Face {face_idx+1} has no 'polygons' key")
+                        continue
                     first_poly_idx = poly1_info['polygon_idx']
+                    if first_poly_idx >= len(face_eq['polygons']):
+                        print(f"[POLY FORM]       WARNING: Invalid poly_idx {first_poly_idx}")
+                        continue
                     face_eq['polygons'][first_poly_idx]['vertices'] = \
                         merged_vertices
                     
@@ -9471,9 +9832,10 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     
                     # Mark second polygon as removed (already merged)
                     second_poly_idx = poly2_info['polygon_idx']
-                    face_eq['polygons'][second_poly_idx]['removed'] = True
-                    face_eq['polygons'][second_poly_idx]['removal_reason'] = \
-                        'MERGED_INTO_ANOTHER_POLYGON'
+                    if second_poly_idx < len(face_eq['polygons']):
+                        face_eq['polygons'][second_poly_idx]['removed'] = True
+                        face_eq['polygons'][second_poly_idx]['removal_reason'] = \
+                            'MERGED_INTO_ANOTHER_POLYGON'
                 else:
                     print(f"[POLY FORM]       ERROR: Merge failed, keeping "
                           f"separate polygons")

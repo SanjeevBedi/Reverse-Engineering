@@ -24,6 +24,45 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from OCC.Core.Bnd import Bnd_Box
 from OCC.Core.BRepBndLib import brepbndlib_Add
 
+
+# ============================================================================
+# COORDINATE ROUNDING FOR BUILD PROCESS
+# ============================================================================
+# Build tolerance: 0.5mm for dimensional precision
+# Reconstruction tolerance: 0.05mm (tighter for accurate recovery)
+# Normal/rotation tolerance: 1e-6 (high precision for angles)
+#
+# To ensure reconstruction from views works correctly, all geometry must be
+# created with consistent precision from the start.
+
+# Global tolerance for building geometry (dimensions)
+BUILD_TOLERANCE = 0.5  # mm
+
+def round_to_precision(value, precision=BUILD_TOLERANCE):
+    """Round a single coordinate value to specified precision (default 0.5mm)"""
+    return round(value / precision) * precision
+
+
+def make_rounded_pnt(x, y, z, precision=BUILD_TOLERANCE):
+    """Create a gp_Pnt with coordinates rounded to specified precision (default 0.5mm)"""
+    return gp_Pnt(
+        round_to_precision(x, precision),
+        round_to_precision(y, precision),
+        round_to_precision(z, precision)
+    )
+
+
+def make_rounded_vec(x, y, z, precision=BUILD_TOLERANCE):
+    """Create a gp_Vec with coordinates rounded to specified precision (default 0.5mm)"""
+    return gp_Vec(
+        round_to_precision(x, precision),
+        round_to_precision(y, precision),
+        round_to_precision(z, precision)
+    )
+
+# ============================================================================
+
+
 def extract_wire_vertices(wire, debug=False, face_orientation=None, wire_idx=None, face_idx=None):
     # ...existing code...
     edge_explorer = TopExp_Explorer(wire, TopAbs_EDGE)
@@ -255,7 +294,8 @@ def build_oriented_solid(location, u_dir, v_dir, width, length, depth, config_or
     length_exp = length + base_margin
     
     # Build the base box in the local coordinate system (aligned with axes)
-    base_box = BRepPrimAPI_MakeBox(gp_Pnt(0, 0, base_z_offset), width_exp, length_exp, depth).Shape()
+    # Round coordinates to 0.1mm precision
+    base_box = BRepPrimAPI_MakeBox(make_rounded_pnt(0, 0, base_z_offset), width_exp, length_exp, depth).Shape()
     fused = base_box
     
     # Print base bounding box
@@ -301,7 +341,8 @@ def build_oriented_solid(location, u_dir, v_dir, width, length, depth, config_or
         # Embed cuboid into base: set v_z negative so it always intersects base
         v_z = -v_d * v_embed_factor
         print(f"VERTICAL: origin=({v_x:.2f}, {v_y:.2f}, {v_z:.2f}), size=({v_w:.2f}, {v_l:.2f}, {v_d:.2f})")
-        cuboid = BRepPrimAPI_MakeBox(gp_Pnt(v_x, v_y, v_z), v_w, v_l, v_d).Shape()
+        # Round coordinates to 0.1mm precision
+        cuboid = BRepPrimAPI_MakeBox(make_rounded_pnt(v_x, v_y, v_z), v_w, v_l, v_d).Shape()
         # Print cuboid bounding box
         bbox = Bnd_Box()
         brepbndlib_Add(cuboid, bbox)
@@ -345,7 +386,8 @@ def build_oriented_solid(location, u_dir, v_dir, width, length, depth, config_or
         # Embed cuboid into base: set h_z negative so it always intersects base
         h_z = -h_d * h_embed_factor
         print(f"HORIZONTAL: origin=({h_x:.2f}, {h_y:.2f}, {h_z:.2f}), size=({h_w:.2f}, {h_l:.2f}, {h_d:.2f})")
-        cuboid = BRepPrimAPI_MakeBox(gp_Pnt(h_x, h_y, h_z), h_w, h_l, h_d).Shape()
+        # Round coordinates to 0.1mm precision
+        cuboid = BRepPrimAPI_MakeBox(make_rounded_pnt(h_x, h_y, h_z), h_w, h_l, h_d).Shape()
         # Print cuboid bounding box
         bbox = Bnd_Box()
         brepbndlib_Add(cuboid, bbox)
@@ -373,11 +415,17 @@ def build_oriented_solid(location, u_dir, v_dir, width, length, depth, config_or
         explorer.Next()
     print(f"[DEBUG] Total faces after all fusions (before transform): {total_faces}")
     # Transform: map local axes (x, y, z) to (u, v, w) and move origin to location
-    origin = gp_Pnt(0, 0, 0)
+    # Round coordinates to 0.1mm precision
+    origin = make_rounded_pnt(0, 0, 0)
     # Source: local frame (x, y, z)
     src_ax3 = gp_Ax3(origin, gp_Dir(0, 0, 1), gp_Dir(1, 0, 0))
     # Target: frame at location, axes u (x), v (y), w (z)
-    tgt_ax3 = gp_Ax3(gp_Pnt(*location), gp_Dir(*w), gp_Dir(*u))
+    # Round location coordinates
+    tgt_ax3 = gp_Ax3(
+        make_rounded_pnt(location[0], location[1], location[2]),
+        gp_Dir(*w),
+        gp_Dir(*u)
+    )
     trsf = gp_Trsf()
     trsf.SetDisplacement(src_ax3, tgt_ax3)
     transformed = BRepBuilderAPI_Transform(fused, trsf, True).Shape()
