@@ -5152,16 +5152,23 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                 try:
                     i_contains_j = poly_i_shapely.contains(poly_j_shapely)
                     j_contains_i = poly_j_shapely.contains(poly_i_shapely)
+                    
+                    # Check for area intersection (overlapping geometry)
+                    intersection = poly_i_shapely.intersection(poly_j_shapely)
+                    intersection_area = intersection.area if hasattr(intersection, 'area') else 0
+                    
                     disjoint = poly_i_shapely.disjoint(poly_j_shapely)
                 except Exception as e:
                     print(f"[POLY FORM]       WARNING: Shapely comparison failed for ({i},{j}): {e}")
                     i_contains_j = False
                     j_contains_i = False
+                    intersection_area = 0
                     disjoint = True
                 
                 # Determine relationship type
-                # Priority: Containment relationships (I/IT/O/OT) take precedence over shared edges (S/ST)
-                # Note: "Touching" in solid modeling means sharing edges, not vertex-only contact
+                # Rule: If intersection area > 0, polygons overlap → O
+                #       If intersection area = 0 and shared edges → S (or ST for multiple segments)
+                # Priority: Containment relationships (I/IT) take precedence over edge sharing (S/ST)
                 if i_contains_j:
                     # i contains j - use I or IT
                     if has_shared_edges:
@@ -5175,12 +5182,26 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     else:
                         matrix[i][j] = 'O'   # i outside j (j contains i)
                 elif has_shared_edges:
-                    # No containment, but shares edges - both are at same level
-                    matrix[i][j] = 'S'   # Shares edges (ST not needed - all edge sharing is touching)
+                    # Polygons share edges - check for area intersection
+                    if intersection_area > 1e-10:
+                        # Polygons overlap in area despite sharing edges → O
+                        matrix[i][j] = 'O'
+                    else:
+                        # Polygons share edges with zero area intersection
+                        # Check if edges form multiple separate segments (ST) or single segment (S)
+                        if len(shared_edges) > 1:
+                            # Multiple shared edges - could be separate segments
+                            matrix[i][j] = 'ST'
+                        else:
+                            # Single shared edge
+                            matrix[i][j] = 'S'
+                elif intersection_area > 1e-10:
+                    # Polygons have area intersection but don't share edges → overlapping → O
+                    matrix[i][j] = 'O'
                 elif disjoint:
                     matrix[i][j] = 'O'       # Completely disjoint
                 else:
-                    # Overlapping or other complex relationship
+                    # Other complex relationship
                     matrix[i][j] = 'O'       # Default to outside
         
         # Print matrix for debugging
