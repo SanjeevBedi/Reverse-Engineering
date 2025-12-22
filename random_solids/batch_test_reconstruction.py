@@ -131,7 +131,7 @@ def main():
     args = parser.parse_args()
     
     # Configuration
-    seeds = range(1000, 1301, 5)  # Seeds from 1000 to 1300 inclusive 
+    seeds = range(100, 130, 5)  # Seeds from 1000 to 1300 inclusive 
     # [201, 211, 221, 231, 241, 251, 261, 271, 281, 291,
     #             202, 212, 222, 232, 242, 252, 262, 272, 282, 292,
     #             203, 213, 223, 233, 243, 253, 263, 273, 283, 293,
