@@ -3262,11 +3262,60 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     edges_on_face.append((v_i, v_j))
         
         face_eq['edges_on_face'] = edges_on_face
-        print(f"[POLY FORM]   Face {face_idx+1}: {len(edges_on_face)} edges with conn=3: {edges_on_face}")
+        # Display edges with 1-indexed vertices for consistency with vertex display
+        edges_display = [(v1+1, v2+1) for v1, v2 in edges_on_face]
+        print(f"[POLY FORM]   Face {face_idx+1}: {len(edges_on_face)} edges with conn=3: {edges_display}")
+    
+    # CRITICAL: Update all face vertex lists from their edges
+    # This ensures vertices_on_face includes ALL vertices that participate in edges
+    print("\n[POLY FORM] Step 4.6: Synchronizing vertex assignments with edge lists")
+    for face_idx, face_eq in enumerate(unique_faces):
+        edges_on_face = face_eq['edges_on_face']
+        original_verts = set(face_eq['vertices_on_face'])
+        
+        if len(edges_on_face) > 0:
+            vertices_from_edges = set()
+            for v1, v2 in edges_on_face:
+                vertices_from_edges.add(v1)
+                vertices_from_edges.add(v2)
+            
+            new_verts = vertices_from_edges - original_verts
+            missing_verts = original_verts - vertices_from_edges
+            
+            if len(new_verts) > 0 or len(missing_verts) > 0:
+                print(f"[POLY FORM]   Face {face_idx+1}:")
+                print(f"[POLY FORM]     Original {len(original_verts)} verts: {sorted([v+1 for v in original_verts])}")
+                print(f"[POLY FORM]     From edges {len(vertices_from_edges)} verts: {sorted([v+1 for v in vertices_from_edges])}")
+                if len(new_verts) > 0:
+                    print(f"[POLY FORM]     NEW (in edges, not assigned): {sorted([v+1 for v in new_verts])}")
+                if len(missing_verts) > 0:
+                    print(f"[POLY FORM]     MISSING (assigned, no edges): {sorted([v+1 for v in missing_verts])}")
+                
+                face_eq['vertices_on_face'] = sorted(list(vertices_from_edges))
+                print(f"[POLY FORM]     Updated to {len(face_eq['vertices_on_face'])} vertices")
+
     
     # Step 5.5: Process collinear edges - split edges containing intermediate vertices
     print("\n[POLY FORM] Step 5.5: Processing collinear edges")
     print("-" * 70)
+    
+    # First, analyze vertex connectivity using merged_conn (only conn==3)
+    print("\n[POLY FORM] Step 5.5.1: Analyzing vertex connectivity (conn==3 only)")
+    vertex_conn3_count = {}
+    vertex_conn3_neighbors = {}
+    
+    for v_idx in range(len(selected_vertices)):
+        neighbors = []
+        for other_v in range(len(selected_vertices)):
+            if other_v != v_idx and merged_conn[v_idx, other_v] == 3:
+                neighbors.append(other_v)
+        vertex_conn3_count[v_idx] = len(neighbors)
+        vertex_conn3_neighbors[v_idx] = neighbors
+    
+    print(f"[POLY FORM]   Vertices with conn==3 edges:")
+    for v_idx, count in sorted(vertex_conn3_count.items()):
+        if count > 0:
+            print(f"     v{v_idx}: {count} edges (conn==3)")
     
     def point_on_ray_segment(start, end, point, tolerance=1e-3):
         """
@@ -3311,6 +3360,9 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
         
         return True, is_inside, t
     
+    # Track two-edge vertices for later use
+    two_edge_vertices = set()
+    
     # Process each face
     for face_idx, face_eq in enumerate(unique_faces):
         edges_on_face = face_eq['edges_on_face']
@@ -3331,7 +3383,7 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             start_pos = selected_vertices[v_start]
             end_pos = selected_vertices[v_end]
             
-            # Find all vertices that lie on this edge
+            # Find all vertices that lie on this line (including beyond endpoints)
             collinear_vertices = []
             
             # Check all other vertices on this face
@@ -3344,40 +3396,86 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     start_pos, end_pos, v_pos, tolerance=0.1
                 )
                 
-                if is_on_seg and is_inside:
-                    collinear_vertices.append((v_idx, t))
+                # Consider ALL vertices on the line, regardless of position
+                # We'll sequence them by t and use connectivity to determine edges
+                if is_on_seg:
+                    collinear_vertices.append((v_idx, t, is_inside))
             
-            # If we found collinear vertices on this edge, split it
-            if len(collinear_vertices) > 0:
-                print(f"      Edge ({v_start}, {v_end}): Found {len(collinear_vertices)} "
-                      f"collinear vertices: {[v[0] for v in collinear_vertices]}")
+            if len(collinear_vertices) == 0:
+                continue
                 
-                # Sort vertices by parameter t (order along the edge)
-                collinear_vertices.sort(key=lambda x: x[1])
+            print(f"      Edge ({v_start}, {v_end}): Found {len(collinear_vertices)} collinear vertices")
+            
+            # Step 5.5.2: Collect ALL vertices on the line (including endpoints)
+            # and sequence them by t parameter
+            all_vertices_on_line = []
+            
+            # Add collinear vertices
+            for v_idx, t, is_inside in collinear_vertices:
+                all_vertices_on_line.append((v_idx, t))
+            
+            # Add the original endpoints
+            all_vertices_on_line.append((v_start, 0.0))
+            all_vertices_on_line.append((v_end, 1.0))
+            
+            # Sort all vertices by their t parameter
+            all_vertices_on_line.sort(key=lambda x: x[1])
+            
+            # Remove duplicates while preserving order
+            seen = set()
+            vertex_sequence = []
+            for v_idx, t in all_vertices_on_line:
+                if v_idx not in seen:
+                    seen.add(v_idx)
+                    vertex_sequence.append(v_idx)
+            
+            print(f"         Vertex sequence (by t): {vertex_sequence}")
+            
+            # Step 5.5.3: Check connectivity between consecutive vertices
+            # Only add edges where merged_conn >= 2
+            edges_to_add_for_this_edge = []
+            for i in range(len(vertex_sequence) - 1):
+                v1 = vertex_sequence[i]
+                v2 = vertex_sequence[i + 1]
                 
-                # Build sequence: start -> collinear_verts -> end
-                vertex_sequence = [v_start] + [v[0] for v in collinear_vertices] + [v_end]
+                new_edge = (min(v1, v2), max(v1, v2))
+                conn_value = merged_conn[v1, v2]
                 
-                print(f"         Vertex sequence: {vertex_sequence}")
-                
-                # Mark original edge for removal (we'll replace it with split edges)
+                if conn_value >= 2:  # Allow conn==2 or conn==3
+                    edges_to_add_for_this_edge.append(new_edge)
+                    print(f"         Edge ({v1}, {v2}): conn={conn_value} - WILL ADD")
+                else:
+                    print(f"         Edge ({v1}, {v2}): conn={conn_value} - SKIPPED (too low)")
+            
+            # If we're adding edges different from the original edge, update
+            if len(edges_to_add_for_this_edge) > 0 and len(vertex_sequence) > 2:
+                # Mark original edge for removal if we're splitting it
                 edges_to_remove.append(outer_edge)
                 
-                # Add new edges between consecutive vertices in sequence
-                for i in range(len(vertex_sequence) - 1):
-                    v1 = vertex_sequence[i]
-                    v2 = vertex_sequence[i + 1]
+                # Add all the validated edges
+                edges_to_add.extend(edges_to_add_for_this_edge)
+                
+                # Check for two-edge vertices (vertices with exactly 2 neighbors on this line)
+                for i in range(1, len(vertex_sequence) - 1):  # Skip endpoints
+                    v_mid = vertex_sequence[i]
                     
-                    # IMPORTANT: Only add edge if it already exists in merged_conn as conn=3
-                    # Geometric collinearity doesn't mean there's a real edge!
-                    if merged_conn[v1, v2] == 3:
-                        # Edge already exists - keep it
-                        new_edge = (min(v1, v2), max(v1, v2))
-                        edges_to_add.append(new_edge)
-                        print(f"         Added edge: ({v1}, {v2}) - exists in conn matrix")
-                    else:
-                        print(f"         SKIPPED edge: ({v1}, {v2}) - NOT in conn=3 matrix! "
-                              f"(current value: {merged_conn[v1, v2]})")
+                    # Count how many neighbors this vertex has on the line
+                    neighbors_on_line = 0
+                    for other_v in vertex_sequence:
+                        if other_v != v_mid and merged_conn[v_mid, other_v] >= 2:
+                            neighbors_on_line += 1
+                    
+                    # Check if this vertex ONLY connects to vertices on this line
+                    all_neighbors = set()
+                    for other_v in range(len(selected_vertices)):
+                        if other_v != v_mid and merged_conn[v_mid, other_v] >= 2:
+                            all_neighbors.add(other_v)
+                    
+                    neighbors_on_line_set = set(v for v in vertex_sequence if v != v_mid and merged_conn[v_mid, v] >= 2)
+                    
+                    if len(all_neighbors) == 2 and all_neighbors == neighbors_on_line_set:
+                        two_edge_vertices.add(v_mid)
+                        print(f"         Marked v{v_mid} as two-edge vertex")
 
         
         # Update edges_on_face for this face
@@ -3396,7 +3494,18 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             # Update the face data
             face_eq['edges_on_face'] = edges_on_face
             
-            print(f"      Face {face_idx+1} now has {len(edges_on_face)} edges")
+            # CRITICAL: Update vertices_on_face to include ALL vertices from edges
+            # This ensures consistency between vertex assignments and edge lists
+            vertices_from_edges = set()
+            for v1, v2 in edges_on_face:
+                vertices_from_edges.add(v1)
+                vertices_from_edges.add(v2)
+            face_eq['vertices_on_face'] = sorted(list(vertices_from_edges))
+            
+            print(f"      Face {face_idx+1} now has {len(edges_on_face)} edges, {len(face_eq['vertices_on_face'])} vertices")
+    
+    # Store two-edge vertices for use in Vertex Valency Analysis
+    print(f"\n[POLY FORM] Identified {len(two_edge_vertices)} two-edge vertices: {sorted(two_edge_vertices)}")
     
     print("\n[POLY FORM] Step 5.5 Complete: Collinear edge processing finished")
     

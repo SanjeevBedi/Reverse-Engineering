@@ -1,0 +1,2982 @@
+[DEBUG] __name__ = Reconstruction.Base_Solid
+Running file: /Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_Sept_25.py
+Creating default configuration with seed: 290
+
+======================================================================
+SOLID GENERATION AND ENGINEERING DRAWING CREATION
+======================================================================
+Seed: 290
+Projection normal: [0.57735027 0.57735027 0.57735027]
+
+[STEP 1] Building 3D solid...
+[DEBUG] Calling build_solid_with_polygons(config, seed=290, quiet=False) as test...
+Generating base with 1 cuboids (seed=290, attempt 1/10)
+Cuboid 1: 13.53 19.63 10.12 14.94 43.03 15
+[DEBUG] Face 2: normal=[ 0. -0.  1.], center=[14.18025611 29.99295564 29.52965834], dot=1.000000, vertices=[[9.633494413222182, 33.929995297603725, 29.529658344770354], [13.5, 19.5, 29.529658344770354], [23.273779499873108, 22.118876323990865, 29.529658344770354], [19.40727391309529, 36.548871621594586, 29.529658344770354], [9.633494413222182, 33.929995297603725, 29.529658344770354], [9.633494413222182, 33.929995297603725, 29.529658344770354]]
+Debug: Found 1 faces in (0,0,1) direction.
+[DEBUG] up_face 2 surface type: <class 'OCC.Core.Geom.Geom_Surface'>
+Debug: Found 0 faces in (1,0,0) direction.
+Debug: up_faces count: 1, x_faces count: 0
+Debug: Generating rectangle on up face using build_oriented_solid.up_faces: 1
+Debug: Calling build_oriented_solid with location=(13.418685434810254, 29.06015946157437, np.float64(29.529658344770354)), u_dir=(6.502876896913896, 0, 0), v_dir=(0, 4.693903983490479, 0), width=6.502876896913896, length=4.693903983490479, depth=50, seed=290
+[32;1m
+*******************************************************************
+******        Statistics on Transfer (Write)                 ******[0m
+[32;1m
+*******************************************************************
+******        Transfer Mode = 0  I.E.  As Is       ******[0m
+[32;1m******        Transferring Shape, ShapeType = 0                      ******[0m
+[32;1m** WorkSession : Sending all data[0m
+[32;1m Step File Name : STEPfiles/solid_output.step(1438 ents)  Write  Done[0m
+u·v = 0.000000, u·w = 0.000000, v·w = 0.000000
+[DEBUG] Base bounding box: x=(-0.00,8.50), y=(-0.00,6.69), z=(0.00,50.00)
+VERTICAL: origin=(3.47, 3.91, -7.54), size=(2.17, 0.64, 25.15)
+[DEBUG] VERTICAL cuboid bbox: x=(3.47,5.64), y=(3.91,4.54), z=(-7.54,17.60)
+[DEBUG] Faces before fusion: 6, after fusion: 11
+VERTICAL: origin=(0.00, 0.18, -11.82), size=(4.55, 0.57, 39.39)
+[DEBUG] VERTICAL cuboid bbox: x=(-0.00,4.55), y=(0.18,0.75), z=(-11.82,27.58)
+[DEBUG] Faces before fusion: 11, after fusion: 17
+HORIZONTAL: origin=(0.20, 0.04, -8.41), size=(0.91, 0.86, 28.04)
+[DEBUG] HORIZONTAL cuboid bbox: x=(0.20,1.10), y=(0.04,0.90), z=(-8.41,19.62)
+[DEBUG] Faces before fusion: 17, after fusion: 25
+[DEBUG] Total faces after all fusions (before transform): 25
+✓ Final solid is valid with 1 shell(s) after 1 attempt(s)
+Solid created: <class 'OCC.Core.TopoDS.TopoDS_Compound'>
+✓ STEP file saved as 'STEPfiles/solid_output.step'
+
+[STEP 2] Extracting face polygons from solid...
+[DEBUG] extract_and_visualize_faces called: solid=True, visualize=True
+[DEBUG] OPENCASCADE_AVAILABLE=True
+  Traversing BRep topology: Solid -> Shells -> Faces -> Wires -> Edges -> Vertices
+  Found 1 shells in solid
+  
+Shell 1:
+    Face 1:
+        Face orientation: 1
+        Parameter bounds: U[13.500, 43.030], V[-14.939, 0.000]
+        Using parameters: U=28.265, V=-7.470
+        Surface point: (11.567, 26.715, 14.765)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (0.259, -0.966, 0.000)
+        REVERSED face - flipping derivative normal
+        Derivative normal: [-0.965926, -0.258819, 0.000000]
+      Found 1 wires in face 1
+          Traversing Wire 1 edges...
+            Wire 1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (13.5,19.5,0.0)
+              Edge 1: vertex (13.5,19.5,29.5)
+              Edge 2: vertex (9.6,33.9,29.5)
+              Edge 3: vertex (9.6,33.9,0.0)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (13.5,19.5,0.0) → (13.5,19.5,29.5) → (9.6,33.9,29.5) → (9.6,33.9,0.0) → (13.5,19.5,0.0)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 2:
+        Face orientation: 1
+        Parameter bounds: U[13.500, 43.030], V[0.000, 10.119]
+        Using parameters: U=28.265, V=5.059
+        Surface point: (18.387, 20.809, 14.765)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (0.966, 0.259, 0.000)
+        REVERSED face - flipping derivative normal
+        Derivative normal: [0.258819, -0.965926, -0.000000]
+      Found 1 wires in face 2
+          Traversing Wire 1 edges...
+            Wire 1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (23.3,22.1,0.0)
+              Edge 1: vertex (23.3,22.1,29.5)
+              Edge 2: vertex (13.5,19.5,29.5)
+              Edge 3: vertex (13.5,19.5,0.0)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (23.3,22.1,0.0) → (23.3,22.1,29.5) → (13.5,19.5,29.5) → (13.5,19.5,0.0) → (23.3,22.1,0.0)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 3:
+        Face orientation: 0
+        Parameter bounds: U[-0.000, 10.119], V[0.000, 14.939]
+        Using parameters: U=5.059, V=7.470
+        Surface point: (16.454, 28.024, 29.530)
+        dU vector: (0.966, 0.259, 0.000)
+        dV vector: (-0.259, 0.966, 0.000)
+        Derivative normal: [0.000000, -0.000000, 1.000000]
+      Found 3 wires in face 3
+          Traversing Wire 1 edges...
+            Wire 1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (9.6,33.9,29.5)
+              Edge 1: vertex (13.5,19.5,29.5)
+              Edge 2: vertex (23.3,22.1,29.5)
+              Edge 3: vertex (19.4,36.5,29.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (9.6,33.9,29.5) → (13.5,19.5,29.5) → (23.3,22.1,29.5) → (19.4,36.5,29.5) → (9.6,33.9,29.5)
+          Traversing Wire 2 edges...
+            Wire 2 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (14.5,29.1,29.5)
+              Edge 1: vertex (13.6,29.1,29.5)
+              Edge 2: vertex (13.6,29.2,29.5)
+              Edge 3: vertex (13.4,29.2,29.5)
+              Edge 4: vertex (13.4,29.8,29.5)
+              Edge 5: vertex (13.6,29.8,29.5)
+              Edge 6: vertex (13.6,30.0,29.5)
+              Edge 7: vertex (14.5,30.0,29.5)
+              Edge 8: vertex (14.5,29.8,29.5)
+              Edge 9: vertex (18.0,29.8,29.5)
+              Edge 10: vertex (18.0,29.2,29.5)
+              Edge 11: vertex (14.5,29.2,29.5)
+            ✓ Wire traversal complete: 12 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (14.5,29.1,29.5) → (13.6,29.1,29.5) → (13.6,29.2,29.5) → (13.4,29.2,29.5) → (13.4,29.8,29.5) → (13.6,29.8,29.5) → (13.6,30.0,29.5) → (14.5,30.0,29.5) → (14.5,29.8,29.5) → (18.0,29.8,29.5) → (18.0,29.2,29.5) → (14.5,29.2,29.5) → (14.5,29.1,29.5)
+          Traversing Wire 3 edges...
+            Wire 3 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (19.1,33.6,29.5)
+              Edge 1: vertex (19.1,33.0,29.5)
+              Edge 2: vertex (16.9,33.0,29.5)
+              Edge 3: vertex (16.9,33.6,29.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (19.1,33.6,29.5) → (19.1,33.0,29.5) → (16.9,33.0,29.5) → (16.9,33.6,29.5) → (19.1,33.6,29.5)
+      ✓ Extracted polygon: 5 outer vertices, 2 cutouts, 23 total vertices
+    Face 4:
+        Face orientation: 0
+        Parameter bounds: U[13.500, 43.030], V[0.000, 10.119]
+        Using parameters: U=28.265, V=5.059
+        Surface point: (14.520, 35.239, 14.765)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (0.966, 0.259, 0.000)
+        Derivative normal: [-0.258819, 0.965926, 0.000000]
+      Found 1 wires in face 4
+          Traversing Wire 1 edges...
+            Wire 1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (19.4,36.5,29.5)
+              Edge 1: vertex (19.4,36.5,0.0)
+              Edge 2: vertex (9.6,33.9,0.0)
+              Edge 3: vertex (9.6,33.9,29.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (19.4,36.5,29.5) → (19.4,36.5,0.0) → (9.6,33.9,0.0) → (9.6,33.9,29.5) → (19.4,36.5,29.5)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 5:
+        Face orientation: 1
+        Parameter bounds: U[50.133, 63.774], V[50.000, 67.049]
+        Using parameters: U=56.954, V=58.524
+        Surface point: (16.454, 28.024, 0.000)
+        dU vector: (1.000, 0.000, 0.000)
+        dV vector: (0.000, 1.000, 0.000)
+        REVERSED face - flipping derivative normal
+        Derivative normal: [-0.000000, -0.000000, -1.000000]
+      Found 1 wires in face 5
+          Traversing Wire 1 edges...
+            Wire 1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (9.6,33.9,0.0)
+              Edge 1: vertex (19.4,36.5,0.0)
+              Edge 2: vertex (23.3,22.1,0.0)
+              Edge 3: vertex (13.5,19.5,0.0)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (9.6,33.9,0.0) → (19.4,36.5,0.0) → (23.3,22.1,0.0) → (13.5,19.5,0.0) → (9.6,33.9,0.0)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 6:
+        Face orientation: 0
+        Parameter bounds: U[13.500, 43.030], V[-14.939, 0.000]
+        Using parameters: U=28.265, V=-7.470
+        Surface point: (21.341, 29.334, 14.765)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (0.259, -0.966, 0.000)
+        Derivative normal: [0.965926, 0.258819, -0.000000]
+      Found 1 wires in face 6
+          Traversing Wire 1 edges...
+            Wire 1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (23.3,22.1,29.5)
+              Edge 1: vertex (23.3,22.1,0.0)
+              Edge 2: vertex (19.4,36.5,0.0)
+              Edge 3: vertex (19.4,36.5,29.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (23.3,22.1,29.5) → (23.3,22.1,0.0) → (19.4,36.5,0.0) → (19.4,36.5,29.5) → (23.3,22.1,29.5)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 7:
+        Face orientation: 0
+        Parameter bounds: U[0.000, 8.411], V[0.000, 0.907]
+        Using parameters: U=4.205, V=0.454
+        Surface point: (14.069, 29.099, 25.324)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (1.000, 0.000, 0.000)
+        Derivative normal: [0.000000, 1.000000, 0.000000]
+      Found 1 wires in face 7
+          Traversing Wire 1 edges...
+            Wire 1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (14.5,29.1,29.5)
+              Edge 1: vertex (14.5,29.1,21.1)
+              Edge 2: vertex (13.6,29.1,21.1)
+              Edge 3: vertex (13.6,29.1,29.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (14.5,29.1,29.5) → (14.5,29.1,21.1) → (13.6,29.1,21.1) → (13.6,29.1,29.5) → (14.5,29.1,29.5)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 8:
+        Face orientation: 1
+        Parameter bounds: U[0.000, 8.411], V[-0.146, 0.000]
+        Using parameters: U=4.205, V=-0.073
+        Surface point: (14.523, 29.172, 25.324)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (0.000, -1.000, 0.000)
+        REVERSED face - flipping derivative normal
+        Derivative normal: [-1.000000, -0.000000, 0.000000]
+      Found 1 wires in face 8
+          Traversing Wire 1 edges...
+            Wire 1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (14.5,29.1,21.1)
+              Edge 1: vertex (14.5,29.1,29.5)
+              Edge 2: vertex (14.5,29.2,29.5)
+              Edge 3: vertex (14.5,29.2,21.1)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (14.5,29.1,21.1) → (14.5,29.1,29.5) → (14.5,29.2,29.5) → (14.5,29.2,21.1) → (14.5,29.1,21.1)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 9:
+        Face orientation: 0
+        Parameter bounds: U[0.000, 11.818], V[0.000, 4.550]
+        Using parameters: U=5.909, V=2.275
+        Surface point: (15.693, 29.244, 23.621)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (1.000, 0.000, 0.000)
+        Derivative normal: [0.000000, 1.000000, 0.000000]
+      Found 1 wires in face 9
+          Traversing Wire 1 edges...
+            Wire 1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (18.0,29.2,29.5)
+              Edge 1: vertex (18.0,29.2,17.7)
+              Edge 2: vertex (13.4,29.2,17.7)
+              Edge 3: vertex (13.4,29.2,29.5)
+              Edge 4: vertex (13.6,29.2,29.5)
+              Edge 5: vertex (13.6,29.2,21.1)
+              Edge 6: vertex (14.5,29.2,21.1)
+              Edge 7: vertex (14.5,29.2,29.5)
+            ✓ Wire traversal complete: 8 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (18.0,29.2,29.5) → (18.0,29.2,17.7) → (13.4,29.2,17.7) → (13.4,29.2,29.5) → (13.6,29.2,29.5) → (13.6,29.2,21.1) → (14.5,29.2,21.1) → (14.5,29.2,29.5) → (18.0,29.2,29.5)
+      ✓ Extracted polygon: 9 outer vertices, 0 cutouts, 9 total vertices
+    Face 10:
+        Face orientation: 1
+        Parameter bounds: U[0.000, 11.818], V[-0.570, 0.000]
+        Using parameters: U=5.909, V=-0.285
+        Surface point: (17.968, 29.530, 23.621)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (0.000, -1.000, 0.000)
+        REVERSED face - flipping derivative normal
+        Derivative normal: [-1.000000, -0.000000, 0.000000]
+      Found 1 wires in face 10
+          Traversing Wire 1 edges...
+            Wire 1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (18.0,29.2,17.7)
+              Edge 1: vertex (18.0,29.2,29.5)
+              Edge 2: vertex (18.0,29.8,29.5)
+              Edge 3: vertex (18.0,29.8,17.7)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (18.0,29.2,17.7) → (18.0,29.2,29.5) → (18.0,29.8,29.5) → (18.0,29.8,17.7) → (18.0,29.2,17.7)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 11:
+        Face orientation: 1
+        Parameter bounds: U[0.000, 11.818], V[0.000, 4.550]
+        Using parameters: U=5.909, V=2.275
+        Surface point: (15.693, 29.815, 23.621)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (1.000, 0.000, 0.000)
+        REVERSED face - flipping derivative normal
+        Derivative normal: [-0.000000, -1.000000, -0.000000]
+      Found 1 wires in face 11
+          Traversing Wire 1 edges...
+            Wire 1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (18.0,29.8,17.7)
+              Edge 1: vertex (18.0,29.8,29.5)
+              Edge 2: vertex (14.5,29.8,29.5)
+              Edge 3: vertex (14.5,29.8,21.1)
+              Edge 4: vertex (13.6,29.8,21.1)
+              Edge 5: vertex (13.6,29.8,29.5)
+              Edge 6: vertex (13.4,29.8,29.5)
+              Edge 7: vertex (13.4,29.8,17.7)
+            ✓ Wire traversal complete: 8 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (18.0,29.8,17.7) → (18.0,29.8,29.5) → (14.5,29.8,29.5) → (14.5,29.8,21.1) → (13.6,29.8,21.1) → (13.6,29.8,29.5) → (13.4,29.8,29.5) → (13.4,29.8,17.7) → (18.0,29.8,17.7)
+      ✓ Extracted polygon: 9 outer vertices, 0 cutouts, 9 total vertices
+    Face 12:
+        Face orientation: 1
+        Parameter bounds: U[0.000, 8.411], V[-0.861, -0.716]
+        Using parameters: U=4.205, V=-0.789
+        Surface point: (14.523, 29.888, 25.324)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (0.000, -1.000, 0.000)
+        REVERSED face - flipping derivative normal
+        Derivative normal: [-1.000000, -0.000000, 0.000000]
+      Found 1 wires in face 12
+          Traversing Wire 1 edges...
+            Wire 1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (14.5,29.8,29.5)
+              Edge 1: vertex (14.5,30.0,29.5)
+              Edge 2: vertex (14.5,30.0,21.1)
+              Edge 3: vertex (14.5,29.8,21.1)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (14.5,29.8,29.5) → (14.5,30.0,29.5) → (14.5,30.0,21.1) → (14.5,29.8,21.1) → (14.5,29.8,29.5)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 13:
+        Face orientation: 1
+        Parameter bounds: U[0.000, 8.411], V[0.000, 0.907]
+        Using parameters: U=4.205, V=0.454
+        Surface point: (14.069, 29.960, 25.324)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (1.000, 0.000, 0.000)
+        REVERSED face - flipping derivative normal
+        Derivative normal: [-0.000000, -1.000000, -0.000000]
+      Found 1 wires in face 13
+          Traversing Wire 1 edges...
+            Wire 1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (14.5,30.0,21.1)
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:757: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend(loc='upper left', bbox_to_anchor=(0.02, 0.98), fontsize=9)
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:763: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show()
+ 
+                        Informations                        
+ ===========================================================
+ 
+ Number of input shapes      : 6
+ Number of actual shapes     : 6
+ Number of Bounds            : 24
+ Number of Sections          : 24
+ Number of Edges             : 24
+ Number of Vertices          : 24
+ Number of Nodes             : 24
+ Number of Free Edges        : 24
+ Number of Contigous Edges   : 0
+ Number of Multiple Edges    : 0
+ Number of Degenerated Edges : 0
+ ===========================================================
+ 
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:1312: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show()
+              Edge 1: vertex (14.5,30.0,29.5)
+              Edge 2: vertex (13.6,30.0,29.5)
+              Edge 3: vertex (13.6,30.0,21.1)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (14.5,30.0,21.1) → (14.5,30.0,29.5) → (13.6,30.0,29.5) → (13.6,30.0,21.1) → (14.5,30.0,21.1)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 14:
+        Face orientation: 0
+        Parameter bounds: U[0.000, 8.411], V[-0.861, -0.716]
+        Using parameters: U=4.205, V=-0.789
+        Surface point: (13.615, 29.888, 25.324)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (0.000, -1.000, 0.000)
+        Derivative normal: [1.000000, 0.000000, -0.000000]
+      Found 1 wires in face 14
+          Traversing Wire 1 edges...
+            Wire 1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (13.6,30.0,29.5)
+              Edge 1: vertex (13.6,29.8,29.5)
+              Edge 2: vertex (13.6,29.8,21.1)
+              Edge 3: vertex (13.6,30.0,21.1)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (13.6,30.0,29.5) → (13.6,29.8,29.5) → (13.6,29.8,21.1) → (13.6,30.0,21.1) → (13.6,30.0,29.5)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 15:
+        Face orientation: 0
+        Parameter bounds: U[0.000, 11.818], V[-0.570, 0.000]
+        Using parameters: U=5.909, V=-0.285
+        Surface point: (13.419, 29.530, 23.621)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (0.000, -1.000, 0.000)
+        Derivative normal: [1.000000, 0.000000, -0.000000]
+      Found 1 wires in face 15
+          Traversing Wire 1 edges...
+            Wire 1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (13.4,29.2,29.5)
+              Edge 1: vertex (13.4,29.2,17.7)
+              Edge 2: vertex (13.4,29.8,17.7)
+              Edge 3: vertex (13.4,29.8,29.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (13.4,29.2,29.5) → (13.4,29.2,17.7) → (13.4,29.8,17.7) → (13.4,29.8,29.5) → (13.4,29.2,29.5)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 16:
+        Face orientation: 0
+        Parameter bounds: U[0.000, 8.411], V[-0.146, 0.000]
+        Using parameters: U=4.205, V=-0.073
+        Surface point: (13.615, 29.172, 25.324)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (0.000, -1.000, 0.000)
+        Derivative normal: [1.000000, 0.000000, -0.000000]
+      Found 1 wires in face 16
+          Traversing Wire 1 edges...
+            Wire 1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (13.6,29.1,29.5)
+              Edge 1: vertex (13.6,29.1,21.1)
+              Edge 2: vertex (13.6,29.2,21.1)
+              Edge 3: vertex (13.6,29.2,29.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (13.6,29.1,29.5) → (13.6,29.1,21.1) → (13.6,29.2,21.1) → (13.6,29.2,29.5) → (13.6,29.1,29.5)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 17:
+        Face orientation: 1
+        Parameter bounds: U[0.000, 7.544], V[-0.637, 0.000]
+        Using parameters: U=3.772, V=-0.319
+        Surface point: (19.054, 33.285, 25.757)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (0.000, -1.000, 0.000)
+        REVERSED face - flipping derivative normal
+        Derivative normal: [-1.000000, -0.000000, 0.000000]
+      Found 1 wires in face 17
+          Traversing Wire 1 edges...
+            Wire 1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (19.1,33.0,22.0)
+              Edge 1: vertex (19.1,33.0,29.5)
+              Edge 2: vertex (19.1,33.6,29.5)
+              Edge 3: vertex (19.1,33.6,22.0)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (19.1,33.0,22.0) → (19.1,33.0,29.5) → (19.1,33.6,29.5) → (19.1,33.6,22.0) → (19.1,33.0,22.0)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 18:
+        Face orientation: 1
+        Parameter bounds: U[0.000, 7.544], V[0.000, 2.167]
+        Using parameters: U=3.772, V=1.084
+        Surface point: (17.971, 33.603, 25.757)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (1.000, 0.000, 0.000)
+        REVERSED face - flipping derivative normal
+        Derivative normal: [-0.000000, -1.000000, -0.000000]
+      Found 1 wires in face 18
+          Traversing Wire 1 edges...
+            Wire 1 orientation: REVERSED
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (19.1,33.6,22.0)
+              Edge 1: vertex (19.1,33.6,29.5)
+              Edge 2: vertex (16.9,33.6,29.5)
+              Edge 3: vertex (16.9,33.6,22.0)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (19.1,33.6,22.0) → (19.1,33.6,29.5) → (16.9,33.6,29.5) → (16.9,33.6,22.0) → (19.1,33.6,22.0)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 19:
+        Face orientation: 0
+        Parameter bounds: U[0.000, 7.544], V[-0.637, 0.000]
+        Using parameters: U=3.772, V=-0.319
+        Surface point: (16.887, 33.285, 25.757)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (0.000, -1.000, 0.000)
+        Derivative normal: [1.000000, 0.000000, -0.000000]
+      Found 1 wires in face 19
+          Traversing Wire 1 edges...
+            Wire 1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (16.9,33.0,29.5)
+              Edge 1: vertex (16.9,33.0,22.0)
+              Edge 2: vertex (16.9,33.6,22.0)
+              Edge 3: vertex (16.9,33.6,29.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (16.9,33.0,29.5) → (16.9,33.0,22.0) → (16.9,33.6,22.0) → (16.9,33.6,29.5) → (16.9,33.0,29.5)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 20:
+        Face orientation: 0
+        Parameter bounds: U[0.000, 7.544], V[0.000, 2.167]
+        Using parameters: U=3.772, V=1.084
+        Surface point: (17.971, 32.966, 25.757)
+        dU vector: (0.000, 0.000, 1.000)
+        dV vector: (1.000, 0.000, 0.000)
+        Derivative normal: [0.000000, 1.000000, 0.000000]
+      Found 1 wires in face 20
+          Traversing Wire 1 edges...
+            Wire 1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (19.1,33.0,29.5)
+              Edge 1: vertex (19.1,33.0,22.0)
+              Edge 2: vertex (16.9,33.0,22.0)
+              Edge 3: vertex (16.9,33.0,29.5)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (19.1,33.0,29.5) → (19.1,33.0,22.0) → (16.9,33.0,22.0) → (16.9,33.0,29.5) → (19.1,33.0,29.5)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 21:
+        Face orientation: 0
+        Parameter bounds: U[0.000, 0.907], V[0.000, 0.146]
+        Using parameters: U=0.454, V=0.073
+        Surface point: (14.069, 29.172, 21.119)
+        dU vector: (1.000, 0.000, 0.000)
+        dV vector: (0.000, 1.000, 0.000)
+        Derivative normal: [0.000000, 0.000000, 1.000000]
+      Found 1 wires in face 21
+          Traversing Wire 1 edges...
+            Wire 1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (13.6,29.2,21.1)
+              Edge 1: vertex (13.6,29.1,21.1)
+              Edge 2: vertex (14.5,29.1,21.1)
+              Edge 3: vertex (14.5,29.2,21.1)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (13.6,29.2,21.1) → (13.6,29.1,21.1) → (14.5,29.1,21.1) → (14.5,29.2,21.1) → (13.6,29.2,21.1)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 22:
+        Face orientation: 0
+        Parameter bounds: U[0.000, 4.550], V[0.000, 0.570]
+        Using parameters: U=2.275, V=0.285
+        Surface point: (15.693, 29.530, 17.712)
+        dU vector: (1.000, 0.000, 0.000)
+        dV vector: (0.000, 1.000, 0.000)
+        Derivative normal: [0.000000, 0.000000, 1.000000]
+      Found 1 wires in face 22
+          Traversing Wire 1 edges...
+            Wire 1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (13.4,29.8,17.7)
+              Edge 1: vertex (13.4,29.2,17.7)
+              Edge 2: vertex (18.0,29.2,17.7)
+              Edge 3: vertex (18.0,29.8,17.7)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (13.4,29.8,17.7) → (13.4,29.2,17.7) → (18.0,29.2,17.7) → (18.0,29.8,17.7) → (13.4,29.8,17.7)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 23:
+        Face orientation: 0
+        Parameter bounds: U[0.000, 0.907], V[0.716, 0.861]
+        Using parameters: U=0.454, V=0.789
+        Surface point: (14.069, 29.888, 21.119)
+        dU vector: (1.000, 0.000, 0.000)
+        dV vector: (0.000, 1.000, 0.000)
+        Derivative normal: [0.000000, 0.000000, 1.000000]
+      Found 1 wires in face 23
+          Traversing Wire 1 edges...
+            Wire 1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (13.6,30.0,21.1)
+              Edge 1: vertex (13.6,29.8,21.1)
+              Edge 2: vertex (14.5,29.8,21.1)
+              Edge 3: vertex (14.5,30.0,21.1)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (13.6,30.0,21.1) → (13.6,29.8,21.1) → (14.5,29.8,21.1) → (14.5,30.0,21.1) → (13.6,30.0,21.1)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+    Face 24:
+        Face orientation: 0
+        Parameter bounds: U[0.000, 2.167], V[0.000, 0.637]
+        Using parameters: U=1.084, V=0.319
+        Surface point: (17.971, 33.285, 21.985)
+        dU vector: (1.000, 0.000, 0.000)
+        dV vector: (0.000, 1.000, 0.000)
+        Derivative normal: [0.000000, 0.000000, 1.000000]
+      Found 1 wires in face 24
+          Traversing Wire 1 edges...
+            Wire 1 orientation: FORWARD
+            ✓ Using BRepTools_WireExplorer for proper wire traversal
+              Edge 0: vertex (16.9,33.6,22.0)
+              Edge 1: vertex (16.9,33.0,22.0)
+              Edge 2: vertex (19.1,33.0,22.0)
+              Edge 3: vertex (19.1,33.6,22.0)
+            ✓ Wire traversal complete: 4 vertices
+            Added closing vertex to complete wire loop
+            FINAL: (16.9,33.6,22.0) → (16.9,33.0,22.0) → (19.1,33.0,22.0) → (19.1,33.6,22.0) → (16.9,33.6,22.0)
+      ✓ Extracted polygon: 5 outer vertices, 0 cutouts, 5 total vertices
+  
+✓ Successfully extracted 24 faces from 1 shells
+[DEBUG] Extracted faces data:
+  Face 1: face_id=1, vertices=5, normal=True
+  Face 2: face_id=2, vertices=5, normal=True
+  Face 3: face_id=3, vertices=5, normal=True
+  Face 4: face_id=4, vertices=5, normal=True
+  Face 5: face_id=5, vertices=5, normal=True
+  Face 6: face_id=6, vertices=5, normal=True
+  Face 7: face_id=7, vertices=5, normal=True
+  Face 8: face_id=8, vertices=5, normal=True
+  Face 9: face_id=9, vertices=9, normal=True
+  Face 10: face_id=10, vertices=5, normal=True
+  Face 11: face_id=11, vertices=9, normal=True
+  Face 12: face_id=12, vertices=5, normal=True
+  Face 13: face_id=13, vertices=5, normal=True
+  Face 14: face_id=14, vertices=5, normal=True
+  Face 15: face_id=15, vertices=5, normal=True
+  Face 16: face_id=16, vertices=5, normal=True
+  Face 17: face_id=17, vertices=5, normal=True
+  Face 18: face_id=18, vertices=5, normal=True
+  Face 19: face_id=19, vertices=5, normal=True
+  Face 20: face_id=20, vertices=5, normal=True
+  Face 21: face_id=21, vertices=5, normal=True
+  Face 22: face_id=22, vertices=5, normal=True
+  Face 23: face_id=23, vertices=5, normal=True
+  Face 24: face_id=24, vertices=5, normal=True
+[DEBUG] extract_and_visualize_faces returning 24 faces
+Extracted 24 faces
+
+[STEP 2.1] Computing volume of original solid...
+[VOLUME] Original solid volume: 4420.440837
+
+[DIAGNOSTIC] Attempting to build solid from extracted face polygons...
+[FACE CHECK] Face 0 unique points: 4
+[FACE CHECK] Face 0 Shapely valid: False
+[SKIP] Face 0 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 1 unique points: 4
+[FACE CHECK] Face 1 Shapely valid: False
+[SKIP] Face 1 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 2 unique points: 4
+[FACE CHECK] Face 2 Shapely valid: True
+[WIRE CHECK] Exterior wire unique points: 4
+[WIRE CHECK] Exterior wire Shapely valid: True
+[FACE CHECK] OCC face valid: True
+[FACE CHECK] OCC face valid: True
+[FACE CHECK] Face 2: Area = 151.1615
+[FACE CHECK] Face 3 unique points: 4
+[FACE CHECK] Face 3 Shapely valid: False
+[SKIP] Face 3 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 4 unique points: 4
+[FACE CHECK] Face 4 Shapely valid: True
+[WIRE CHECK] Exterior wire unique points: 4
+[WIRE CHECK] Exterior wire Shapely valid: True
+[FACE CHECK] OCC face valid: True
+[FACE CHECK] OCC face valid: True
+[FACE CHECK] Face 4: Area = 151.1615
+[FACE CHECK] Face 5 unique points: 4
+[FACE CHECK] Face 5 Shapely valid: False
+[SKIP] Face 5 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 6 unique points: 4
+[FACE CHECK] Face 6 Shapely valid: False
+[SKIP] Face 6 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 7 unique points: 4
+[FACE CHECK] Face 7 Shapely valid: False
+[SKIP] Face 7 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 8 unique points: 8
+[FACE CHECK] Face 8 Shapely valid: False
+[SKIP] Face 8 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 9 unique points: 4
+[FACE CHECK] Face 9 Shapely valid: False
+[SKIP] Face 9 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 10 unique points: 8
+[FACE CHECK] Face 10 Shapely valid: False
+[SKIP] Face 10 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 11 unique points: 4
+[FACE CHECK] Face 11 Shapely valid: False
+[SKIP] Face 11 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 12 unique points: 4
+[FACE CHECK] Face 12 Shapely valid: False
+[SKIP] Face 12 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 13 unique points: 4
+[FACE CHECK] Face 13 Shapely valid: False
+[SKIP] Face 13 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 14 unique points: 4
+[FACE CHECK] Face 14 Shapely valid: False
+[SKIP] Face 14 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 15 unique points: 4
+[FACE CHECK] Face 15 Shapely valid: False
+[SKIP] Face 15 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 16 unique points: 4
+[FACE CHECK] Face 16 Shapely valid: False
+[SKIP] Face 16 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 17 unique points: 4
+[FACE CHECK] Face 17 Shapely valid: False
+[SKIP] Face 17 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 18 unique points: 4
+[FACE CHECK] Face 18 Shapely valid: False
+[SKIP] Face 18 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 19 unique points: 4
+[FACE CHECK] Face 19 Shapely valid: False
+[SKIP] Face 19 skipped: exterior is self-intersecting (Shapely invalid).
+[FACE CHECK] Face 20 unique points: 4
+[FACE CHECK] Face 20 Shapely valid: True
+[WIRE CHECK] Exterior wire unique points: 4
+[WIRE CHECK] Exterior wire Shapely valid: True
+[FACE CHECK] OCC face valid: True
+[FACE CHECK] OCC face valid: True
+[FACE CHECK] Face 20: Area = 0.1321
+[FACE CHECK] Face 21 unique points: 4
+[FACE CHECK] Face 21 Shapely valid: True
+[WIRE CHECK] Exterior wire unique points: 4
+[WIRE CHECK] Exterior wire Shapely valid: True
+[FACE CHECK] OCC face valid: True
+[FACE CHECK] OCC face valid: True
+[FACE CHECK] Face 21: Area = 2.5949
+[FACE CHECK] Face 22 unique points: 4
+[FACE CHECK] Face 22 Shapely valid: True
+[WIRE CHECK] Exterior wire unique points: 4
+[WIRE CHECK] Exterior wire Shapely valid: True
+[FACE CHECK] OCC face valid: True
+[FACE CHECK] OCC face valid: True
+[FACE CHECK] Face 22: Area = 0.1321
+[FACE CHECK] Face 23 unique points: 4
+[FACE CHECK] Face 23 Shapely valid: True
+[WIRE CHECK] Exterior wire unique points: 4
+[WIRE CHECK] Exterior wire Shapely valid: True
+[FACE CHECK] OCC face valid: True
+[FACE CHECK] OCC face valid: True
+[FACE CHECK] Face 23: Area = 1.3809
+[SEWING] Dumping sewing report:
+[SHELL CHECK] Shell valid: True
+[ERROR] Exception during solid construction: Wrong number or type of arguments for overloaded function 'new_BRepBuilderAPI_MakeSolid'.
+  Possible C/C++ prototypes are:
+    BRepBuilderAPI_MakeSolid::BRepBuilderAPI_MakeSolid()
+    BRepBuilderAPI_MakeSolid::BRepBuilderAPI_MakeSolid(TopoDS_CompSolid const &)
+    BRepBuilderAPI_MakeSolid::BRepBuilderAPI_MakeSolid(TopoDS_Shell const &)
+    BRepBuilderAPI_MakeSolid::BRepBuilderAPI_MakeSolid(TopoDS_Shell const &,TopoDS_Shell const &)
+    BRepBuilderAPI_MakeSolid::BRepBuilderAPI_MakeSolid(TopoDS_Shell const &,TopoDS_Shell const &,TopoDS_Shell const &)
+    BRepBuilderAPI_MakeSolid::BRepBuilderAPI_MakeSolid(TopoDS_Solid const &)
+    BRepBuilderAPI_MakeSolid::BRepBuilderAPI_MakeSolid(TopoDS_Solid const &,TopoDS_Shell const &)
+
+
+[DIAGNOSTIC] Attempting to launch OCC viewer for original and rebuilt solids...
+[DIAGNOSTIC] OCC viewer launched successfully.
+
+[STEP 3] Extracting unique vertices...
+Total unique vertices: 40
+
+[STEP 4] Visualizing 3D solid...
+[DEBUG] First face polygon in plotting call: [[1.35000000e+01 1.95000000e+01 1.00000001e-07]
+ [1.35000000e+01 1.95000000e+01 2.95296583e+01]
+ [9.63349441e+00 3.39299953e+01 2.95296583e+01]
+ [9.63349441e+00 3.39299953e+01 1.00000001e-07]
+ [1.35000000e+01 1.95000000e+01 1.00000001e-07]]
+
+[STEP 5] Creating engineering views (Top, Front, Side, Isometric)...
+[DEBUG] plot_four_views: extracted 24 face polygons
+[DEBUG] plot_four_views: face_polygons type = <class 'list'>
+
+============================================================
+ENHANCED FACE CLASSIFICATION WITH HISTORIC ALGORITHM
+============================================================
+Unit projection normal: [0.000000, 0.000000, 1.000000]
+
+Step 1: Initial classification and polygon projection...
+Face F1: dot_product=0.000, unit_face_normal=[-0.966, -0.259, 0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[13.5 19.5]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[13.5 19.5]
+  → Added Face_1 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_1 dot_product: 0.000000 (hidden)
+Face F2: dot_product=0.000, unit_face_normal=[0.259, -0.966, -0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[23.2737794998731 22.1188763239909]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[23.2737794998731 22.1188763239909]
+  → Added Face_2 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_2 dot_product: 0.000000 (hidden)
+Face F3: dot_product=1.000, unit_face_normal=[0.000, -0.000, 1.000]
+  → Added Face_3 (area: 146.92) with 2 holes
+      [DEBUG] Face_3 dot_product: 1.000000 (visible)
+Face F4: dot_product=0.000, unit_face_normal=[-0.259, 0.966, 0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[19.4072739130953 36.5488716215946]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[19.4072739130953 36.5488716215946]
+  → Added Face_4 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_4 dot_product: 0.000000 (hidden)
+Face F5: dot_product=-1.000, unit_face_normal=[-0.000, -0.000, -1.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_5 (area: 151.16)
+      [DEBUG] Face_5 dot_product: -1.000000 (hidden)
+Face F6: dot_product=0.000, unit_face_normal=[0.966, 0.259, -0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[23.2737794998731 22.1188763239909]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[23.2737794998731 22.1188763239909]
+  → Added Face_6 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_6 dot_product: 0.000000 (hidden)
+Face F7: dot_product=0.000, unit_face_normal=[0.000, 1.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[14.5226366348375 29.0988190850186]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[14.5226366348375 29.0988190850186]
+  → Added Face_7 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_7 dot_product: 0.000000 (hidden)
+Face F8: dot_product=0.000, unit_face_normal=[-1.000, -0.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[14.5226366348375 29.0988190850186]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[14.5226366348375 29.0988190850186]
+  → Added Face_8 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_8 dot_product: 0.000000 (hidden)
+Face F9: dot_product=0.000, unit_face_normal=[0.000, 1.000, 0.000]
+    → Creating polygon from 9 vertices
+    → Invalid polygon detected: Self-intersection[14.5226366348375 29.2443700766529]
+    → Original vertices: 9, coords in polygon: 8
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Self-intersection[14.5226366348375 29.2443700766529]
+      [INVESTIGATE] Polygon WKT: POLYGON ((17.968301584749838 29.244370076652917, 17.968301584749838 29.244370076652917, 13.418685434810254 29.244370076652917, 13.418685434810254 29.244370076652917, 13.615309614165753 29.244370076652917, 13.615309614165753 29.244370076652917, 14.522636634837534 29.244370076652917, 14.522636634837534 29.244370076652917, 17.968301584749838 29.244370076652917))
+  → Added Face_9 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_9 dot_product: 0.000000 (hidden)
+Face F10: dot_product=0.000, unit_face_normal=[-1.000, -0.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[17.9683015847498 29.2443700766529]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[17.9683015847498 29.2443700766529]
+  → Added Face_10 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_10 dot_product: 0.000000 (hidden)
+Face F11: dot_product=0.000, unit_face_normal=[-0.000, -1.000, -0.000]
+    → Creating polygon from 9 vertices
+    → Invalid polygon detected: Self-intersection[13.6153096141658 29.8147296431939]
+    → Original vertices: 9, coords in polygon: 8
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Self-intersection[13.6153096141658 29.8147296431939]
+      [INVESTIGATE] Polygon WKT: POLYGON ((17.968301584749838 29.814729643193917, 17.968301584749838 29.814729643193917, 14.522636634837534 29.814729643193917, 14.522636634837534 29.814729643193917, 13.615309614165753 29.814729643193917, 13.615309614165753 29.814729643193917, 13.418685434810254 29.814729643193917, 13.418685434810254 29.814729643193917, 17.968301584749838 29.814729643193917))
+  → Added Face_11 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_11 dot_product: 0.000000 (hidden)
+Face F12: dot_product=0.000, unit_face_normal=[-1.000, -0.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[14.5226366348375 29.8147296431939]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[14.5226366348375 29.8147296431939]
+  → Added Face_12 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_12 dot_product: 0.000000 (hidden)
+Face F13: dot_product=0.000, unit_face_normal=[-0.000, -1.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[14.5226366348375 29.9602806348283]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[14.5226366348375 29.9602806348283]
+  → Added Face_13 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_13 dot_product: 0.000000 (hidden)
+Face F14: dot_product=0.000, unit_face_normal=[1.000, 0.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[13.6153096141658 29.9602806348283]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[13.6153096141658 29.9602806348283]
+  → Added Face_14 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_14 dot_product: 0.000000 (hidden)
+Face F15: dot_product=0.000, unit_face_normal=[1.000, 0.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[13.4186854348103 29.2443700766529]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[13.4186854348103 29.2443700766529]
+  → Added Face_15 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_15 dot_product: 0.000000 (hidden)
+Face F16: dot_product=0.000, unit_face_normal=[1.000, 0.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[13.6153096141658 29.0988190850186]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[13.6153096141658 29.0988190850186]
+  → Added Face_16 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_16 dot_product: 0.000000 (hidden)
+Face F17: dot_product=0.000, unit_face_normal=[-1.000, -0.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[19.0542795420341 32.9660798073465]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[19.0542795420341 32.9660798073465]
+  → Added Face_17 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_17 dot_product: 0.000000 (hidden)
+Face F18: dot_product=0.000, unit_face_normal=[-0.000, -1.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[19.0542795420341 33.6032662860851]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[19.0542795420341 33.6032662860851]
+  → Added Face_18 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_18 dot_product: 0.000000 (hidden)
+Face F19: dot_product=0.000, unit_face_normal=[1.000, 0.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[16.8871189832658 32.9660798073465]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[16.8871189832658 32.9660798073465]
+  → Added Face_19 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_19 dot_product: 0.000000 (hidden)
+Face F20: dot_product=0.000, unit_face_normal=[0.000, 1.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[19.0542795420341 32.9660798073465]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[19.0542795420341 32.9660798073465]
+  → Added Face_20 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_20 dot_product: 0.000000 (hidden)
+Face F21: dot_product=1.000, unit_face_normal=[0.000, 0.000, 1.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_21 (area: 0.13)
+      [DEBUG] Face_21 dot_product: 1.000000 (visible)
+Face F22: dot_product=1.000, unit_face_normal=[0.000, 0.000, 1.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_22 (area: 2.59)
+      [DEBUG] Face_22 dot_product: 1.000000 (visible)
+Face F23: dot_product=1.000, unit_face_normal=[0.000, 0.000, 1.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_23 (area: 0.13)
+      [DEBUG] Face_23 dot_product: 1.000000 (visible)
+Face F24: dot_product=1.000, unit_face_normal=[0.000, 0.000, 1.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_24 (area: 1.38)
+      [DEBUG] Face_24 dot_product: 1.000000 (visible)
+
+Step 2: Starting historic polygon classification algorithm...
+Initial array_A: 24 polygons
+[DEBUG] Initial faces in array_A before historic algorithm:
+  A1: Face_1 (dot=0.000, area=0.00)
+  A2: Face_2 (dot=0.000, area=0.00)
+  A3: Face_3 (dot=1.000, area=146.92)
+  A4: Face_4 (dot=0.000, area=0.00)
+  A5: Face_5 (dot=-1.000, area=151.16)
+  A6: Face_6 (dot=0.000, area=0.00)
+  A7: Face_7 (dot=0.000, area=0.00)
+  A8: Face_8 (dot=0.000, area=0.00)
+  A9: Face_9 (dot=0.000, area=0.00)
+  A10: Face_10 (dot=0.000, area=0.00)
+  A11: Face_11 (dot=0.000, area=0.00)
+  A12: Face_12 (dot=0.000, area=0.00)
+  A13: Face_13 (dot=0.000, area=0.00)
+  A14: Face_14 (dot=0.000, area=0.00)
+  A15: Face_15 (dot=0.000, area=0.00)
+  A16: Face_16 (dot=0.000, area=0.00)
+  A17: Face_17 (dot=0.000, area=0.00)
+  A18: Face_18 (dot=0.000, area=0.00)
+  A19: Face_19 (dot=0.000, area=0.00)
+  A20: Face_20 (dot=0.000, area=0.00)
+  A21: Face_21 (dot=1.000, area=0.13)
+  A22: Face_22 (dot=1.000, area=2.59)
+  A23: Face_23 (dot=1.000, area=0.13)
+  A24: Face_24 (dot=1.000, area=1.38)
+
+SUMMARY: Hidden polygons (Array_C) for Top View:
+
+============================================================
+ARRAY A - INITIAL FACE CLASSIFICATION (BEFORE SORTING)
+============================================================
+  [WARNING] Face_1 is invalid in Array_A: Too few points in geometry component[13.5 19.5]
+    [INVESTIGATE] Polygon WKT: POLYGON ((13.5 19.5, 13.5 19.5, 9.633494413222182 33.929995297603725, 9.633494413222182 33.929995297603725, 13.5 19.5))
+  Face A1 (Face_1):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [-0.966, -0.259, 0.000]
+    • 2D Polygon: (13.5,19.5) → (13.5,19.5) → (9.6,33.9) → (9.6,33.9)
+  [WARNING] Face_2 is invalid in Array_A: Too few points in geometry component[23.2737794998731 22.1188763239909]
+    [INVESTIGATE] Polygon WKT: POLYGON ((23.273779499873108 22.118876323990865, 23.273779499873108 22.118876323990865, 13.5 19.5, 13.5 19.5, 23.273779499873108 22.118876323990865))
+  Face A2 (Face_2):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [0.259, -0.966, -0.000]
+    • 2D Polygon: (23.3,22.1) → (23.3,22.1) → (13.5,19.5) → (13.5,19.5)
+  Face A3 (Face_3):
+    • Area: 146.92
+    • Vertices: 4
+    • Dot product: 1.000000
+    • Face normal: [0.000, -0.000, 1.000]
+    • 2D Polygon: (9.6,33.9) → (13.5,19.5) → (23.3,22.1) → (19.4,36.5)
+  [WARNING] Face_4 is invalid in Array_A: Too few points in geometry component[19.4072739130953 36.5488716215946]
+    [INVESTIGATE] Polygon WKT: POLYGON ((19.40727391309529 36.548871621594586, 19.40727391309529 36.548871621594586, 9.633494413222182 33.929995297603725, 9.633494413222182 33.929995297603725, 19.40727391309529 36.548871621594586))
+  Face A4 (Face_4):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [-0.259, 0.966, 0.000]
+    • 2D Polygon: (19.4,36.5) → (19.4,36.5) → (9.6,33.9) → (9.6,33.9)
+  Face A5 (Face_5):
+    • Area: 151.16
+    • Vertices: 4
+    • Dot product: -1.000000
+    • Face normal: [-0.000, -0.000, -1.000]
+    • 2D Polygon: (9.6,33.9) → (19.4,36.5) → (23.3,22.1) → (13.5,19.5)
+  [WARNING] Face_6 is invalid in Array_A: Too few points in geometry component[23.2737794998731 22.1188763239909]
+    [INVESTIGATE] Polygon WKT: POLYGON ((23.273779499873108 22.118876323990865, 23.273779499873108 22.118876323990865, 19.40727391309529 36.548871621594586, 19.40727391309529 36.548871621594586, 23.273779499873108 22.118876323990865))
+  Face A6 (Face_6):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [0.966, 0.259, -0.000]
+    • 2D Polygon: (23.3,22.1) → (23.3,22.1) → (19.4,36.5) → (19.4,36.5)
+  [WARNING] Face_7 is invalid in Array_A: Too few points in geometry component[14.5226366348375 29.0988190850186]
+    [INVESTIGATE] Polygon WKT: POLYGON ((14.522636634837534 29.098819085018572, 14.522636634837534 29.098819085018572, 13.615309614165753 29.098819085018572, 13.615309614165753 29.098819085018572, 14.522636634837534 29.098819085018572))
+  Face A7 (Face_7):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [0.000, 1.000, 0.000]
+    • 2D Polygon: (14.5,29.1) → (14.5,29.1) → (13.6,29.1) → (13.6,29.1)
+  [WARNING] Face_8 is invalid in Array_A: Too few points in geometry component[14.5226366348375 29.0988190850186]
+    [INVESTIGATE] Polygon WKT: POLYGON ((14.522636634837534 29.098819085018572, 14.522636634837534 29.098819085018572, 14.522636634837534 29.244370076652917, 14.522636634837534 29.244370076652917, 14.522636634837534 29.098819085018572))
+  Face A8 (Face_8):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [-1.000, -0.000, 0.000]
+    • 2D Polygon: (14.5,29.1) → (14.5,29.1) → (14.5,29.2) → (14.5,29.2)
+  [WARNING] Face_9 is invalid in Array_A: Self-intersection[14.5226366348375 29.2443700766529]
+    [INVESTIGATE] Polygon WKT: POLYGON ((17.968301584749838 29.244370076652917, 17.968301584749838 29.244370076652917, 13.418685434810254 29.244370076652917, 13.418685434810254 29.244370076652917, 13.615309614165753 29.244370076652917, 13.615309614165753 29.244370076652917, 14.522636634837534 29.244370076652917, 14.522636634837534 29.244370076652917, 17.968301584749838 29.244370076652917))
+  Face A9 (Face_9):
+    • Area: 0.00
+    • Vertices: 8
+    • Dot product: 0.000000
+    • Face normal: [0.000, 1.000, 0.000]
+    • 2D Polygon: (18.0,29.2) → (18.0,29.2) → (13.4,29.2) → (13.4,29.2) → (13.6,29.2) → (13.6,29.2) → (14.5,29.2) → (14.5,29.2)
+  [WARNING] Face_10 is invalid in Array_A: Too few points in geometry component[17.9683015847498 29.2443700766529]
+    [INVESTIGATE] Polygon WKT: POLYGON ((17.968301584749838 29.244370076652917, 17.968301584749838 29.244370076652917, 17.968301584749838 29.814729643193917, 17.968301584749838 29.814729643193917, 17.968301584749838 29.244370076652917))
+  Face A10 (Face_10):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [-1.000, -0.000, 0.000]
+    • 2D Polygon: (18.0,29.2) → (18.0,29.2) → (18.0,29.8) → (18.0,29.8)
+  [WARNING] Face_11 is invalid in Array_A: Self-intersection[13.6153096141658 29.8147296431939]
+    [INVESTIGATE] Polygon WKT: POLYGON ((17.968301584749838 29.814729643193917, 17.968301584749838 29.814729643193917, 14.522636634837534 29.814729643193917, 14.522636634837534 29.814729643193917, 13.615309614165753 29.814729643193917, 13.615309614165753 29.814729643193917, 13.418685434810254 29.814729643193917, 13.418685434810254 29.814729643193917, 17.968301584749838 29.814729643193917))
+  Face A11 (Face_11):
+    • Area: 0.00
+    • Vertices: 8
+    • Dot product: 0.000000
+    • Face normal: [-0.000, -1.000, -0.000]
+    • 2D Polygon: (18.0,29.8) → (18.0,29.8) → (14.5,29.8) → (14.5,29.8) → (13.6,29.8) → (13.6,29.8) → (13.4,29.8) → (13.4,29.8)
+  [WARNING] Face_12 is invalid in Array_A: Too few points in geometry component[14.5226366348375 29.8147296431939]
+    [INVESTIGATE] Polygon WKT: POLYGON ((14.522636634837534 29.814729643193917, 14.522636634837534 29.960280634828262, 14.522636634837534 29.960280634828262, 14.522636634837534 29.814729643193917, 14.522636634837534 29.814729643193917))
+  Face A12 (Face_12):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [-1.000, -0.000, 0.000]
+    • 2D Polygon: (14.5,29.8) → (14.5,30.0) → (14.5,30.0) → (14.5,29.8)
+  [WARNING] Face_13 is invalid in Array_A: Too few points in geometry component[14.5226366348375 29.9602806348283]
+    [INVESTIGATE] Polygon WKT: POLYGON ((14.522636634837534 29.960280634828262, 14.522636634837534 29.960280634828262, 13.615309614165753 29.960280634828262, 13.615309614165753 29.960280634828262, 14.522636634837534 29.960280634828262))
+  Face A13 (Face_13):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [-0.000, -1.000, -0.000]
+    • 2D Polygon: (14.5,30.0) → (14.5,30.0) → (13.6,30.0) → (13.6,30.0)
+  [WARNING] Face_14 is invalid in Array_A: Too few points in geometry component[13.6153096141658 29.9602806348283]
+    [INVESTIGATE] Polygon WKT: POLYGON ((13.615309614165753 29.960280634828262, 13.615309614165753 29.814729643193917, 13.615309614165753 29.814729643193917, 13.615309614165753 29.960280634828262, 13.615309614165753 29.960280634828262))
+  Face A14 (Face_14):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [1.000, 0.000, -0.000]
+    • 2D Polygon: (13.6,30.0) → (13.6,29.8) → (13.6,29.8) → (13.6,30.0)
+  [WARNING] Face_15 is invalid in Array_A: Too few points in geometry component[13.4186854348103 29.2443700766529]
+    [INVESTIGATE] Polygon WKT: POLYGON ((13.418685434810254 29.244370076652917, 13.418685434810254 29.244370076652917, 13.418685434810254 29.814729643193917, 13.418685434810254 29.814729643193917, 13.418685434810254 29.244370076652917))
+  Face A15 (Face_15):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [1.000, 0.000, -0.000]
+    • 2D Polygon: (13.4,29.2) → (13.4,29.2) → (13.4,29.8) → (13.4,29.8)
+  [WARNING] Face_16 is invalid in Array_A: Too few points in geometry component[13.6153096141658 29.0988190850186]
+    [INVESTIGATE] Polygon WKT: POLYGON ((13.615309614165753 29.098819085018572, 13.615309614165753 29.098819085018572, 13.615309614165753 29.244370076652917, 13.615309614165753 29.244370076652917, 13.615309614165753 29.098819085018572))
+  Face A16 (Face_16):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [1.000, 0.000, -0.000]
+    • 2D Polygon: (13.6,29.1) → (13.6,29.1) → (13.6,29.2) → (13.6,29.2)
+  [WARNING] Face_17 is invalid in Array_A: Too few points in geometry component[19.0542795420341 32.9660798073465]
+    [INVESTIGATE] Polygon WKT: POLYGON ((19.054279542034138 32.96607980734651, 19.054279542034138 32.96607980734651, 19.054279542034138 33.60326628608509, 19.054279542034138 33.60326628608509, 19.054279542034138 32.96607980734651))
+  Face A17 (Face_17):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [-1.000, -0.000, 0.000]
+    • 2D Polygon: (19.1,33.0) → (19.1,33.0) → (19.1,33.6) → (19.1,33.6)
+  [WARNING] Face_18 is invalid in Array_A: Too few points in geometry component[19.0542795420341 33.6032662860851]
+    [INVESTIGATE] Polygon WKT: POLYGON ((19.054279542034138 33.60326628608509, 19.054279542034138 33.60326628608509, 16.88711898326582 33.60326628608509, 16.88711898326582 33.60326628608509, 19.054279542034138 33.60326628608509))
+  Face A18 (Face_18):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [-0.000, -1.000, -0.000]
+    • 2D Polygon: (19.1,33.6) → (19.1,33.6) → (16.9,33.6) → (16.9,33.6)
+  [WARNING] Face_19 is invalid in Array_A: Too few points in geometry component[16.8871189832658 32.9660798073465]
+    [INVESTIGATE] Polygon WKT: POLYGON ((16.88711898326582 32.96607980734651, 16.88711898326582 32.96607980734651, 16.88711898326582 33.60326628608509, 16.88711898326582 33.60326628608509, 16.88711898326582 32.96607980734651))
+  Face A19 (Face_19):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [1.000, 0.000, -0.000]
+    • 2D Polygon: (16.9,33.0) → (16.9,33.0) → (16.9,33.6) → (16.9,33.6)
+  [WARNING] Face_20 is invalid in Array_A: Too few points in geometry component[19.0542795420341 32.9660798073465]
+    [INVESTIGATE] Polygon WKT: POLYGON ((19.054279542034138 32.96607980734651, 19.054279542034138 32.96607980734651, 16.88711898326582 32.96607980734651, 16.88711898326582 32.96607980734651, 19.054279542034138 32.96607980734651))
+  Face A20 (Face_20):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [0.000, 1.000, 0.000]
+    • 2D Polygon: (19.1,33.0) → (19.1,33.0) → (16.9,33.0) → (16.9,33.0)
+  Face A21 (Face_21):
+    • Area: 0.13
+    • Vertices: 4
+    • Dot product: 1.000000
+    • Face normal: [0.000, 0.000, 1.000]
+    • 2D Polygon: (13.6,29.2) → (13.6,29.1) → (14.5,29.1) → (14.5,29.2)
+  Face A22 (Face_22):
+    • Area: 2.59
+    • Vertices: 4
+    • Dot product: 1.000000
+    • Face normal: [0.000, 0.000, 1.000]
+    • 2D Polygon: (13.4,29.8) → (13.4,29.2) → (18.0,29.2) → (18.0,29.8)
+  Face A23 (Face_23):
+    • Area: 0.13
+    • Vertices: 4
+    • Dot product: 1.000000
+    • Face normal: [0.000, 0.000, 1.000]
+    • 2D Polygon: (13.6,30.0) → (13.6,29.8) → (14.5,29.8) → (14.5,30.0)
+  Face A24 (Face_24):
+    • Area: 1.38
+    • Vertices: 4
+    • Dot product: 1.000000
+    • Face normal: [0.000, 0.000, 1.000]
+    • 2D Polygon: (16.9,33.6) → (16.9,33.0) → (19.1,33.0) → (19.1,33.6)
+============================================================
+ARRAY A DISPLAY COMPLETE - NOW STARTING HISTORIC ALGORITHM
+============================================================
+Moved Face_1 from array_A to array_B as seed
+[DEBUG] Face_2 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Checking intersection: Face_3 vs Face_1, area=0.0
+[DEBUG] Intersection too small: Face_3 vs Face_1, area=0.0
+[DEBUG] Face_4 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Checking intersection: Face_5 vs Face_3, area=146.92156496507442
+[DEBUG] Added intersection to Array_C: Intersection_Face_5_Face_3, area=146.92156496507442
+[DEBUG] Checking intersection: Face_5 vs Face_1, area=0.0
+[DEBUG] Intersection is empty: Face_5 vs Face_1
+[DEBUG] Face_6 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_7 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_8 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_9 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_10 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_11 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_12 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_13 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_14 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_15 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_16 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_17 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_18 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_19 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_20 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Checking intersection: Face_21 vs Modified_Face_5, area=0.13206234759541313
+[DEBUG] Added intersection to Array_C: Intersection_Face_21_Modified_Face_5, area=0.13206234759541313
+[DEBUG] Checking intersection: Face_21 vs Face_3, area=0.0
+[DEBUG] Intersection too small: Face_21 vs Face_3, area=0.0
+[DEBUG] Checking intersection: Face_21 vs Face_1, area=0.0
+[DEBUG] Intersection is empty: Face_21 vs Face_1
+[DEBUG] Checking intersection: Face_22 vs Face_21, area=0.0
+[DEBUG] Intersection too small: Face_22 vs Face_21, area=0.0
+[DEBUG] Checking intersection: Face_22 vs Modified_Modified_Face_5, area=2.5949170952074776
+[DEBUG] Added intersection to Array_C: Intersection_Face_22_Modified_Modified_Face_5, area=2.5949170952074776
+[DEBUG] Checking intersection: Face_22 vs Face_3, area=0.0
+[DEBUG] Intersection too small: Face_22 vs Face_3, area=0.0
+[DEBUG] Checking intersection: Face_22 vs Face_1, area=0.0
+[DEBUG] Intersection is empty: Face_22 vs Face_1
+[DEBUG] Checking intersection: Face_23 vs Face_22, area=0.0
+[DEBUG] Intersection too small: Face_23 vs Face_22, area=0.0
+[DEBUG] Checking intersection: Face_23 vs Face_21, area=0.0
+[DEBUG] Intersection is empty: Face_23 vs Face_21
+[DEBUG] Checking intersection: Face_23 vs Modified_Modified_Modified_Face_5, area=0.13206234759541313
+[DEBUG] Added intersection to Array_C: Intersection_Face_23_Modified_Modified_Modified_Face_5, area=0.13206234759541313
+[DEBUG] Checking intersection: Face_23 vs Face_3, area=0.0
+[DEBUG] Intersection too small: Face_23 vs Face_3, area=0.0
+[DEBUG] Checking intersection: Face_23 vs Face_1, area=0.0
+[DEBUG] Intersection is empty: Face_23 vs Face_1
+[DEBUG] Checking intersection: Face_24 vs Face_23, area=0.0
+[DEBUG] Intersection is empty: Face_24 vs Face_23
+[DEBUG] Checking intersection: Face_24 vs Face_22, area=0.0
+[DEBUG] Intersection is empty: Face_24 vs Face_22
+[DEBUG] Checking intersection: Face_24 vs Face_21, area=0.0
+[DEBUG] Intersection is empty: Face_24 vs Face_21
+[DEBUG] Checking intersection: Face_24 vs Modified_Modified_Modified_Modified_Face_5, area=1.3808854053027113
+[DEBUG] Added intersection to Array_C: Intersection_Face_24_Modified_Modified_Modified_Modified_Face_5, area=1.3808854053027113
+[DEBUG] Checking intersection: Face_24 vs Face_3, area=0.0
+[DEBUG] Intersection too small: Face_24 vs Face_3, area=0.0
+[DEBUG] Checking intersection: Face_24 vs Face_1, area=0.0
+[DEBUG] Intersection is empty: Face_24 vs Face_1
+
+===== FINAL ARRAY_B =====
+  Face_3: area=146.92, dot=1.0
+  Face_21: area=0.13, dot=1.0
+  Face_22: area=2.59, dot=1.0
+  Face_23: area=0.13, dot=1.0
+  Face_24: area=1.38, dot=1.0
+
+===== FINAL ARRAY_C =====
+  Face_2: area=0.00, dot=0.0
+  Face_4: area=0.00, dot=0.0
+  Intersection_Face_5_Face_3: area=146.92, dot=0
+  Face_6: area=0.00, dot=0.0
+  Face_7: area=0.00, dot=0.0
+  Face_8: area=0.00, dot=0.0
+  Face_9: area=0.00, dot=0.0
+  Face_10: area=0.00, dot=0.0
+  Face_11: area=0.00, dot=0.0
+  Face_12: area=0.00, dot=0.0
+  Face_13: area=0.00, dot=0.0
+  Face_14: area=0.00, dot=0.0
+  Face_15: area=0.00, dot=0.0
+  Face_16: area=0.00, dot=0.0
+  Face_17: area=0.00, dot=0.0
+  Face_18: area=0.00, dot=0.0
+  Face_19: area=0.00, dot=0.0
+  Face_20: area=0.00, dot=0.0
+  Intersection_Face_21_Modified_Face_5: area=0.13, dot=0
+  Intersection_Face_22_Modified_Modified_Face_5: area=2.59, dot=0
+  Intersection_Face_23_Modified_Modified_Modified_Face_5: area=0.13, dot=0
+  Intersection_Face_24_Modified_Modified_Modified_Modified_Face_5: area=1.38, dot=0
+  Face_1: area=0.00, dot=0.0
+[DEBUG] classify_faces_by_projection: A=0, B=5, C=23
+
+[DEBUG] Creating connectivity matrix for Top View
+[DEBUG] Using projection normal: [0. 0. 1.]
+[DEBUG] Top View: visible list has 5 polygons, visible_set has 5 IDs
+[DEBUG] Top View: hidden list has 23 polygons
+[DEBUG] Extracting projected vertices from polygons for Top View
+[DEBUG] Found 20 unique projected vertices from polygons for Top View
+[DEBUG] Processing 28 polygons (5 visible, 23 hidden)
+[DEBUG] Found 20 unique projected vertices
+[DEBUG] Top View: Edge 0: poly_data id=6112991680, in visible_set=True, visibility=1
+[DEBUG] Top View: Edge 1: poly_data id=6112991680, in visible_set=True, visibility=1
+[DEBUG] Top View: Edge 2: poly_data id=6112991680, in visible_set=True, visibility=1
+[DEBUG] Top View: Added 80 edges to connectivity matrix
+[DEBUG] Top View: Matrix shape: (20, 23)
+[DEBUG] Top View: Updated connectivity matrix with 20 vertices
+
+============================================================
+ENHANCED FACE CLASSIFICATION WITH HISTORIC ALGORITHM
+============================================================
+Unit projection normal: [0.577350, 0.577350, 0.577350]
+
+Step 1: Initial classification and polygon projection...
+Face F1: dot_product=-0.707, unit_face_normal=[-0.966, -0.259, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_1 (area: 311.94)
+      [DEBUG] Face_1 dot_product: -0.707107 (hidden)
+Face F2: dot_product=-0.408, unit_face_normal=[0.259, -0.966, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_2 (area: 121.98)
+      [DEBUG] Face_2 dot_product: -0.408248 (hidden)
+Face F3: dot_product=0.577, unit_face_normal=[0.000, -0.000, 1.000]
+  → Added Face_3 (area: 84.83) with 2 holes
+      [DEBUG] Face_3 dot_product: 0.577350 (visible)
+Face F4: dot_product=0.408, unit_face_normal=[-0.259, 0.966, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_4 (area: 121.98)
+      [DEBUG] Face_4 dot_product: 0.408248 (visible)
+Face F5: dot_product=-0.577, unit_face_normal=[-0.000, -0.000, -1.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_5 (area: 87.27)
+      [DEBUG] Face_5 dot_product: -0.577350 (hidden)
+Face F6: dot_product=0.707, unit_face_normal=[0.966, 0.259, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_6 (area: 311.94)
+      [DEBUG] Face_6 dot_product: 0.707107 (visible)
+Face F7: dot_product=0.577, unit_face_normal=[0.000, 1.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_7 (area: 4.41)
+      [DEBUG] Face_7 dot_product: 0.577350 (visible)
+Face F8: dot_product=-0.577, unit_face_normal=[-1.000, -0.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_8 (area: 0.71)
+      [DEBUG] Face_8 dot_product: -0.577350 (hidden)
+Face F9: dot_product=0.577, unit_face_normal=[0.000, 1.000, 0.000]
+    → Creating polygon from 9 vertices
+    → Valid polygon created with 8 vertices
+  → Added Face_9 (area: 26.64)
+      [DEBUG] Face_9 dot_product: 0.577350 (visible)
+Face F10: dot_product=-0.577, unit_face_normal=[-1.000, -0.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_10 (area: 3.89)
+      [DEBUG] Face_10 dot_product: -0.577350 (hidden)
+Face F11: dot_product=-0.577, unit_face_normal=[-0.000, -1.000, -0.000]
+    → Creating polygon from 9 vertices
+    → Valid polygon created with 8 vertices
+  → Added Face_11 (area: 26.64)
+      [DEBUG] Face_11 dot_product: -0.577350 (hidden)
+Face F12: dot_product=-0.577, unit_face_normal=[-1.000, -0.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_12 (area: 0.71)
+      [DEBUG] Face_12 dot_product: -0.577350 (hidden)
+Face F13: dot_product=-0.577, unit_face_normal=[-0.000, -1.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_13 (area: 4.41)
+      [DEBUG] Face_13 dot_product: -0.577350 (hidden)
+Face F14: dot_product=0.577, unit_face_normal=[1.000, 0.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_14 (area: 0.71)
+      [DEBUG] Face_14 dot_product: 0.577350 (visible)
+Face F15: dot_product=0.577, unit_face_normal=[1.000, 0.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_15 (area: 3.89)
+      [DEBUG] Face_15 dot_product: 0.577350 (visible)
+Face F16: dot_product=0.577, unit_face_normal=[1.000, 0.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_16 (area: 0.71)
+      [DEBUG] Face_16 dot_product: 0.577350 (visible)
+Face F17: dot_product=-0.577, unit_face_normal=[-1.000, -0.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_17 (area: 2.78)
+      [DEBUG] Face_17 dot_product: -0.577350 (hidden)
+Face F18: dot_product=-0.577, unit_face_normal=[-0.000, -1.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_18 (area: 9.44)
+      [DEBUG] Face_18 dot_product: -0.577350 (hidden)
+Face F19: dot_product=0.577, unit_face_normal=[1.000, 0.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_19 (area: 2.78)
+      [DEBUG] Face_19 dot_product: 0.577350 (visible)
+Face F20: dot_product=0.577, unit_face_normal=[0.000, 1.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_20 (area: 9.44)
+      [DEBUG] Face_20 dot_product: 0.577350 (visible)
+Face F21: dot_product=0.577, unit_face_normal=[0.000, 0.000, 1.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_21 (area: 0.08)
+      [DEBUG] Face_21 dot_product: 0.577350 (visible)
+Face F22: dot_product=0.577, unit_face_normal=[0.000, 0.000, 1.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_22 (area: 1.50)
+      [DEBUG] Face_22 dot_product: 0.577350 (visible)
+Face F23: dot_product=0.577, unit_face_normal=[0.000, 0.000, 1.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_23 (area: 0.08)
+      [DEBUG] Face_23 dot_product: 0.577350 (visible)
+Face F24: dot_product=0.577, unit_face_normal=[0.000, 0.000, 1.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_24 (area: 0.80)
+      [DEBUG] Face_24 dot_product: 0.577350 (visible)
+
+Step 2: Starting historic polygon classification algorithm...
+Initial array_A: 24 polygons
+[DEBUG] Initial faces in array_A before historic algorithm:
+  A1: Face_1 (dot=-0.707, area=311.94)
+  A2: Face_2 (dot=-0.408, area=121.98)
+  A3: Face_3 (dot=0.577, area=84.83)
+  A4: Face_4 (dot=0.408, area=121.98)
+  A5: Face_5 (dot=-0.577, area=87.27)
+  A6: Face_6 (dot=0.707, area=311.94)
+  A7: Face_7 (dot=0.577, area=4.41)
+  A8: Face_8 (dot=-0.577, area=0.71)
+  A9: Face_9 (dot=0.577, area=26.64)
+  A10: Face_10 (dot=-0.577, area=3.89)
+  A11: Face_11 (dot=-0.577, area=26.64)
+  A12: Face_12 (dot=-0.577, area=0.71)
+  A13: Face_13 (dot=-0.577, area=4.41)
+  A14: Face_14 (dot=0.577, area=0.71)
+  A15: Face_15 (dot=0.577, area=3.89)
+  A16: Face_16 (dot=0.577, area=0.71)
+  A17: Face_17 (dot=-0.577, area=2.78)
+  A18: Face_18 (dot=-0.577, area=9.44)
+  A19: Face_19 (dot=0.577, area=2.78)
+  A20: Face_20 (dot=0.577, area=9.44)
+  A21: Face_21 (dot=0.577, area=0.08)
+  A22: Face_22 (dot=0.577, area=1.50)
+  A23: Face_23 (dot=0.577, area=0.08)
+  A24: Face_24 (dot=0.577, area=0.80)
+
+============================================================
+ARRAY A - INITIAL FACE CLASSIFICATION (BEFORE SORTING)
+============================================================
+  Face A1 (Face_1):
+    • Area: 311.94
+    • Vertices: 4
+    • Dot product: -0.707107
+    • Face normal: [-0.966, -0.259, 0.000]
+    • 2D Polygon: (3.1,13.8) → (-9.0,-7.1) → (-18.0,3.1) → (-6.0,24.0)
+  Face A2 (Face_2):
+    • Area: 121.98
+    • Vertices: 4
+    • Dot product: -0.408248
+    • Face normal: [0.259, -0.966, -0.000]
+    • 2D Polygon: (10.0,15.6) → (-2.1,-5.2) → (-9.0,-7.1) → (3.1,13.8)
+  Face A3 (Face_3):
+    • Area: 84.83
+    • Vertices: 4
+    • Dot product: 0.577350
+    • Face normal: [0.000, -0.000, 1.000]
+    • 2D Polygon: (-18.0,3.1) → (-9.0,-7.1) → (-2.1,-5.2) → (-11.1,5.0)
+  Face A4 (Face_4):
+    • Area: 121.98
+    • Vertices: 4
+    • Dot product: 0.408248
+    • Face normal: [-0.259, 0.966, 0.000]
+    • 2D Polygon: (-11.1,5.0) → (0.9,25.8) → (-6.0,24.0) → (-18.0,3.1)
+  Face A5 (Face_5):
+    • Area: 87.27
+    • Vertices: 4
+    • Dot product: -0.577350
+    • Face normal: [-0.000, -0.000, -1.000]
+    • 2D Polygon: (-6.0,24.0) → (0.9,25.8) → (10.0,15.6) → (3.1,13.8)
+  Face A6 (Face_6):
+    • Area: 311.94
+    • Vertices: 4
+    • Dot product: 0.707107
+    • Face normal: [0.966, 0.259, -0.000]
+    • 2D Polygon: (-2.1,-5.2) → (10.0,15.6) → (0.9,25.8) → (-11.1,5.0)
+  Face A7 (Face_7):
+    • Area: 4.41
+    • Vertices: 4
+    • Dot product: 0.577350
+    • Face normal: [0.000, 1.000, 0.000]
+    • 2D Polygon: (-12.1,-0.3) → (-8.6,5.6) → (-9.4,5.6) → (-12.8,-0.3)
+  Face A8 (Face_8):
+    • Area: 0.71
+    • Vertices: 4
+    • Dot product: -0.577350
+    • Face normal: [-1.000, -0.000, 0.000]
+    • 2D Polygon: (-8.6,5.6) → (-12.1,-0.3) → (-12.1,-0.2) → (-8.7,5.7)
+  Face A9 (Face_9):
+    • Area: 26.64
+    • Vertices: 8
+    • Dot product: 0.577350
+    • Face normal: [0.000, 1.000, 0.000]
+    • 2D Polygon: (-9.3,-0.2) → (-4.5,8.2) → (-8.2,8.2) → (-13.0,-0.2) → (-12.9,-0.2) → (-9.4,5.7) → (-8.7,5.7) → (-12.1,-0.2)
+  Face A10 (Face_10):
+    • Area: 3.89
+    • Vertices: 4
+    • Dot product: -0.577350
+    • Face normal: [-1.000, -0.000, 0.000]
+    • 2D Polygon: (-4.5,8.2) → (-9.3,-0.2) → (-9.6,0.2) → (-4.7,8.6)
+  Face A11 (Face_11):
+    • Area: 26.64
+    • Vertices: 8
+    • Dot product: -0.577350
+    • Face normal: [-0.000, -1.000, -0.000]
+    • 2D Polygon: (-4.7,8.6) → (-9.6,0.2) → (-12.4,0.2) → (-8.9,6.1) → (-9.7,6.1) → (-13.1,0.2) → (-13.3,0.2) → (-8.4,8.6)
+  Face A12 (Face_12):
+    • Area: 0.71
+    • Vertices: 4
+    • Dot product: -0.577350
+    • Face normal: [-1.000, -0.000, 0.000]
+    • 2D Polygon: (-12.4,0.2) → (-12.4,0.3) → (-9.0,6.3) → (-8.9,6.1)
+  Face A13 (Face_13):
+    • Area: 4.41
+    • Vertices: 4
+    • Dot product: -0.577350
+    • Face normal: [-0.000, -1.000, -0.000]
+    • 2D Polygon: (-9.0,6.3) → (-12.4,0.3) → (-13.2,0.3) → (-9.7,6.3)
+  Face A14 (Face_14):
+    • Area: 0.71
+    • Vertices: 4
+    • Dot product: 0.577350
+    • Face normal: [1.000, 0.000, -0.000]
+    • 2D Polygon: (-13.2,0.3) → (-13.1,0.2) → (-9.7,6.1) → (-9.7,6.3)
+  Face A15 (Face_15):
+    • Area: 3.89
+    • Vertices: 4
+    • Dot product: 0.577350
+    • Face normal: [1.000, 0.000, -0.000]
+    • 2D Polygon: (-13.0,-0.2) → (-8.2,8.2) → (-8.4,8.6) → (-13.3,0.2)
+  Face A16 (Face_16):
+    • Area: 0.71
+    • Vertices: 4
+    • Dot product: 0.577350
+    • Face normal: [1.000, 0.000, -0.000]
+    • 2D Polygon: (-12.8,-0.3) → (-9.4,5.6) → (-9.4,5.7) → (-12.9,-0.2)
+  Face A17 (Face_17):
+    • Area: 2.78
+    • Vertices: 4
+    • Dot product: -0.577350
+    • Face normal: [-1.000, -0.000, 0.000]
+    • 2D Polygon: (-6.9,7.8) → (-10.0,2.4) → (-10.2,2.9) → (-7.1,8.2)
+  Face A18 (Face_18):
+    • Area: 9.44
+    • Vertices: 4
+    • Dot product: -0.577350
+    • Face normal: [-0.000, -1.000, -0.000]
+    • 2D Polygon: (-7.1,8.2) → (-10.2,2.9) → (-12.0,2.9) → (-8.9,8.2)
+  Face A19 (Face_19):
+    • Area: 2.78
+    • Vertices: 4
+    • Dot product: 0.577350
+    • Face normal: [1.000, 0.000, -0.000]
+    • 2D Polygon: (-11.7,2.4) → (-8.6,7.8) → (-8.9,8.2) → (-12.0,2.9)
+  Face A20 (Face_20):
+    • Area: 9.44
+    • Vertices: 4
+    • Dot product: 0.577350
+    • Face normal: [0.000, 1.000, 0.000]
+    • 2D Polygon: (-10.0,2.4) → (-6.9,7.8) → (-8.6,7.8) → (-11.7,2.4)
+  Face A21 (Face_21):
+    • Area: 0.08
+    • Vertices: 4
+    • Dot product: 0.577350
+    • Face normal: [0.000, 0.000, 1.000]
+    • 2D Polygon: (-9.4,5.7) → (-9.4,5.6) → (-8.6,5.6) → (-8.7,5.7)
+  Face A22 (Face_22):
+    • Area: 1.50
+    • Vertices: 4
+    • Dot product: 0.577350
+    • Face normal: [0.000, 0.000, 1.000]
+    • 2D Polygon: (-8.4,8.6) → (-8.2,8.2) → (-4.5,8.2) → (-4.7,8.6)
+  Face A23 (Face_23):
+    • Area: 0.08
+    • Vertices: 4
+    • Dot product: 0.577350
+    • Face normal: [0.000, 0.000, 1.000]
+    • 2D Polygon: (-9.7,6.3) → (-9.7,6.1) → (-8.9,6.1) → (-9.0,6.3)
+  Face A24 (Face_24):
+    • Area: 0.80
+    • Vertices: 4
+    • Dot product: 0.577350
+    • Face normal: [0.000, 0.000, 1.000]
+    • 2D Polygon: (-8.9,8.2) → (-8.6,7.8) → (-6.9,7.8) → (-7.1,8.2)
+============================================================
+ARRAY A DISPLAY COMPLETE - NOW STARTING HISTORIC ALGORITHM
+============================================================
+Moved Face_1 from array_A to array_B as seed
+[DEBUG] Checking intersection: Face_2 vs Face_1, area=0.0
+[DEBUG] Intersection too small: Face_2 vs Face_1, area=0.0
+[DEBUG] Checking intersection: Face_3 vs Face_2, area=17.064213152083262
+[DEBUG] Added intersection to Array_C: Intersection_Face_3_Face_2, area=17.064213152083262
+[DEBUG] Checking intersection: Face_3 vs Face_1, area=67.76099193026354
+[DEBUG] Added intersection to Array_C: Intersection_Face_3_Face_1, area=67.76099193026354
+[DEBUG] Checking intersection: Face_4 vs Face_3, area=0.0
+[DEBUG] Intersection too small: Face_4 vs Face_3, area=0.0
+[DEBUG] Checking intersection: Face_4 vs Modified_Face_2, area=0.0
+[DEBUG] Intersection is empty: Face_4 vs Modified_Face_2
+[DEBUG] Checking intersection: Face_4 vs Modified_Face_1, area=104.91941725583871
+[DEBUG] Added intersection to Array_C: Intersection_Face_4_Modified_Face_1, area=104.91941725583871
+[DEBUG] Checking intersection: Face_5 vs Face_4, area=17.064213152083266
+[DEBUG] Added intersection to Array_C: Intersection_Face_5_Face_4, area=17.064213152083266
+[DEBUG] Checking intersection: Face_5 vs Face_3, area=0.0
+[DEBUG] Intersection is empty: Face_5 vs Face_3
+[DEBUG] Checking intersection: Face_5 vs Modified_Face_2, area=0.0
+[DEBUG] Intersection too small: Face_5 vs Modified_Face_2, area=0.0
+[DEBUG] Checking intersection: Face_5 vs Modified_Modified_Face_1, area=0.0
+[DEBUG] Intersection too small: Face_5 vs Modified_Modified_Face_1, area=0.0
+[DEBUG] Checking intersection: Face_6 vs Modified_Face_5, area=70.2089150380459
+[DEBUG] Added intersection to Array_C: Intersection_Face_6_Modified_Face_5, area=70.2089150380459
+[DEBUG] Checking intersection: Face_6 vs Face_4, area=0.0
+[DEBUG] Intersection too small: Face_6 vs Face_4, area=0.0
+[DEBUG] Checking intersection: Face_6 vs Face_3, area=0.0
+[DEBUG] Intersection too small: Face_6 vs Face_3, area=0.0
+[DEBUG] Checking intersection: Face_6 vs Modified_Face_2, area=104.91941725583864
+[DEBUG] Added intersection to Array_C: Intersection_Face_6_Modified_Face_2, area=104.91941725583864
+[DEBUG] Checking intersection: Face_6 vs Modified_Modified_Face_1, area=136.8079087389526
+[DEBUG] Added intersection to Array_C: Intersection_Face_6_Modified_Modified_Face_1, area=136.8079087389526
+[DEBUG] Checking intersection: Face_7 vs Face_6, area=1.3756270524119982
+[DEBUG] Added intersection to Array_C: Intersection_Face_7_Face_6, area=1.3756270524119982
+[DEBUG] Checking intersection: Face_7 vs Face_4, area=0.0
+[DEBUG] Intersection is empty: Face_7 vs Face_4
+[DEBUG] Checking intersection: Face_7 vs Face_3, area=2.31755105027304
+[DEBUG] Added intersection to Array_C: Intersection_Face_7_Face_3, area=2.31755105027304
+[DEBUG] Checking intersection: Face_7 vs Modified_Modified_Modified_Face_1, area=0.712668047931723
+[DEBUG] Added intersection to Array_C: Intersection_Face_7_Modified_Modified_Modified_Face_1, area=0.712668047931723
+[DEBUG] Checking intersection: Face_8 vs Modified_Face_7, area=0.10147480868720637
+[DEBUG] Added intersection to Array_C: Intersection_Face_8_Modified_Face_7, area=0.10147480868720637
+[DEBUG] Checking intersection: Face_8 vs Face_6, area=0.2520335732286101
+[DEBUG] Added intersection to Array_C: Intersection_Face_8_Face_6, area=0.2520335732286101
+[DEBUG] Checking intersection: Face_8 vs Face_4, area=0.0
+[DEBUG] Intersection is empty: Face_8 vs Face_4
+[DEBUG] Checking intersection: Face_8 vs Face_3, area=0.35326575971156515
+[DEBUG] Added intersection to Array_C: Intersection_Face_8_Face_3, area=0.35326575971156515
+[DEBUG] Checking intersection: Face_8 vs Modified_Modified_Modified_Modified_Face_1, area=0.0
+[DEBUG] Intersection too small: Face_8 vs Modified_Modified_Modified_Modified_Face_1, area=0.0
+[DEBUG] Checking intersection: Face_9 vs Modified_Face_8, area=0.10147480868720637
+[DEBUG] Added intersection to Array_C: Intersection_Face_9_Modified_Face_8, area=0.10147480868720637
+[DEBUG] Checking intersection: Face_9 vs Modified_Modified_Face_7, area=0.0
+[DEBUG] Intersection too small: Face_9 vs Modified_Modified_Face_7, area=0.0
+[DEBUG] Checking intersection: Face_9 vs Face_6, area=17.90277359542264
+[DEBUG] Added intersection to Array_C: Intersection_Face_9_Face_6, area=17.90277359542264
+[DEBUG] Checking intersection: Face_9 vs Face_4, area=0.0
+[DEBUG] Intersection is empty: Face_9 vs Face_4
+[DEBUG] Checking intersection: Face_9 vs Face_3, area=7.359044146291632
+[DEBUG] Added intersection to Array_C: Intersection_Face_9_Face_3, area=7.359044146291632
+[DEBUG] Checking intersection: Face_9 vs Modified_Modified_Modified_Modified_Face_1, area=1.2736232532025253
+[DEBUG] Added intersection to Array_C: Intersection_Face_9_Modified_Modified_Modified_Modified_Face_1, area=1.2736232532025253
+[DEBUG] Checking intersection: Face_10 vs Modified_Face_9, area=0.0
+[DEBUG] Intersection too small: Face_10 vs Modified_Face_9, area=0.0
+[DEBUG] Checking intersection: Face_10 vs Modified_Modified_Face_7, area=0.0
+[DEBUG] Intersection is empty: Face_10 vs Modified_Modified_Face_7
+[DEBUG] Checking intersection: Face_10 vs Face_6, area=3.029476084495979
+[DEBUG] Added intersection to Array_C: Intersection_Face_10_Face_6, area=3.029476084495979
+[DEBUG] Checking intersection: Face_10 vs Face_4, area=0.0
+[DEBUG] Intersection is empty: Face_10 vs Face_4
+[DEBUG] Checking intersection: Face_10 vs Face_3, area=0.862178874720736
+[DEBUG] Added intersection to Array_C: Intersection_Face_10_Face_3, area=0.862178874720736
+[DEBUG] Checking intersection: Face_11 vs Modified_Face_9, area=0.18075403044631497
+[DEBUG] Added intersection to Array_C: Intersection_Face_11_Modified_Face_9, area=0.18075403044631497
+[DEBUG] Checking intersection: Face_11 vs Modified_Modified_Face_7, area=0.20982375472531833
+[DEBUG] Added intersection to Array_C: Intersection_Face_11_Modified_Modified_Face_7, area=0.20982375472531833
+[DEBUG] Checking intersection: Face_11 vs Face_6, area=18.15623574959524
+[DEBUG] Added intersection to Array_C: Intersection_Face_11_Face_6, area=18.15623574959524
+[DEBUG] Checking intersection: Face_11 vs Face_4, area=0.0
+[DEBUG] Intersection is empty: Face_11 vs Face_4
+[DEBUG] Checking intersection: Face_11 vs Face_3, area=8.036487740104352
+[DEBUG] Added intersection to Array_C: Intersection_Face_11_Face_3, area=8.036487740104352
+[DEBUG] Checking intersection: Face_11 vs Modified_Modified_Modified_Modified_Modified_Face_1, area=0.053614528732780706
+[DEBUG] Added intersection to Array_C: Intersection_Face_11_Modified_Modified_Modified_Modified_Modified_Face_1, area=0.053614528732780706
+[DEBUG] Checking intersection: Face_12 vs Modified_Face_11, area=0.0
+[DEBUG] Intersection too small: Face_12 vs Modified_Face_11, area=0.0
+[DEBUG] Checking intersection: Face_12 vs Modified_Modified_Face_9, area=0.0
+[DEBUG] Intersection is empty: Face_12 vs Modified_Modified_Face_9
+[DEBUG] Checking intersection: Face_12 vs Modified_Modified_Modified_Face_7, area=0.05354526751242944
+[DEBUG] Added intersection to Array_C: Intersection_Face_12_Modified_Modified_Modified_Face_7, area=0.05354526751242944
+[DEBUG] Checking intersection: Face_12 vs Face_6, area=0.2647470375823504
+[DEBUG] Added intersection to Array_C: Intersection_Face_12_Face_6, area=0.2647470375823504
+[DEBUG] Checking intersection: Face_12 vs Face_4, area=0.0
+[DEBUG] Intersection is empty: Face_12 vs Face_4
+[DEBUG] Checking intersection: Face_12 vs Face_3, area=0.3884818365325948
+[DEBUG] Added intersection to Array_C: Intersection_Face_12_Face_3, area=0.3884818365325948
+[DEBUG] Checking intersection: Face_12 vs Modified_Modified_Modified_Modified_Modified_Modified_Face_1, area=0.0
+[DEBUG] Intersection is empty: Face_12 vs Modified_Modified_Modified_Modified_Modified_Modified_Face_1
+[DEBUG] Checking intersection: Face_13 vs Modified_Face_12, area=0.0
+[DEBUG] Intersection is empty: Face_13 vs Modified_Face_12
+[DEBUG] Checking intersection: Face_13 vs Modified_Face_11, area=0.03730700118008276
+[DEBUG] Added intersection to Array_C: Intersection_Face_13_Modified_Face_11, area=0.03730700118008276
+[DEBUG] Checking intersection: Face_13 vs Modified_Modified_Face_9, area=0.07233406083176332
+[DEBUG] Added intersection to Array_C: Intersection_Face_13_Modified_Modified_Face_9, area=0.07233406083176332
+[DEBUG] Checking intersection: Face_13 vs Modified_Modified_Modified_Modified_Face_7, area=0.016872979560757145
+[DEBUG] Added intersection to Array_C: Intersection_Face_13_Modified_Modified_Modified_Modified_Face_7, area=0.016872979560757145
+[DEBUG] Checking intersection: Face_13 vs Face_6, area=1.47099220682844
+[DEBUG] Added intersection to Array_C: Intersection_Face_13_Face_6, area=1.47099220682844
+[DEBUG] Checking intersection: Face_13 vs Face_4, area=0.0
+[DEBUG] Intersection is empty: Face_13 vs Face_4
+[DEBUG] Checking intersection: Face_13 vs Face_3, area=2.6214937382725907
+[DEBUG] Added intersection to Array_C: Intersection_Face_13_Face_3, area=2.6214937382725907
+[DEBUG] Checking intersection: Face_13 vs Modified_Modified_Modified_Modified_Modified_Modified_Face_1, area=0.18684616394312484
+[DEBUG] Added intersection to Array_C: Intersection_Face_13_Modified_Modified_Modified_Modified_Modified_Modified_Face_1, area=0.18684616394312484
+[DEBUG] Checking intersection: Face_14 vs Modified_Face_13, area=0.03730700118008248
+[DEBUG] Added intersection to Array_C: Intersection_Face_14_Modified_Face_13, area=0.03730700118008248
+[DEBUG] Checking intersection: Face_14 vs Modified_Face_12, area=0.0
+[DEBUG] Intersection is empty: Face_14 vs Modified_Face_12
+[DEBUG] Checking intersection: Face_14 vs Modified_Modified_Face_11, area=0.006115609043673587
+[DEBUG] Added intersection to Array_C: Intersection_Face_14_Modified_Modified_Face_11, area=0.006115609043673587
+[DEBUG] Checking intersection: Face_14 vs Modified_Modified_Modified_Face_9, area=0.0
+[DEBUG] Intersection is empty: Face_14 vs Modified_Modified_Modified_Face_9
+[DEBUG] Checking intersection: Face_14 vs Modified_Modified_Modified_Modified_Modified_Face_7, area=0.0
+[DEBUG] Intersection is empty: Face_14 vs Modified_Modified_Modified_Modified_Modified_Face_7
+[DEBUG] Checking intersection: Face_14 vs Face_6, area=0.20461353034943586
+[DEBUG] Added intersection to Array_C: Intersection_Face_14_Face_6, area=0.20461353034943586
+[DEBUG] Checking intersection: Face_14 vs Face_4, area=0.0
+[DEBUG] Intersection is empty: Face_14 vs Face_4
+[DEBUG] Checking intersection: Face_14 vs Face_3, area=0.4587380010541845
+[DEBUG] Added intersection to Array_C: Intersection_Face_14_Face_3, area=0.4587380010541845
+[DEBUG] Checking intersection: Face_14 vs Modified_Modified_Modified_Modified_Modified_Modified_Modified_Face_1, area=0.0
+[DEBUG] Intersection too small: Face_14 vs Modified_Modified_Modified_Modified_Modified_Modified_Modified_Face_1, area=0.0
+[DEBUG] Checking intersection: Face_15 vs Modified_Face_14, area=0.006115609043673587
+[DEBUG] Added intersection to Array_C: Intersection_Face_15_Modified_Face_14, area=0.006115609043673587
+[DEBUG] Checking intersection: Face_15 vs Modified_Face_13, area=0.17060789761077746
+[DEBUG] Added intersection to Array_C: Intersection_Face_15_Modified_Face_13, area=0.17060789761077746
+[DEBUG] Checking intersection: Face_15 vs Modified_Face_12, area=0.0
+[DEBUG] Intersection is empty: Face_15 vs Modified_Face_12
+[DEBUG] Checking intersection: Face_15 vs Modified_Modified_Modified_Face_11, area=0.01019191850902432
+[DEBUG] Added intersection to Array_C: Intersection_Face_15_Modified_Modified_Modified_Face_11, area=0.01019191850902432
+[DEBUG] Checking intersection: Face_15 vs Modified_Modified_Modified_Face_9, area=0.0
+[DEBUG] Intersection too small: Face_15 vs Modified_Modified_Modified_Face_9, area=0.0
+[DEBUG] Checking intersection: Face_15 vs Modified_Modified_Modified_Modified_Modified_Face_7, area=0.0
+[DEBUG] Intersection is empty: Face_15 vs Modified_Modified_Modified_Modified_Modified_Face_7
+[DEBUG] Checking intersection: Face_15 vs Face_6, area=1.8479018602400021
+[DEBUG] Added intersection to Array_C: Intersection_Face_15_Face_6, area=1.8479018602400021
+[DEBUG] Checking intersection: Face_15 vs Face_4, area=0.0
+[DEBUG] Intersection is empty: Face_15 vs Face_4
+[DEBUG] Checking intersection: Face_15 vs Face_3, area=1.7315223119095258
+[DEBUG] Added intersection to Array_C: Intersection_Face_15_Face_3, area=1.7315223119095258
+[DEBUG] Checking intersection: Face_15 vs Modified_Modified_Modified_Modified_Modified_Modified_Modified_Face_1, area=0.12531536190371464
+[DEBUG] Added intersection to Array_C: Intersection_Face_15_Modified_Modified_Modified_Modified_Modified_Modified_Modified_Face_1, area=0.12531536190371464
+[DEBUG] Checking intersection: Face_16 vs Modified_Face_15, area=0.0
+[DEBUG] Intersection is empty: Face_16 vs Modified_Face_15
+[DEBUG] Checking intersection: Face_16 vs Modified_Face_14, area=0.0
+[DEBUG] Intersection is empty: Face_16 vs Modified_Face_14
+[DEBUG] Checking intersection: Face_16 vs Modified_Face_13, area=0.05354526751242984
+[DEBUG] Added intersection to Array_C: Intersection_Face_16_Modified_Face_13, area=0.05354526751242984
+[DEBUG] Checking intersection: Face_16 vs Modified_Face_12, area=0.0
+[DEBUG] Intersection is empty: Face_16 vs Modified_Face_12
+[DEBUG] Checking intersection: Face_16 vs Modified_Modified_Modified_Face_11, area=0.0
+[DEBUG] Intersection is empty: Face_16 vs Modified_Modified_Modified_Face_11
+[DEBUG] Checking intersection: Face_16 vs Modified_Modified_Modified_Face_9, area=0.0
+[DEBUG] Intersection too small: Face_16 vs Modified_Modified_Modified_Face_9, area=0.0
+[DEBUG] Checking intersection: Face_16 vs Modified_Modified_Modified_Modified_Modified_Face_7, area=0.0
+[DEBUG] Intersection too small: Face_16 vs Modified_Modified_Modified_Modified_Modified_Face_7, area=0.0
+[DEBUG] Checking intersection: Face_16 vs Face_6, area=0.19190006599569384
+[DEBUG] Added intersection to Array_C: Intersection_Face_16_Face_6, area=0.19190006599569384
+[DEBUG] Checking intersection: Face_16 vs Face_4, area=0.0
+[DEBUG] Intersection is empty: Face_16 vs Face_4
+[DEBUG] Checking intersection: Face_16 vs Face_3, area=0.39505243981345617
+[DEBUG] Added intersection to Array_C: Intersection_Face_16_Face_3, area=0.39505243981345617
+[DEBUG] Checking intersection: Face_16 vs Modified_Modified_Modified_Modified_Modified_Modified_Modified_Modified_Face_1, area=0.06627636830579665
+[DEBUG] Added intersection to Array_C: Intersection_Face_16_Modified_Modified_Modified_Modified_Modified_Modified_Modified_Modified_Face_1, area=0.06627636830579665
+[DEBUG] Checking intersection: Face_17 vs Modified_Face_16, area=0.0
+[DEBUG] Intersection is empty: Face_17 vs Modified_Face_16
+[DEBUG] Checking intersection: Face_17 vs Modified_Face_15, area=0.0
+[DEBUG] Intersection is empty: Face_17 vs Modified_Face_15
+[DEBUG] Checking intersection: Face_17 vs Modified_Face_14, area=0.0
+[DEBUG] Intersection is empty: Face_17 vs Modified_Face_14
+[DEBUG] Checking intersection: Face_17 vs Modified_Face_13, area=0.0
+[DEBUG] Intersection is empty: Face_17 vs Modified_Face_13
+[DEBUG] Checking intersection: Face_17 vs Modified_Face_12, area=0.0
+[DEBUG] Intersection is empty: Face_17 vs Modified_Face_12
+[DEBUG] Checking intersection: Face_17 vs Modified_Modified_Modified_Face_11, area=6.523868809395871e-17
+[DEBUG] Intersection too small: Face_17 vs Modified_Modified_Modified_Face_11, area=6.523868809395871e-17
+[DEBUG] Checking intersection: Face_17 vs Modified_Modified_Modified_Face_9, area=0.0
+[DEBUG] Intersection is empty: Face_17 vs Modified_Modified_Modified_Face_9
+[DEBUG] Checking intersection: Face_17 vs Modified_Modified_Modified_Modified_Modified_Face_7, area=0.0
+[DEBUG] Intersection is empty: Face_17 vs Modified_Modified_Modified_Modified_Modified_Face_7
+[DEBUG] Checking intersection: Face_17 vs Face_6, area=2.419271720133322
+[DEBUG] Added intersection to Array_C: Intersection_Face_17_Face_6, area=2.419271720133322
+[DEBUG] Checking intersection: Face_17 vs Face_4, area=0.0
+[DEBUG] Intersection is empty: Face_17 vs Face_4
+[DEBUG] Checking intersection: Face_17 vs Face_3, area=0.3561827557509098
+[DEBUG] Added intersection to Array_C: Intersection_Face_17_Face_3, area=0.3561827557509098
+[DEBUG] Checking intersection: Face_18 vs Modified_Face_16, area=0.0
+[DEBUG] Intersection is empty: Face_18 vs Modified_Face_16
+[DEBUG] Checking intersection: Face_18 vs Modified_Face_15, area=0.0
+[DEBUG] Intersection too small: Face_18 vs Modified_Face_15, area=0.0
+[DEBUG] Checking intersection: Face_18 vs Modified_Face_14, area=0.0
+[DEBUG] Intersection too small: Face_18 vs Modified_Face_14, area=0.0
+[DEBUG] Checking intersection: Face_18 vs Modified_Face_13, area=0.0
+[DEBUG] Intersection too small: Face_18 vs Modified_Face_13, area=0.0
+[DEBUG] Checking intersection: Face_18 vs Modified_Face_12, area=2.8189256484623115e-17
+[DEBUG] Intersection too small: Face_18 vs Modified_Face_12, area=2.8189256484623115e-17
+[DEBUG] Checking intersection: Face_18 vs Modified_Modified_Modified_Face_11, area=0.0
+[DEBUG] Intersection too small: Face_18 vs Modified_Modified_Modified_Face_11, area=0.0
+[DEBUG] Checking intersection: Face_18 vs Modified_Modified_Modified_Face_9, area=0.0
+[DEBUG] Intersection is empty: Face_18 vs Modified_Modified_Modified_Face_9
+[DEBUG] Checking intersection: Face_18 vs Modified_Modified_Modified_Modified_Modified_Face_7, area=0.0
+[DEBUG] Intersection is empty: Face_18 vs Modified_Modified_Modified_Modified_Modified_Face_7
+[DEBUG] Checking intersection: Face_18 vs Face_6, area=7.24324648908404
+[DEBUG] Added intersection to Array_C: Intersection_Face_18_Face_6, area=7.24324648908404
+[DEBUG] Checking intersection: Face_18 vs Face_4, area=0.0
+[DEBUG] Intersection is empty: Face_18 vs Face_4
+[DEBUG] Checking intersection: Face_18 vs Face_3, area=2.196463350178047
+[DEBUG] Added intersection to Array_C: Intersection_Face_18_Face_3, area=2.196463350178047
+[DEBUG] Checking intersection: Face_19 vs Modified_Face_16, area=0.0
+[DEBUG] Intersection is empty: Face_19 vs Modified_Face_16
+[DEBUG] Checking intersection: Face_19 vs Modified_Face_15, area=0.0
+[DEBUG] Intersection too small: Face_19 vs Modified_Face_15, area=0.0
+[DEBUG] Checking intersection: Face_19 vs Modified_Face_14, area=0.0
+[DEBUG] Intersection too small: Face_19 vs Modified_Face_14, area=0.0
+[DEBUG] Checking intersection: Face_19 vs Modified_Face_13, area=0.07743271013742647
+[DEBUG] Added intersection to Array_C: Intersection_Face_19_Modified_Face_13, area=0.07743271013742647
+[DEBUG] Checking intersection: Face_19 vs Modified_Face_12, area=0.0
+[DEBUG] Intersection is empty: Face_19 vs Modified_Face_12
+[DEBUG] Checking intersection: Face_19 vs Modified_Modified_Modified_Face_11, area=0.010191918509024355
+[DEBUG] Added intersection to Array_C: Intersection_Face_19_Modified_Modified_Modified_Face_11, area=0.010191918509024355
+[DEBUG] Checking intersection: Face_19 vs Modified_Modified_Modified_Face_9, area=0.0
+[DEBUG] Intersection is empty: Face_19 vs Modified_Modified_Modified_Face_9
+[DEBUG] Checking intersection: Face_19 vs Modified_Modified_Modified_Modified_Modified_Face_7, area=0.0
+[DEBUG] Intersection is empty: Face_19 vs Modified_Modified_Modified_Modified_Modified_Face_7
+[DEBUG] Checking intersection: Face_19 vs Face_6, area=1.7904968723471013
+[DEBUG] Added intersection to Array_C: Intersection_Face_19_Face_6, area=1.7904968723471013
+[DEBUG] Checking intersection: Face_19 vs Face_4, area=0.0
+[DEBUG] Intersection is empty: Face_19 vs Face_4
+[DEBUG] Checking intersection: Face_19 vs Face_3, area=0.8677535911279549
+[DEBUG] Added intersection to Array_C: Intersection_Face_19_Face_3, area=0.8677535911279549
+[DEBUG] Checking intersection: Face_19 vs Modified_Modified_Modified_Modified_Modified_Modified_Modified_Modified_Modified_Face_1, area=0.029579383762729054
+[DEBUG] Added intersection to Array_C: Intersection_Face_19_Modified_Modified_Modified_Modified_Modified_Modified_Modified_Modified_Modified_Face_1, area=0.029579383762729054
+[DEBUG] Checking intersection: Face_20 vs Modified_Face_19, area=0.0
+[DEBUG] Intersection too small: Face_20 vs Modified_Face_19, area=0.0
+[DEBUG] Checking intersection: Face_20 vs Modified_Face_16, area=0.0
+[DEBUG] Intersection is empty: Face_20 vs Modified_Face_16
+[DEBUG] Checking intersection: Face_20 vs Modified_Face_15, area=0.0
+[DEBUG] Intersection is empty: Face_20 vs Modified_Face_15
+[DEBUG] Checking intersection: Face_20 vs Modified_Face_14, area=0.0
+[DEBUG] Intersection is empty: Face_20 vs Modified_Face_14
+[DEBUG] Checking intersection: Face_20 vs Modified_Modified_Face_13, area=0.23592749537830185
+[DEBUG] Added intersection to Array_C: Intersection_Face_20_Modified_Modified_Face_13, area=0.23592749537830185
+[DEBUG] Checking intersection: Face_20 vs Modified_Face_12, area=0.05354526751242908
+[DEBUG] Added intersection to Array_C: Intersection_Face_20_Modified_Face_12, area=0.05354526751242908
+[DEBUG] Checking intersection: Face_20 vs Modified_Modified_Modified_Modified_Face_11, area=0.3905777851716334
+[DEBUG] Added intersection to Array_C: Intersection_Face_20_Modified_Modified_Modified_Modified_Face_11, area=0.3905777851716334
+[DEBUG] Checking intersection: Face_20 vs Modified_Modified_Modified_Face_9, area=0.0
+[DEBUG] Intersection is empty: Face_20 vs Modified_Modified_Modified_Face_9
+[DEBUG] Checking intersection: Face_20 vs Modified_Modified_Modified_Modified_Modified_Face_7, area=0.0
+[DEBUG] Intersection is empty: Face_20 vs Modified_Modified_Modified_Modified_Modified_Face_7
+[DEBUG] Checking intersection: Face_20 vs Face_6, area=7.074766776398716
+[DEBUG] Added intersection to Array_C: Intersection_Face_20_Face_6, area=7.074766776398716
+[DEBUG] Checking intersection: Face_20 vs Face_4, area=0.0
+[DEBUG] Intersection is empty: Face_20 vs Face_4
+[DEBUG] Checking intersection: Face_20 vs Face_3, area=1.6848925148010019
+[DEBUG] Added intersection to Array_C: Intersection_Face_20_Face_3, area=1.6848925148010019
+[DEBUG] Checking intersection: Face_21 vs Modified_Face_20, area=0.0
+[DEBUG] Intersection is empty: Face_21 vs Modified_Face_20
+[DEBUG] Checking intersection: Face_21 vs Modified_Face_19, area=0.0
+[DEBUG] Intersection is empty: Face_21 vs Modified_Face_19
+[DEBUG] Checking intersection: Face_21 vs Modified_Face_16, area=0.0
+[DEBUG] Intersection is empty: Face_21 vs Modified_Face_16
+[DEBUG] Checking intersection: Face_21 vs Modified_Face_15, area=0.0
+[DEBUG] Intersection is empty: Face_21 vs Modified_Face_15
+[DEBUG] Checking intersection: Face_21 vs Modified_Face_14, area=0.0
+[DEBUG] Intersection is empty: Face_21 vs Modified_Face_14
+[DEBUG] Checking intersection: Face_21 vs Modified_Modified_Modified_Face_9, area=0.0
+[DEBUG] Intersection is empty: Face_21 vs Modified_Modified_Modified_Face_9
+[DEBUG] Checking intersection: Face_21 vs Modified_Modified_Modified_Modified_Modified_Face_7, area=0.0
+[DEBUG] Intersection is empty: Face_21 vs Modified_Modified_Modified_Modified_Modified_Face_7
+[DEBUG] Checking intersection: Face_21 vs Face_6, area=0.0762462319340248
+[DEBUG] Added intersection to Array_C: Intersection_Face_21_Face_6, area=0.0762462319340248
+[DEBUG] Checking intersection: Face_22 vs Modified_Face_20, area=0.0
+[DEBUG] Intersection is empty: Face_22 vs Modified_Face_20
+[DEBUG] Checking intersection: Face_22 vs Modified_Face_19, area=0.0
+[DEBUG] Intersection is empty: Face_22 vs Modified_Face_19
+[DEBUG] Checking intersection: Face_22 vs Modified_Face_16, area=0.0
+[DEBUG] Intersection is empty: Face_22 vs Modified_Face_16
+[DEBUG] Checking intersection: Face_22 vs Modified_Face_15, area=0.0
+[DEBUG] Intersection is empty: Face_22 vs Modified_Face_15
+[DEBUG] Checking intersection: Face_22 vs Modified_Face_14, area=0.0
+[DEBUG] Intersection is empty: Face_22 vs Modified_Face_14
+[DEBUG] Checking intersection: Face_22 vs Modified_Modified_Modified_Face_9, area=0.0
+[DEBUG] Intersection is empty: Face_22 vs Modified_Modified_Modified_Face_9
+[DEBUG] Checking intersection: Face_22 vs Modified_Modified_Modified_Modified_Modified_Face_7, area=0.0
+[DEBUG] Intersection is empty: Face_22 vs Modified_Modified_Modified_Modified_Modified_Face_7
+[DEBUG] Checking intersection: Face_22 vs Face_6, area=1.4981760834428002
+[DEBUG] Added intersection to Array_C: Intersection_Face_22_Face_6, area=1.4981760834428002
+[DEBUG] Checking intersection: Face_23 vs Modified_Face_20, area=0.0
+[DEBUG] Intersection is empty: Face_23 vs Modified_Face_20
+[DEBUG] Checking intersection: Face_23 vs Modified_Face_19, area=0.0
+[DEBUG] Intersection is empty: Face_23 vs Modified_Face_19
+[DEBUG] Checking intersection: Face_23 vs Modified_Face_16, area=0.0
+[DEBUG] Intersection is empty: Face_23 vs Modified_Face_16
+[DEBUG] Checking intersection: Face_23 vs Modified_Face_15, area=0.0
+[DEBUG] Intersection is empty: Face_23 vs Modified_Face_15
+[DEBUG] Checking intersection: Face_23 vs Modified_Face_14, area=0.0
+[DEBUG] Intersection is empty: Face_23 vs Modified_Face_14
+[DEBUG] Checking intersection: Face_23 vs Modified_Modified_Modified_Face_9, area=0.0
+[DEBUG] Intersection is empty: Face_23 vs Modified_Modified_Modified_Face_9
+[DEBUG] Checking intersection: Face_23 vs Modified_Modified_Modified_Modified_Modified_Face_7, area=0.0
+[DEBUG] Intersection is empty: Face_23 vs Modified_Modified_Modified_Modified_Modified_Face_7
+[DEBUG] Checking intersection: Face_23 vs Face_6, area=0.0762462319340248
+[DEBUG] Added intersection to Array_C: Intersection_Face_23_Face_6, area=0.0762462319340248
+[DEBUG] Checking intersection: Face_24 vs Modified_Face_20, area=0.0
+[DEBUG] Intersection is empty: Face_24 vs Modified_Face_20
+[DEBUG] Checking intersection: Face_24 vs Modified_Face_19, area=0.0
+[DEBUG] Intersection is empty: Face_24 vs Modified_Face_19
+[DEBUG] Checking intersection: Face_24 vs Modified_Face_16, area=0.0
+[DEBUG] Intersection is empty: Face_24 vs Modified_Face_16
+[DEBUG] Checking intersection: Face_24 vs Modified_Face_15, area=0.0
+[DEBUG] Intersection is empty: Face_24 vs Modified_Face_15
+[DEBUG] Checking intersection: Face_24 vs Modified_Face_14, area=0.0
+[DEBUG] Intersection is empty: Face_24 vs Modified_Face_14
+[DEBUG] Checking intersection: Face_24 vs Modified_Modified_Modified_Face_9, area=0.0
+[DEBUG] Intersection is empty: Face_24 vs Modified_Modified_Modified_Face_9
+[DEBUG] Checking intersection: Face_24 vs Modified_Modified_Modified_Modified_Modified_Face_7, area=0.0
+[DEBUG] Intersection is empty: Face_24 vs Modified_Modified_Modified_Modified_Modified_Face_7
+[DEBUG] Checking intersection: Face_24 vs Face_6, area=0.7972545604715449
+[DEBUG] Added intersection to Array_C: Intersection_Face_24_Face_6, area=0.7972545604715449
+
+===== FINAL ARRAY_B =====
+  Face_3: area=84.83, dot=0.5773502691896258
+  Face_4: area=121.98, dot=0.40824829046386324
+  Face_6: area=311.94, dot=0.7071067811865479
+  Modified_Modified_Modified_Modified_Modified_Face_7: area=0.33, dot=0.5773502691896258
+  Modified_Modified_Modified_Face_9: area=1.12, dot=0.5773502691896258
+  Modified_Face_14: area=0.01, dot=0.5773502691896258
+  Modified_Face_15: area=0.13, dot=0.5773502691896258
+  Modified_Face_16: area=0.07, dot=0.5773502691896258
+  Modified_Face_19: area=0.12, dot=0.5773502691896258
+  Modified_Face_20: area=0.68, dot=0.5773502691896258
+
+===== FINAL ARRAY_C =====
+  Intersection_Face_3_Face_2: area=17.06, dot=0
+  Intersection_Face_3_Face_1: area=67.76, dot=0
+  Intersection_Face_4_Modified_Face_1: area=104.92, dot=0
+  Intersection_Face_5_Face_4: area=17.06, dot=0
+  Intersection_Face_6_Modified_Face_5: area=70.21, dot=0
+  Intersection_Face_6_Modified_Face_2: area=104.92, dot=0
+  Intersection_Face_6_Modified_Modified_Face_1: area=136.81, dot=0
+  Intersection_Face_7_Face_6: area=1.38, dot=0
+  Intersection_Face_7_Face_3: area=2.32, dot=0
+  Intersection_Face_7_Modified_Modified_Modified_Face_1: area=0.71, dot=0
+  Intersection_Face_8_Modified_Face_7: area=0.10, dot=0
+  Intersection_Face_8_Face_6: area=0.25, dot=0
+  Intersection_Face_8_Face_3: area=0.35, dot=0
+  Intersection_Face_9_Modified_Face_8: area=0.10, dot=0
+  Intersection_Face_9_Face_6: area=17.90, dot=0
+  Intersection_Face_9_Face_3: area=7.36, dot=0
+  Intersection_Face_9_Modified_Modified_Modified_Modified_Face_1: area=1.27, dot=0
+  Intersection_Face_10_Face_6: area=3.03, dot=0
+  Intersection_Face_10_Face_3: area=0.86, dot=0
+  Intersection_Face_11_Modified_Face_9: area=0.18, dot=0
+  Intersection_Face_11_Modified_Modified_Face_7: area=0.21, dot=0
+  Intersection_Face_11_Face_6: area=18.16, dot=0
+  Intersection_Face_11_Face_3: area=8.04, dot=0
+  Intersection_Face_11_Modified_Modified_Modified_Modified_Modified_Face_1: area=0.05, dot=0
+  Intersection_Face_12_Modified_Modified_Modified_Face_7: area=0.05, dot=0
+  Intersection_Face_12_Face_6: area=0.26, dot=0
+  Intersection_Face_12_Face_3: area=0.39, dot=0
+  Intersection_Face_13_Modified_Face_11: area=0.04, dot=0
+  Intersection_Face_13_Modified_Modified_Face_9: area=0.07, dot=0
+  Intersection_Face_13_Modified_Modified_Modified_Modified_Face_7: area=0.02, dot=0
+  Intersection_Face_13_Face_6: area=1.47, dot=0
+  Intersection_Face_13_Face_3: area=2.62, dot=0
+  Intersection_Face_13_Modified_Modified_Modified_Modified_Modified_Modified_Face_1: area=0.19, dot=0
+  Intersection_Face_14_Modified_Face_13: area=0.04, dot=0
+  Intersection_Face_14_Modified_Modified_Face_11: area=0.01, dot=0
+  Intersection_Face_14_Face_6: area=0.20, dot=0
+  Intersection_Face_14_Face_3: area=0.46, dot=0
+  Intersection_Face_15_Modified_Face_14: area=0.01, dot=0
+  Intersection_Face_15_Modified_Face_13: area=0.17, dot=0
+  Intersection_Face_15_Modified_Modified_Modified_Face_11: area=0.01, dot=0
+  Intersection_Face_15_Face_6: area=1.85, dot=0
+  Intersection_Face_15_Face_3: area=1.73, dot=0
+  Intersection_Face_15_Modified_Modified_Modified_Modified_Modified_Modified_Modified_Face_1: area=0.13, dot=0
+  Intersection_Face_16_Modified_Face_13: area=0.05, dot=0
+  Intersection_Face_16_Face_6: area=0.19, dot=0
+  Intersection_Face_16_Face_3: area=0.40, dot=0
+  Intersection_Face_16_Modified_Modified_Modified_Modified_Modified_Modified_Modified_Modified_Face_1: area=0.07, dot=0
+  Intersection_Face_17_Face_6: area=2.42, dot=0
+  Intersection_Face_17_Face_3: area=0.36, dot=0
+  Intersection_Face_18_Face_6: area=7.24, dot=0
+  Intersection_Face_18_Face_3: area=2.20, dot=0
+  Intersection_Face_19_Modified_Face_13: area=0.08, dot=0
+  Intersection_Face_19_Modified_Modified_Modified_Face_11: area=0.01, dot=0
+  Intersection_Face_19_Face_6: area=1.79, dot=0
+  Intersection_Face_19_Face_3: area=0.87, dot=0
+  Intersection_Face_19_Modified_Modified_Modified_Modified_Modified_Modified_Modified_Modified_Modified_Face_1: area=0.03, dot=0
+  Intersection_Face_20_Modified_Modified_Face_13: area=0.24, dot=0
+  Intersection_Face_20_Modified_Face_12: area=0.05, dot=0
+  Intersection_Face_20_Modified_Modified_Modified_Modified_Face_11: area=0.39, dot=0
+  Intersection_Face_20_Face_6: area=7.07, dot=0
+  Intersection_Face_20_Face_3: area=1.68, dot=0
+  Intersection_Face_21_Face_6: area=0.08, dot=0
+  Intersection_Face_22_Face_6: area=1.50, dot=0
+  Intersection_Face_23_Face_6: area=0.08, dot=0
+  Intersection_Face_24_Face_6: area=0.80, dot=0
+[DEBUG] classify_faces_by_projection: A=0, B=10, C=65
+
+[DEBUG] Creating connectivity matrix for Isometric View
+[DEBUG] Using projection normal: [0.57735027 0.57735027 0.57735027]
+[DEBUG] Isometric View: visible list has 10 polygons, visible_set has 10 IDs
+[DEBUG] Isometric View: hidden list has 65 polygons
+[DEBUG] Extracting projected vertices from polygons for Isometric View
+[DEBUG] Found 40 unique projected vertices from polygons for Isometric View
+[DEBUG] Processing 75 polygons (10 visible, 65 hidden)
+[DEBUG] Found 40 unique projected vertices
+[DEBUG] Isometric View: Edge 0: poly_data id=6113090432, in visible_set=True, visibility=1
+[DEBUG] Isometric View: Edge 1: poly_data id=6113090432, in visible_set=True, visibility=1
+[DEBUG] Isometric View: Edge 2: poly_data id=6113090432, in visible_set=True, visibility=1
+[DEBUG] Isometric View: Added 340 edges to connectivity matrix
+[DEBUG] Isometric View: Matrix shape: (40, 43)
+[DEBUG] Isometric View: Updated connectivity matrix with 40 vertices
+
+============================================================
+ENHANCED FACE CLASSIFICATION WITH HISTORIC ALGORITHM
+============================================================
+Unit projection normal: [0.000000, -1.000000, 0.000000]
+
+Step 1: Initial classification and polygon projection...
+Face F1: dot_product=0.259, unit_face_normal=[-0.966, -0.259, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_1 (area: 114.18)
+      [DEBUG] Face_1 dot_product: 0.258819 (visible)
+Face F2: dot_product=0.966, unit_face_normal=[0.259, -0.966, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_2 (area: 288.62)
+      [DEBUG] Face_2 dot_product: 0.965926 (visible)
+Face F3: dot_product=0.000, unit_face_normal=[0.000, -0.000, 1.000]
+  → Added Face_3 (DEGENERATE in this view: area=0.00e+00) with 2 holes [3D edges will be extracted]
+      [DEBUG] Face_3 dot_product: 0.000000 (hidden)
+Face F4: dot_product=-0.966, unit_face_normal=[-0.259, 0.966, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_4 (area: 288.62)
+      [DEBUG] Face_4 dot_product: -0.965926 (hidden)
+Face F5: dot_product=0.000, unit_face_normal=[-0.000, -0.000, -1.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Self-intersection[19.4072739130953 1.0000000116861e-07]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Self-intersection[19.4072739130953 1.0000000116861e-07]
+      [INVESTIGATE] Polygon WKT: POLYGON ((9.633494413222182 0.0000001000000012, 19.40727391309529 0.0000001000000012, 23.273779499873108 0.0000001000000012, 13.5 0.0000001000000012, 9.633494413222182 0.0000001000000012))
+  → Added Face_5 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_5 dot_product: 0.000000 (hidden)
+Face F6: dot_product=-0.259, unit_face_normal=[0.966, 0.259, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_6 (area: 114.18)
+      [DEBUG] Face_6 dot_product: -0.258819 (hidden)
+Face F7: dot_product=-1.000, unit_face_normal=[0.000, 1.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_7 (area: 7.63)
+      [DEBUG] Face_7 dot_product: -1.000000 (hidden)
+Face F8: dot_product=0.000, unit_face_normal=[-1.000, -0.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[14.5226366348375 21.1190751599448]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[14.5226366348375 21.1190751599448]
+  → Added Face_8 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_8 dot_product: 0.000000 (hidden)
+Face F9: dot_product=-1.000, unit_face_normal=[0.000, 1.000, 0.000]
+    → Creating polygon from 9 vertices
+    → Valid polygon created with 8 vertices
+  → Added Face_9 (area: 46.14)
+      [DEBUG] Face_9 dot_product: -1.000000 (hidden)
+Face F10: dot_product=0.000, unit_face_normal=[-1.000, -0.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[17.9683015847498 17.7115974051259]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[17.9683015847498 17.7115974051259]
+  → Added Face_10 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_10 dot_product: 0.000000 (hidden)
+Face F11: dot_product=1.000, unit_face_normal=[-0.000, -1.000, -0.000]
+    → Creating polygon from 9 vertices
+    → Valid polygon created with 8 vertices
+  → Added Face_11 (area: 46.14)
+      [DEBUG] Face_11 dot_product: 1.000000 (visible)
+Face F12: dot_product=0.000, unit_face_normal=[-1.000, -0.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[14.5226366348375 29.5296583447704]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[14.5226366348375 29.5296583447704]
+  → Added Face_12 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_12 dot_product: 0.000000 (hidden)
+Face F13: dot_product=1.000, unit_face_normal=[-0.000, -1.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_13 (area: 7.63)
+      [DEBUG] Face_13 dot_product: 1.000000 (visible)
+Face F14: dot_product=0.000, unit_face_normal=[1.000, 0.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[13.6153096141658 29.5296583447704]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[13.6153096141658 29.5296583447704]
+  → Added Face_14 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_14 dot_product: 0.000000 (hidden)
+Face F15: dot_product=0.000, unit_face_normal=[1.000, 0.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[13.4186854348103 29.5296583447704]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[13.4186854348103 29.5296583447704]
+  → Added Face_15 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_15 dot_product: 0.000000 (hidden)
+Face F16: dot_product=0.000, unit_face_normal=[1.000, 0.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[13.6153096141658 29.5296583447704]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[13.6153096141658 29.5296583447704]
+  → Added Face_16 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_16 dot_product: 0.000000 (hidden)
+Face F17: dot_product=0.000, unit_face_normal=[-1.000, -0.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[19.0542795420341 21.9851979289707]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[19.0542795420341 21.9851979289707]
+  → Added Face_17 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_17 dot_product: 0.000000 (hidden)
+Face F18: dot_product=1.000, unit_face_normal=[-0.000, -1.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_18 (area: 16.35)
+      [DEBUG] Face_18 dot_product: 1.000000 (visible)
+Face F19: dot_product=0.000, unit_face_normal=[1.000, 0.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[16.8871189832658 29.5296583447704]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[16.8871189832658 29.5296583447704]
+  → Added Face_19 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_19 dot_product: 0.000000 (hidden)
+Face F20: dot_product=-1.000, unit_face_normal=[0.000, 1.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_20 (area: 16.35)
+      [DEBUG] Face_20 dot_product: -1.000000 (hidden)
+Face F21: dot_product=0.000, unit_face_normal=[0.000, 0.000, 1.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[13.6153096141658 21.1190751599448]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[13.6153096141658 21.1190751599448]
+  → Added Face_21 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_21 dot_product: 0.000000 (hidden)
+Face F22: dot_product=0.000, unit_face_normal=[0.000, 0.000, 1.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[13.4186854348103 17.7115974051259]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[13.4186854348103 17.7115974051259]
+  → Added Face_22 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_22 dot_product: 0.000000 (hidden)
+Face F23: dot_product=0.000, unit_face_normal=[0.000, 0.000, 1.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[13.6153096141658 21.1190751599448]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[13.6153096141658 21.1190751599448]
+  → Added Face_23 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_23 dot_product: 0.000000 (hidden)
+Face F24: dot_product=0.000, unit_face_normal=[0.000, 0.000, 1.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[16.8871189832658 21.9851979289707]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[16.8871189832658 21.9851979289707]
+  → Added Face_24 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_24 dot_product: 0.000000 (hidden)
+
+Step 2: Starting historic polygon classification algorithm...
+Initial array_A: 24 polygons
+[DEBUG] Initial faces in array_A before historic algorithm:
+  A1: Face_1 (dot=0.259, area=114.18)
+  A2: Face_2 (dot=0.966, area=288.62)
+  A3: Face_3 (dot=0.000, area=0.00)
+  A4: Face_4 (dot=-0.966, area=288.62)
+  A5: Face_5 (dot=0.000, area=0.00)
+  A6: Face_6 (dot=-0.259, area=114.18)
+  A7: Face_7 (dot=-1.000, area=7.63)
+  A8: Face_8 (dot=0.000, area=0.00)
+  A9: Face_9 (dot=-1.000, area=46.14)
+  A10: Face_10 (dot=0.000, area=0.00)
+  A11: Face_11 (dot=1.000, area=46.14)
+  A12: Face_12 (dot=0.000, area=0.00)
+  A13: Face_13 (dot=1.000, area=7.63)
+  A14: Face_14 (dot=0.000, area=0.00)
+  A15: Face_15 (dot=0.000, area=0.00)
+  A16: Face_16 (dot=0.000, area=0.00)
+  A17: Face_17 (dot=0.000, area=0.00)
+  A18: Face_18 (dot=1.000, area=16.35)
+  A19: Face_19 (dot=0.000, area=0.00)
+  A20: Face_20 (dot=-1.000, area=16.35)
+  A21: Face_21 (dot=0.000, area=0.00)
+  A22: Face_22 (dot=0.000, area=0.00)
+  A23: Face_23 (dot=0.000, area=0.00)
+  A24: Face_24 (dot=0.000, area=0.00)
+
+============================================================
+ARRAY A - INITIAL FACE CLASSIFICATION (BEFORE SORTING)
+============================================================
+  Face A1 (Face_1):
+    • Area: 114.18
+    • Vertices: 4
+    • Dot product: 0.258819
+    • Face normal: [-0.966, -0.259, 0.000]
+    • 2D Polygon: (13.5,0.0) → (13.5,29.5) → (9.6,29.5) → (9.6,0.0)
+  Face A2 (Face_2):
+    • Area: 288.62
+    • Vertices: 4
+    • Dot product: 0.965926
+    • Face normal: [0.259, -0.966, -0.000]
+    • 2D Polygon: (23.3,0.0) → (23.3,29.5) → (13.5,29.5) → (13.5,0.0)
+  Face A3 (Face_3):
+    • Area: 0.00
+    • Vertices: -1
+    • Dot product: 0.000000
+    • Face normal: [0.000, -0.000, 1.000]
+    • 2D Polygon: [No coordinates available]
+  Face A4 (Face_4):
+    • Area: 288.62
+    • Vertices: 4
+    • Dot product: -0.965926
+    • Face normal: [-0.259, 0.966, 0.000]
+    • 2D Polygon: (19.4,29.5) → (19.4,0.0) → (9.6,0.0) → (9.6,29.5)
+  [WARNING] Face_5 is invalid in Array_A: Self-intersection[19.4072739130953 1.0000000116861e-07]
+    [INVESTIGATE] Polygon WKT: POLYGON ((9.633494413222182 0.0000001000000012, 19.40727391309529 0.0000001000000012, 23.273779499873108 0.0000001000000012, 13.5 0.0000001000000012, 9.633494413222182 0.0000001000000012))
+  Face A5 (Face_5):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [-0.000, -0.000, -1.000]
+    • 2D Polygon: (9.6,0.0) → (19.4,0.0) → (23.3,0.0) → (13.5,0.0)
+  Face A6 (Face_6):
+    • Area: 114.18
+    • Vertices: 4
+    • Dot product: -0.258819
+    • Face normal: [0.966, 0.259, -0.000]
+    • 2D Polygon: (23.3,29.5) → (23.3,0.0) → (19.4,0.0) → (19.4,29.5)
+  Face A7 (Face_7):
+    • Area: 7.63
+    • Vertices: 4
+    • Dot product: -1.000000
+    • Face normal: [0.000, 1.000, 0.000]
+    • 2D Polygon: (14.5,29.5) → (14.5,21.1) → (13.6,21.1) → (13.6,29.5)
+  [WARNING] Face_8 is invalid in Array_A: Too few points in geometry component[14.5226366348375 21.1190751599448]
+    [INVESTIGATE] Polygon WKT: POLYGON ((14.522636634837534 21.119075159944757, 14.522636634837534 29.529658344770354, 14.522636634837534 29.529658344770354, 14.522636634837534 21.119075159944757, 14.522636634837534 21.119075159944757))
+  Face A8 (Face_8):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [-1.000, -0.000, 0.000]
+    • 2D Polygon: (14.5,21.1) → (14.5,29.5) → (14.5,29.5) → (14.5,21.1)
+  Face A9 (Face_9):
+    • Area: 46.14
+    • Vertices: 8
+    • Dot product: -1.000000
+    • Face normal: [0.000, 1.000, 0.000]
+    • 2D Polygon: (18.0,29.5) → (18.0,17.7) → (13.4,17.7) → (13.4,29.5) → (13.6,29.5) → (13.6,21.1) → (14.5,21.1) → (14.5,29.5)
+  [WARNING] Face_10 is invalid in Array_A: Too few points in geometry component[17.9683015847498 17.7115974051259]
+    [INVESTIGATE] Polygon WKT: POLYGON ((17.968301584749838 17.711597405125914, 17.968301584749838 29.529658344770354, 17.968301584749838 29.529658344770354, 17.968301584749838 17.711597405125914, 17.968301584749838 17.711597405125914))
+  Face A10 (Face_10):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [-1.000, -0.000, 0.000]
+    • 2D Polygon: (18.0,17.7) → (18.0,29.5) → (18.0,29.5) → (18.0,17.7)
+  Face A11 (Face_11):
+    • Area: 46.14
+    • Vertices: 8
+    • Dot product: 1.000000
+    • Face normal: [-0.000, -1.000, -0.000]
+    • 2D Polygon: (18.0,17.7) → (18.0,29.5) → (14.5,29.5) → (14.5,21.1) → (13.6,21.1) → (13.6,29.5) → (13.4,29.5) → (13.4,17.7)
+  [WARNING] Face_12 is invalid in Array_A: Too few points in geometry component[14.5226366348375 29.5296583447704]
+    [INVESTIGATE] Polygon WKT: POLYGON ((14.522636634837534 29.529658344770354, 14.522636634837534 29.529658344770354, 14.522636634837534 21.119075159944757, 14.522636634837534 21.119075159944757, 14.522636634837534 29.529658344770354))
+  Face A12 (Face_12):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [-1.000, -0.000, 0.000]
+    • 2D Polygon: (14.5,29.5) → (14.5,29.5) → (14.5,21.1) → (14.5,21.1)
+  Face A13 (Face_13):
+    • Area: 7.63
+    • Vertices: 4
+    • Dot product: 1.000000
+    • Face normal: [-0.000, -1.000, -0.000]
+    • 2D Polygon: (14.5,21.1) → (14.5,29.5) → (13.6,29.5) → (13.6,21.1)
+  [WARNING] Face_14 is invalid in Array_A: Too few points in geometry component[13.6153096141658 29.5296583447704]
+    [INVESTIGATE] Polygon WKT: POLYGON ((13.615309614165753 29.529658344770354, 13.615309614165753 29.529658344770354, 13.615309614165753 21.119075159944757, 13.615309614165753 21.119075159944757, 13.615309614165753 29.529658344770354))
+  Face A14 (Face_14):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [1.000, 0.000, -0.000]
+    • 2D Polygon: (13.6,29.5) → (13.6,29.5) → (13.6,21.1) → (13.6,21.1)
+  [WARNING] Face_15 is invalid in Array_A: Too few points in geometry component[13.4186854348103 29.5296583447704]
+    [INVESTIGATE] Polygon WKT: POLYGON ((13.418685434810254 29.529658344770354, 13.418685434810254 17.711597405125914, 13.418685434810254 17.711597405125914, 13.418685434810254 29.529658344770354, 13.418685434810254 29.529658344770354))
+  Face A15 (Face_15):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [1.000, 0.000, -0.000]
+    • 2D Polygon: (13.4,29.5) → (13.4,17.7) → (13.4,17.7) → (13.4,29.5)
+  [WARNING] Face_16 is invalid in Array_A: Too few points in geometry component[13.6153096141658 29.5296583447704]
+    [INVESTIGATE] Polygon WKT: POLYGON ((13.615309614165753 29.529658344770354, 13.615309614165753 21.119075159944757, 13.615309614165753 21.119075159944757, 13.615309614165753 29.529658344770354, 13.615309614165753 29.529658344770354))
+  Face A16 (Face_16):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [1.000, 0.000, -0.000]
+    • 2D Polygon: (13.6,29.5) → (13.6,21.1) → (13.6,21.1) → (13.6,29.5)
+  [WARNING] Face_17 is invalid in Array_A: Too few points in geometry component[19.0542795420341 21.9851979289707]
+    [INVESTIGATE] Polygon WKT: POLYGON ((19.054279542034138 21.985197928970727, 19.054279542034138 29.529658344770354, 19.054279542034138 29.529658344770354, 19.054279542034138 21.985197928970727, 19.054279542034138 21.985197928970727))
+  Face A17 (Face_17):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [-1.000, -0.000, 0.000]
+    • 2D Polygon: (19.1,22.0) → (19.1,29.5) → (19.1,29.5) → (19.1,22.0)
+  Face A18 (Face_18):
+    • Area: 16.35
+    • Vertices: 4
+    • Dot product: 1.000000
+    • Face normal: [-0.000, -1.000, -0.000]
+    • 2D Polygon: (19.1,22.0) → (19.1,29.5) → (16.9,29.5) → (16.9,22.0)
+  [WARNING] Face_19 is invalid in Array_A: Too few points in geometry component[16.8871189832658 29.5296583447704]
+    [INVESTIGATE] Polygon WKT: POLYGON ((16.88711898326582 29.529658344770354, 16.88711898326582 21.985197928970727, 16.88711898326582 21.985197928970727, 16.88711898326582 29.529658344770354, 16.88711898326582 29.529658344770354))
+  Face A19 (Face_19):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [1.000, 0.000, -0.000]
+    • 2D Polygon: (16.9,29.5) → (16.9,22.0) → (16.9,22.0) → (16.9,29.5)
+  Face A20 (Face_20):
+    • Area: 16.35
+    • Vertices: 4
+    • Dot product: -1.000000
+    • Face normal: [0.000, 1.000, 0.000]
+    • 2D Polygon: (19.1,29.5) → (19.1,22.0) → (16.9,22.0) → (16.9,29.5)
+  [WARNING] Face_21 is invalid in Array_A: Too few points in geometry component[13.6153096141658 21.1190751599448]
+    [INVESTIGATE] Polygon WKT: POLYGON ((13.615309614165753 21.119075159944757, 13.615309614165753 21.119075159944757, 14.522636634837534 21.119075159944757, 14.522636634837534 21.119075159944757, 13.615309614165753 21.119075159944757))
+  Face A21 (Face_21):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [0.000, 0.000, 1.000]
+    • 2D Polygon: (13.6,21.1) → (13.6,21.1) → (14.5,21.1) → (14.5,21.1)
+  [WARNING] Face_22 is invalid in Array_A: Too few points in geometry component[13.4186854348103 17.7115974051259]
+    [INVESTIGATE] Polygon WKT: POLYGON ((13.418685434810254 17.711597405125914, 13.418685434810254 17.711597405125914, 17.968301584749838 17.711597405125914, 17.968301584749838 17.711597405125914, 13.418685434810254 17.711597405125914))
+  Face A22 (Face_22):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [0.000, 0.000, 1.000]
+    • 2D Polygon: (13.4,17.7) → (13.4,17.7) → (18.0,17.7) → (18.0,17.7)
+  [WARNING] Face_23 is invalid in Array_A: Too few points in geometry component[13.6153096141658 21.1190751599448]
+    [INVESTIGATE] Polygon WKT: POLYGON ((13.615309614165753 21.119075159944757, 13.615309614165753 21.119075159944757, 14.522636634837534 21.119075159944757, 14.522636634837534 21.119075159944757, 13.615309614165753 21.119075159944757))
+  Face A23 (Face_23):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [0.000, 0.000, 1.000]
+    • 2D Polygon: (13.6,21.1) → (13.6,21.1) → (14.5,21.1) → (14.5,21.1)
+  [WARNING] Face_24 is invalid in Array_A: Too few points in geometry component[16.8871189832658 21.9851979289707]
+    [INVESTIGATE] Polygon WKT: POLYGON ((16.88711898326582 21.985197928970727, 16.88711898326582 21.985197928970727, 19.054279542034138 21.985197928970727, 19.054279542034138 21.985197928970727, 16.88711898326582 21.985197928970727))
+  Face A24 (Face_24):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [0.000, 0.000, 1.000]
+    • 2D Polygon: (16.9,22.0) → (16.9,22.0) → (19.1,22.0) → (19.1,22.0)
+============================================================
+ARRAY A DISPLAY COMPLETE - NOW STARTING HISTORIC ALGORITHM
+============================================================
+Moved Face_1 from array_A to array_B as seed
+[DEBUG] Checking intersection: Face_2 vs Face_1, area=0.0
+[DEBUG] Intersection too small: Face_2 vs Face_1, area=0.0
+[DEBUG] Face_3 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Checking intersection: Face_4 vs Face_2, area=174.4397798119511
+[DEBUG] Added intersection to Array_C: Intersection_Face_4_Face_2, area=174.4397798119511
+[DEBUG] Checking intersection: Face_4 vs Face_1, area=114.1765885790442
+[DEBUG] Added intersection to Array_C: Intersection_Face_4_Face_1, area=114.1765885790442
+[DEBUG] Face_5 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Checking intersection: Face_6 vs Face_2, area=114.17658857904426
+[DEBUG] Added intersection to Array_C: Intersection_Face_6_Face_2, area=114.17658857904426
+[DEBUG] Checking intersection: Face_7 vs Face_2, area=7.63114938319999
+[DEBUG] Added intersection to Array_C: Intersection_Face_7_Face_2, area=7.63114938319999
+[DEBUG] Face_8 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Checking intersection: Face_9 vs Face_2, area=45.17551104208342
+[DEBUG] Added intersection to Array_C: Intersection_Face_9_Face_2, area=45.17551104208342
+[DEBUG] Checking intersection: Face_9 vs Face_1, area=0.960980486693114
+[DEBUG] Added intersection to Array_C: Intersection_Face_9_Face_1, area=0.960980486693114
+[DEBUG] Face_10 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Checking intersection: Face_11 vs Face_2, area=45.17551104208342
+[DEBUG] Added intersection to Array_C: Intersection_Face_11_Face_2, area=45.17551104208342
+[DEBUG] Checking intersection: Face_11 vs Face_1, area=0.960980486693114
+[DEBUG] Added intersection to Array_C: Intersection_Face_11_Face_1, area=0.960980486693114
+[DEBUG] Face_12 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Checking intersection: Face_13 vs Face_2, area=7.63114938319999
+[DEBUG] Added intersection to Array_C: Intersection_Face_13_Face_2, area=7.63114938319999
+[DEBUG] Face_14 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_15 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_16 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_17 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Checking intersection: Face_18 vs Face_2, area=16.35005705030976
+[DEBUG] Added intersection to Array_C: Intersection_Face_18_Face_2, area=16.35005705030976
+[DEBUG] Face_19 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Checking intersection: Face_20 vs Face_2, area=16.35005705030976
+[DEBUG] Added intersection to Array_C: Intersection_Face_20_Face_2, area=16.35005705030976
+[DEBUG] Face_21 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_22 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_23 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_24 is degenerate in this view (area=0.00e+00) → array_C
+
+===== FINAL ARRAY_B =====
+  Face_1: area=114.18, dot=0.2588190451025209
+  Face_2: area=288.62, dot=0.9659258262890683
+
+===== FINAL ARRAY_C =====
+  Face_3: area=0.00, dot=0.0
+  Intersection_Face_4_Face_2: area=174.44, dot=0
+  Intersection_Face_4_Face_1: area=114.18, dot=0
+  Face_5: area=0.00, dot=0.0
+  Intersection_Face_6_Face_2: area=114.18, dot=0
+  Intersection_Face_7_Face_2: area=7.63, dot=0
+  Face_8: area=0.00, dot=0.0
+  Intersection_Face_9_Face_2: area=45.18, dot=0
+  Intersection_Face_9_Face_1: area=0.96, dot=0
+  Face_10: area=0.00, dot=0.0
+  Intersection_Face_11_Face_2: area=45.18, dot=0
+  Intersection_Face_11_Face_1: area=0.96, dot=0
+  Face_12: area=0.00, dot=0.0
+  Intersection_Face_13_Face_2: area=7.63, dot=0
+  Face_14: area=0.00, dot=0.0
+  Face_15: area=0.00, dot=0.0
+  Face_16: area=0.00, dot=0.0
+  Face_17: area=0.00, dot=0.0
+  Intersection_Face_18_Face_2: area=16.35, dot=0
+  Face_19: area=0.00, dot=0.0
+  Intersection_Face_20_Face_2: area=16.35, dot=0
+  Face_21: area=0.00, dot=0.0
+  Face_22: area=0.00, dot=0.0
+  Face_23: area=0.00, dot=0.0
+  Face_24: area=0.00, dot=0.0
+[DEBUG] classify_faces_by_projection: A=0, B=2, C=25
+
+[DEBUG] Creating connectivity matrix for Front View
+[DEBUG] Using projection normal: [ 0. -1.  0.]
+[DEBUG] Front View: visible list has 2 polygons, visible_set has 2 IDs
+[DEBUG] Front View: hidden list has 25 polygons
+[DEBUG] Extracting projected vertices from polygons for Front View
+[DEBUG] Found 20 unique projected vertices from polygons for Front View
+[DEBUG] Processing 27 polygons (2 visible, 25 hidden)
+[DEBUG] Found 20 unique projected vertices
+[DEBUG] Front View: Edge 0: poly_data id=6113291840, in visible_set=True, visibility=1
+[DEBUG] Front View: Edge 1: poly_data id=6113291840, in visible_set=True, visibility=1
+[DEBUG] Front View: Edge 2: poly_data id=6113291840, in visible_set=True, visibility=1
+[DEBUG] Front View: Added 100 edges to connectivity matrix
+[DEBUG] Front View: Matrix shape: (20, 23)
+[DEBUG] Front View: Updated connectivity matrix with 20 vertices
+
+============================================================
+ENHANCED FACE CLASSIFICATION WITH HISTORIC ALGORITHM
+============================================================
+Unit projection normal: [1.000000, 0.000000, 0.000000]
+
+Step 1: Initial classification and polygon projection...
+Face F1: dot_product=-0.966, unit_face_normal=[-0.966, -0.259, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_1 (area: 426.11)
+      [DEBUG] Face_1 dot_product: -0.965926 (hidden)
+Face F2: dot_product=0.259, unit_face_normal=[0.259, -0.966, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_2 (area: 77.33)
+      [DEBUG] Face_2 dot_product: 0.258819 (visible)
+Face F3: dot_product=0.000, unit_face_normal=[0.000, -0.000, 1.000]
+  → Added Face_3 (DEGENERATE in this view: area=0.00e+00) with 2 holes [3D edges will be extracted]
+      [DEBUG] Face_3 dot_product: 0.000000 (hidden)
+Face F4: dot_product=-0.259, unit_face_normal=[-0.259, 0.966, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_4 (area: 77.33)
+      [DEBUG] Face_4 dot_product: -0.258819 (hidden)
+Face F5: dot_product=0.000, unit_face_normal=[-0.000, -0.000, -1.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Self-intersection[22.1188763239909 1.0000000116861e-07]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Self-intersection[22.1188763239909 1.0000000116861e-07]
+      [INVESTIGATE] Polygon WKT: POLYGON ((33.929995297603725 0.0000001000000012, 36.548871621594586 0.0000001000000012, 22.118876323990865 0.0000001000000012, 19.5 0.0000001000000012, 33.929995297603725 0.0000001000000012))
+  → Added Face_5 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_5 dot_product: 0.000000 (hidden)
+Face F6: dot_product=0.966, unit_face_normal=[0.966, 0.259, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_6 (area: 426.11)
+      [DEBUG] Face_6 dot_product: 0.965926 (visible)
+Face F7: dot_product=0.000, unit_face_normal=[0.000, 1.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[29.0988190850186 29.5296583447704]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[29.0988190850186 29.5296583447704]
+  → Added Face_7 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_7 dot_product: 0.000000 (hidden)
+Face F8: dot_product=-1.000, unit_face_normal=[-1.000, -0.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_8 (area: 1.22)
+      [DEBUG] Face_8 dot_product: -1.000000 (hidden)
+Face F9: dot_product=0.000, unit_face_normal=[0.000, 1.000, 0.000]
+    → Creating polygon from 9 vertices
+    → Invalid polygon detected: Self-intersection[29.2443700766529 17.7115974051259]
+    → Original vertices: 9, coords in polygon: 8
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Self-intersection[29.2443700766529 17.7115974051259]
+      [INVESTIGATE] Polygon WKT: POLYGON ((29.244370076652917 29.529658344770354, 29.244370076652917 17.711597405125914, 29.244370076652917 17.711597405125914, 29.244370076652917 29.529658344770354, 29.244370076652917 29.529658344770354, 29.244370076652917 21.119075159944757, 29.244370076652917 21.119075159944757, 29.244370076652917 29.529658344770354, 29.244370076652917 29.529658344770354))
+  → Added Face_9 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_9 dot_product: 0.000000 (hidden)
+Face F10: dot_product=-1.000, unit_face_normal=[-1.000, -0.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_10 (area: 6.74)
+      [DEBUG] Face_10 dot_product: -1.000000 (hidden)
+Face F11: dot_product=0.000, unit_face_normal=[-0.000, -1.000, -0.000]
+    → Creating polygon from 9 vertices
+    → Invalid polygon detected: Self-intersection[29.8147296431939 29.5296583447704]
+    → Original vertices: 9, coords in polygon: 8
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Self-intersection[29.8147296431939 29.5296583447704]
+      [INVESTIGATE] Polygon WKT: POLYGON ((29.814729643193917 17.711597405125914, 29.814729643193917 29.529658344770354, 29.814729643193917 29.529658344770354, 29.814729643193917 21.119075159944757, 29.814729643193917 21.119075159944757, 29.814729643193917 29.529658344770354, 29.814729643193917 29.529658344770354, 29.814729643193917 17.711597405125914, 29.814729643193917 17.711597405125914))
+  → Added Face_11 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_11 dot_product: 0.000000 (hidden)
+Face F12: dot_product=-1.000, unit_face_normal=[-1.000, -0.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_12 (area: 1.22)
+      [DEBUG] Face_12 dot_product: -1.000000 (hidden)
+Face F13: dot_product=0.000, unit_face_normal=[-0.000, -1.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[29.9602806348283 21.1190751599448]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[29.9602806348283 21.1190751599448]
+  → Added Face_13 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_13 dot_product: 0.000000 (hidden)
+Face F14: dot_product=1.000, unit_face_normal=[1.000, 0.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_14 (area: 1.22)
+      [DEBUG] Face_14 dot_product: 1.000000 (visible)
+Face F15: dot_product=1.000, unit_face_normal=[1.000, 0.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_15 (area: 6.74)
+      [DEBUG] Face_15 dot_product: 1.000000 (visible)
+Face F16: dot_product=1.000, unit_face_normal=[1.000, 0.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_16 (area: 1.22)
+      [DEBUG] Face_16 dot_product: 1.000000 (visible)
+Face F17: dot_product=-1.000, unit_face_normal=[-1.000, -0.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_17 (area: 4.81)
+      [DEBUG] Face_17 dot_product: -1.000000 (hidden)
+Face F18: dot_product=0.000, unit_face_normal=[-0.000, -1.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[33.6032662860851 21.9851979289707]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:2158: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show()  # Removed to prevent empty plot
+      [WARNING] Invalid polygon stored: Too few points in geometry component[33.6032662860851 21.9851979289707]
+  → Added Face_18 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_18 dot_product: 0.000000 (hidden)
+Face F19: dot_product=1.000, unit_face_normal=[1.000, 0.000, -0.000]
+    → Creating polygon from 5 vertices
+    → Valid polygon created with 4 vertices
+  → Added Face_19 (area: 4.81)
+      [DEBUG] Face_19 dot_product: 1.000000 (visible)
+Face F20: dot_product=0.000, unit_face_normal=[0.000, 1.000, 0.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[32.9660798073465 29.5296583447704]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[32.9660798073465 29.5296583447704]
+  → Added Face_20 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_20 dot_product: 0.000000 (hidden)
+Face F21: dot_product=0.000, unit_face_normal=[0.000, 0.000, 1.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[29.2443700766529 21.1190751599448]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[29.2443700766529 21.1190751599448]
+  → Added Face_21 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_21 dot_product: 0.000000 (hidden)
+Face F22: dot_product=0.000, unit_face_normal=[0.000, 0.000, 1.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[29.8147296431939 17.7115974051259]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[29.8147296431939 17.7115974051259]
+  → Added Face_22 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_22 dot_product: 0.000000 (hidden)
+Face F23: dot_product=0.000, unit_face_normal=[0.000, 0.000, 1.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[29.9602806348283 21.1190751599448]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[29.9602806348283 21.1190751599448]
+  → Added Face_23 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_23 dot_product: 0.000000 (hidden)
+Face F24: dot_product=0.000, unit_face_normal=[0.000, 0.000, 1.000]
+    → Creating polygon from 5 vertices
+    → Invalid polygon detected: Too few points in geometry component[33.6032662860851 21.9851979289707]
+    → Original vertices: 5, coords in polygon: 4
+    → All fixes failed, but allow_invalid=True: storing invalid polygon
+      [WARNING] Invalid polygon stored: Too few points in geometry component[33.6032662860851 21.9851979289707]
+  → Added Face_24 (DEGENERATE in this view: area=0.00e+00) [3D edges will be extracted]
+      [DEBUG] Face_24 dot_product: 0.000000 (hidden)
+
+Step 2: Starting historic polygon classification algorithm...
+Initial array_A: 24 polygons
+[DEBUG] Initial faces in array_A before historic algorithm:
+  A1: Face_1 (dot=-0.966, area=426.11)
+  A2: Face_2 (dot=0.259, area=77.33)
+  A3: Face_3 (dot=0.000, area=0.00)
+  A4: Face_4 (dot=-0.259, area=77.33)
+  A5: Face_5 (dot=0.000, area=0.00)
+  A6: Face_6 (dot=0.966, area=426.11)
+  A7: Face_7 (dot=0.000, area=0.00)
+  A8: Face_8 (dot=-1.000, area=1.22)
+  A9: Face_9 (dot=0.000, area=0.00)
+  A10: Face_10 (dot=-1.000, area=6.74)
+  A11: Face_11 (dot=0.000, area=0.00)
+  A12: Face_12 (dot=-1.000, area=1.22)
+  A13: Face_13 (dot=0.000, area=0.00)
+  A14: Face_14 (dot=1.000, area=1.22)
+  A15: Face_15 (dot=1.000, area=6.74)
+  A16: Face_16 (dot=1.000, area=1.22)
+  A17: Face_17 (dot=-1.000, area=4.81)
+  A18: Face_18 (dot=0.000, area=0.00)
+  A19: Face_19 (dot=1.000, area=4.81)
+  A20: Face_20 (dot=0.000, area=0.00)
+  A21: Face_21 (dot=0.000, area=0.00)
+  A22: Face_22 (dot=0.000, area=0.00)
+  A23: Face_23 (dot=0.000, area=0.00)
+  A24: Face_24 (dot=0.000, area=0.00)
+
+============================================================
+ARRAY A - INITIAL FACE CLASSIFICATION (BEFORE SORTING)
+============================================================
+  Face A1 (Face_1):
+    • Area: 426.11
+    • Vertices: 4
+    • Dot product: -0.965926
+    • Face normal: [-0.966, -0.259, 0.000]
+    • 2D Polygon: (19.5,0.0) → (19.5,29.5) → (33.9,29.5) → (33.9,0.0)
+  Face A2 (Face_2):
+    • Area: 77.33
+    • Vertices: 4
+    • Dot product: 0.258819
+    • Face normal: [0.259, -0.966, -0.000]
+    • 2D Polygon: (22.1,0.0) → (22.1,29.5) → (19.5,29.5) → (19.5,0.0)
+  Face A3 (Face_3):
+    • Area: 0.00
+    • Vertices: -1
+    • Dot product: 0.000000
+    • Face normal: [0.000, -0.000, 1.000]
+    • 2D Polygon: [No coordinates available]
+  Face A4 (Face_4):
+    • Area: 77.33
+    • Vertices: 4
+    • Dot product: -0.258819
+    • Face normal: [-0.259, 0.966, 0.000]
+    • 2D Polygon: (36.5,29.5) → (36.5,0.0) → (33.9,0.0) → (33.9,29.5)
+  [WARNING] Face_5 is invalid in Array_A: Self-intersection[22.1188763239909 1.0000000116861e-07]
+    [INVESTIGATE] Polygon WKT: POLYGON ((33.929995297603725 0.0000001000000012, 36.548871621594586 0.0000001000000012, 22.118876323990865 0.0000001000000012, 19.5 0.0000001000000012, 33.929995297603725 0.0000001000000012))
+  Face A5 (Face_5):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [-0.000, -0.000, -1.000]
+    • 2D Polygon: (33.9,0.0) → (36.5,0.0) → (22.1,0.0) → (19.5,0.0)
+  Face A6 (Face_6):
+    • Area: 426.11
+    • Vertices: 4
+    • Dot product: 0.965926
+    • Face normal: [0.966, 0.259, -0.000]
+    • 2D Polygon: (22.1,29.5) → (22.1,0.0) → (36.5,0.0) → (36.5,29.5)
+  [WARNING] Face_7 is invalid in Array_A: Too few points in geometry component[29.0988190850186 29.5296583447704]
+    [INVESTIGATE] Polygon WKT: POLYGON ((29.098819085018572 29.529658344770354, 29.098819085018572 21.119075159944757, 29.098819085018572 21.119075159944757, 29.098819085018572 29.529658344770354, 29.098819085018572 29.529658344770354))
+  Face A7 (Face_7):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [0.000, 1.000, 0.000]
+    • 2D Polygon: (29.1,29.5) → (29.1,21.1) → (29.1,21.1) → (29.1,29.5)
+  Face A8 (Face_8):
+    • Area: 1.22
+    • Vertices: 4
+    • Dot product: -1.000000
+    • Face normal: [-1.000, -0.000, 0.000]
+    • 2D Polygon: (29.1,21.1) → (29.1,29.5) → (29.2,29.5) → (29.2,21.1)
+  [WARNING] Face_9 is invalid in Array_A: Self-intersection[29.2443700766529 17.7115974051259]
+    [INVESTIGATE] Polygon WKT: POLYGON ((29.244370076652917 29.529658344770354, 29.244370076652917 17.711597405125914, 29.244370076652917 17.711597405125914, 29.244370076652917 29.529658344770354, 29.244370076652917 29.529658344770354, 29.244370076652917 21.119075159944757, 29.244370076652917 21.119075159944757, 29.244370076652917 29.529658344770354, 29.244370076652917 29.529658344770354))
+  Face A9 (Face_9):
+    • Area: 0.00
+    • Vertices: 8
+    • Dot product: 0.000000
+    • Face normal: [0.000, 1.000, 0.000]
+    • 2D Polygon: (29.2,29.5) → (29.2,17.7) → (29.2,17.7) → (29.2,29.5) → (29.2,29.5) → (29.2,21.1) → (29.2,21.1) → (29.2,29.5)
+  Face A10 (Face_10):
+    • Area: 6.74
+    • Vertices: 4
+    • Dot product: -1.000000
+    • Face normal: [-1.000, -0.000, 0.000]
+    • 2D Polygon: (29.2,17.7) → (29.2,29.5) → (29.8,29.5) → (29.8,17.7)
+  [WARNING] Face_11 is invalid in Array_A: Self-intersection[29.8147296431939 29.5296583447704]
+    [INVESTIGATE] Polygon WKT: POLYGON ((29.814729643193917 17.711597405125914, 29.814729643193917 29.529658344770354, 29.814729643193917 29.529658344770354, 29.814729643193917 21.119075159944757, 29.814729643193917 21.119075159944757, 29.814729643193917 29.529658344770354, 29.814729643193917 29.529658344770354, 29.814729643193917 17.711597405125914, 29.814729643193917 17.711597405125914))
+  Face A11 (Face_11):
+    • Area: 0.00
+    • Vertices: 8
+    • Dot product: 0.000000
+    • Face normal: [-0.000, -1.000, -0.000]
+    • 2D Polygon: (29.8,17.7) → (29.8,29.5) → (29.8,29.5) → (29.8,21.1) → (29.8,21.1) → (29.8,29.5) → (29.8,29.5) → (29.8,17.7)
+  Face A12 (Face_12):
+    • Area: 1.22
+    • Vertices: 4
+    • Dot product: -1.000000
+    • Face normal: [-1.000, -0.000, 0.000]
+    • 2D Polygon: (29.8,29.5) → (30.0,29.5) → (30.0,21.1) → (29.8,21.1)
+  [WARNING] Face_13 is invalid in Array_A: Too few points in geometry component[29.9602806348283 21.1190751599448]
+    [INVESTIGATE] Polygon WKT: POLYGON ((29.960280634828262 21.119075159944757, 29.960280634828262 29.529658344770354, 29.960280634828262 29.529658344770354, 29.960280634828262 21.119075159944757, 29.960280634828262 21.119075159944757))
+  Face A13 (Face_13):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [-0.000, -1.000, -0.000]
+    • 2D Polygon: (30.0,21.1) → (30.0,29.5) → (30.0,29.5) → (30.0,21.1)
+  Face A14 (Face_14):
+    • Area: 1.22
+    • Vertices: 4
+    • Dot product: 1.000000
+    • Face normal: [1.000, 0.000, -0.000]
+    • 2D Polygon: (30.0,29.5) → (29.8,29.5) → (29.8,21.1) → (30.0,21.1)
+  Face A15 (Face_15):
+    • Area: 6.74
+    • Vertices: 4
+    • Dot product: 1.000000
+    • Face normal: [1.000, 0.000, -0.000]
+    • 2D Polygon: (29.2,29.5) → (29.2,17.7) → (29.8,17.7) → (29.8,29.5)
+  Face A16 (Face_16):
+    • Area: 1.22
+    • Vertices: 4
+    • Dot product: 1.000000
+    • Face normal: [1.000, 0.000, -0.000]
+    • 2D Polygon: (29.1,29.5) → (29.1,21.1) → (29.2,21.1) → (29.2,29.5)
+  Face A17 (Face_17):
+    • Area: 4.81
+    • Vertices: 4
+    • Dot product: -1.000000
+    • Face normal: [-1.000, -0.000, 0.000]
+    • 2D Polygon: (33.0,22.0) → (33.0,29.5) → (33.6,29.5) → (33.6,22.0)
+  [WARNING] Face_18 is invalid in Array_A: Too few points in geometry component[33.6032662860851 21.9851979289707]
+    [INVESTIGATE] Polygon WKT: POLYGON ((33.60326628608509 21.985197928970727, 33.60326628608509 29.529658344770354, 33.60326628608509 29.529658344770354, 33.60326628608509 21.985197928970727, 33.60326628608509 21.985197928970727))
+  Face A18 (Face_18):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [-0.000, -1.000, -0.000]
+    • 2D Polygon: (33.6,22.0) → (33.6,29.5) → (33.6,29.5) → (33.6,22.0)
+  Face A19 (Face_19):
+    • Area: 4.81
+    • Vertices: 4
+    • Dot product: 1.000000
+    • Face normal: [1.000, 0.000, -0.000]
+    • 2D Polygon: (33.0,29.5) → (33.0,22.0) → (33.6,22.0) → (33.6,29.5)
+  [WARNING] Face_20 is invalid in Array_A: Too few points in geometry component[32.9660798073465 29.5296583447704]
+    [INVESTIGATE] Polygon WKT: POLYGON ((32.96607980734651 29.529658344770354, 32.96607980734651 21.985197928970727, 32.96607980734651 21.985197928970727, 32.96607980734651 29.529658344770354, 32.96607980734651 29.529658344770354))
+  Face A20 (Face_20):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [0.000, 1.000, 0.000]
+    • 2D Polygon: (33.0,29.5) → (33.0,22.0) → (33.0,22.0) → (33.0,29.5)
+  [WARNING] Face_21 is invalid in Array_A: Too few points in geometry component[29.2443700766529 21.1190751599448]
+    [INVESTIGATE] Polygon WKT: POLYGON ((29.244370076652917 21.119075159944757, 29.098819085018572 21.119075159944757, 29.098819085018572 21.119075159944757, 29.244370076652917 21.119075159944757, 29.244370076652917 21.119075159944757))
+  Face A21 (Face_21):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [0.000, 0.000, 1.000]
+    • 2D Polygon: (29.2,21.1) → (29.1,21.1) → (29.1,21.1) → (29.2,21.1)
+  [WARNING] Face_22 is invalid in Array_A: Too few points in geometry component[29.8147296431939 17.7115974051259]
+    [INVESTIGATE] Polygon WKT: POLYGON ((29.814729643193917 17.711597405125914, 29.244370076652917 17.711597405125914, 29.244370076652917 17.711597405125914, 29.814729643193917 17.711597405125914, 29.814729643193917 17.711597405125914))
+  Face A22 (Face_22):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [0.000, 0.000, 1.000]
+    • 2D Polygon: (29.8,17.7) → (29.2,17.7) → (29.2,17.7) → (29.8,17.7)
+  [WARNING] Face_23 is invalid in Array_A: Too few points in geometry component[29.9602806348283 21.1190751599448]
+    [INVESTIGATE] Polygon WKT: POLYGON ((29.960280634828262 21.119075159944757, 29.814729643193917 21.119075159944757, 29.814729643193917 21.119075159944757, 29.960280634828262 21.119075159944757, 29.960280634828262 21.119075159944757))
+  Face A23 (Face_23):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [0.000, 0.000, 1.000]
+    • 2D Polygon: (30.0,21.1) → (29.8,21.1) → (29.8,21.1) → (30.0,21.1)
+  [WARNING] Face_24 is invalid in Array_A: Too few points in geometry component[33.6032662860851 21.9851979289707]
+    [INVESTIGATE] Polygon WKT: POLYGON ((33.60326628608509 21.985197928970727, 32.96607980734651 21.985197928970727, 32.96607980734651 21.985197928970727, 33.60326628608509 21.985197928970727, 33.60326628608509 21.985197928970727))
+  Face A24 (Face_24):
+    • Area: 0.00
+    • Vertices: 4
+    • Dot product: 0.000000
+    • Face normal: [0.000, 0.000, 1.000]
+    • 2D Polygon: (33.6,22.0) → (33.0,22.0) → (33.0,22.0) → (33.6,22.0)
+============================================================
+ARRAY A DISPLAY COMPLETE - NOW STARTING HISTORIC ALGORITHM
+============================================================
+Moved Face_1 from array_A to array_B as seed
+[DEBUG] Checking intersection: Face_2 vs Face_1, area=77.3345228327707
+[DEBUG] Added intersection to Array_C: Intersection_Face_2_Face_1, area=77.3345228327707
+[DEBUG] Face_3 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Checking intersection: Face_4 vs Face_2, area=0.0
+[DEBUG] Intersection is empty: Face_4 vs Face_2
+[DEBUG] Checking intersection: Face_4 vs Modified_Face_1, area=0.0
+[DEBUG] Intersection too small: Face_4 vs Modified_Face_1, area=0.0
+[DEBUG] Face_5 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Checking intersection: Face_6 vs Face_4, area=77.3345228327706
+[DEBUG] Added intersection to Array_C: Intersection_Face_6_Face_4, area=77.3345228327706
+[DEBUG] Checking intersection: Face_6 vs Face_2, area=0.0
+[DEBUG] Intersection too small: Face_6 vs Face_2, area=0.0
+[DEBUG] Checking intersection: Face_6 vs Modified_Face_1, area=348.77830677911055
+[DEBUG] Added intersection to Array_C: Intersection_Face_6_Modified_Face_1, area=348.77830677911055
+[DEBUG] Face_7 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Checking intersection: Face_8 vs Face_6, area=1.2241687227745088
+[DEBUG] Added intersection to Array_C: Intersection_Face_8_Face_6, area=1.2241687227745088
+[DEBUG] Face_9 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Checking intersection: Face_10 vs Face_6, area=6.740544114890733
+[DEBUG] Added intersection to Array_C: Intersection_Face_10_Face_6, area=6.740544114890733
+[DEBUG] Face_11 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Checking intersection: Face_12 vs Face_6, area=1.2241687227745088
+[DEBUG] Added intersection to Array_C: Intersection_Face_12_Face_6, area=1.2241687227745088
+[DEBUG] Face_13 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Checking intersection: Face_14 vs Face_6, area=1.2241687227745088
+[DEBUG] Added intersection to Array_C: Intersection_Face_14_Face_6, area=1.2241687227745088
+[DEBUG] Checking intersection: Face_15 vs Face_6, area=6.740544114890733
+[DEBUG] Added intersection to Array_C: Intersection_Face_15_Face_6, area=6.740544114890733
+[DEBUG] Checking intersection: Face_16 vs Face_6, area=1.2241687227745088
+[DEBUG] Added intersection to Array_C: Intersection_Face_16_Face_6, area=1.2241687227745088
+[DEBUG] Checking intersection: Face_17 vs Face_6, area=4.807228166325948
+[DEBUG] Added intersection to Array_C: Intersection_Face_17_Face_6, area=4.807228166325948
+[DEBUG] Face_18 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Checking intersection: Face_19 vs Face_6, area=4.807228166325948
+[DEBUG] Added intersection to Array_C: Intersection_Face_19_Face_6, area=4.807228166325948
+[DEBUG] Face_20 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_21 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_22 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_23 is degenerate in this view (area=0.00e+00) → array_C
+[DEBUG] Face_24 is degenerate in this view (area=0.00e+00) → array_C
+
+===== FINAL ARRAY_B =====
+  Face_2: area=77.33, dot=0.25881904510252096
+  Face_6: area=426.11, dot=0.9659258262890683
+
+===== FINAL ARRAY_C =====
+  Intersection_Face_2_Face_1: area=77.33, dot=0
+  Face_3: area=0.00, dot=0.0
+  Face_5: area=0.00, dot=0.0
+  Intersection_Face_6_Face_4: area=77.33, dot=0
+  Intersection_Face_6_Modified_Face_1: area=348.78, dot=0
+  Face_7: area=0.00, dot=0.0
+  Intersection_Face_8_Face_6: area=1.22, dot=0
+  Face_9: area=0.00, dot=0.0
+  Intersection_Face_10_Face_6: area=6.74, dot=0
+  Face_11: area=0.00, dot=0.0
+  Intersection_Face_12_Face_6: area=1.22, dot=0
+  Face_13: area=0.00, dot=0.0
+  Intersection_Face_14_Face_6: area=1.22, dot=0
+  Intersection_Face_15_Face_6: area=6.74, dot=0
+  Intersection_Face_16_Face_6: area=1.22, dot=0
+  Intersection_Face_17_Face_6: area=4.81, dot=0
+  Face_18: area=0.00, dot=0.0
+  Intersection_Face_19_Face_6: area=4.81, dot=0
+  Face_20: area=0.00, dot=0.0
+  Face_21: area=0.00, dot=0.0
+  Face_22: area=0.00, dot=0.0
+  Face_23: area=0.00, dot=0.0
+  Face_24: area=0.00, dot=0.0
+[DEBUG] classify_faces_by_projection: A=0, B=2, C=23
+
+[DEBUG] Creating connectivity matrix for Side View
+[DEBUG] Using projection normal: [1. 0. 0.]
+[DEBUG] Side View: visible list has 2 polygons, visible_set has 2 IDs
+[DEBUG] Side View: hidden list has 23 polygons
+[DEBUG] Extracting projected vertices from polygons for Side View
+[DEBUG] Found 22 unique projected vertices from polygons for Side View
+[DEBUG] Processing 25 polygons (2 visible, 23 hidden)
+[DEBUG] Found 22 unique projected vertices
+[DEBUG] Side View: Edge 0: poly_data id=6113443136, in visible_set=True, visibility=1
+[DEBUG] Side View: Edge 1: poly_data id=6113443136, in visible_set=True, visibility=1
+[DEBUG] Side View: Edge 2: poly_data id=6113443136, in visible_set=True, visibility=1
+[DEBUG] Side View: Added 84 edges to connectivity matrix
+[DEBUG] Side View: Matrix shape: (22, 25)
+[DEBUG] Side View: Updated connectivity matrix with 22 vertices
+
+============================================================
+CONNECTIVITY MATRICES SUMMARY
+============================================================
+Top View:
+  - 20 unique projected vertices
+  - Matrix shape: (20, 23)
+  - Connectivity entries: 48
+  - Sample vertices (index, proj_x, proj_y):
+    V0: (9.633, 33.930)
+    V1: (13.500, 19.500)
+    V2: (23.274, 22.119)
+Isometric View:
+  - 40 unique projected vertices
+  - Matrix shape: (40, 43)
+  - Connectivity entries: 118
+  - Sample vertices (index, proj_x, proj_y):
+    V0: (-18.042, 3.112)
+    V1: (-8.994, -7.092)
+    V2: (-2.082, -5.240)
+Front View:
+  - 20 unique projected vertices
+  - Matrix shape: (20, 23)
+  - Connectivity entries: 50
+  - Sample vertices (index, proj_x, proj_y):
+    V0: (13.500, 0.000)
+    V1: (13.500, 29.530)
+    V2: (9.633, 29.530)
+Side View:
+  - 22 unique projected vertices
+  - Matrix shape: (22, 25)
+  - Connectivity entries: 54
+  - Sample vertices (index, proj_x, proj_y):
+    V0: (22.119, 0.000)
+    V1: (22.119, 29.530)
+    V2: (19.500, 29.530)
+============================================================
+[DEBUG] Saved Top View connectivity matrix to top_view_connectivity.npy
+[DEBUG] Saved Isometric View connectivity matrix to isometric_view_connectivity.npy
+[DEBUG] Saved Front View connectivity matrix to front_view_connectivity.npy
+[DEBUG] Saved Side View connectivity matrix to side_view_connectivity.npy
+[DEBUG] plot_four_views: Top View projection normal: [0.000000, 0.000000, 1.000000]
+[DEBUG] Top View: 5 visible, 23 hidden polygons
+[DEBUG] plot_four_views: Isometric View projection normal: [0.577350, 0.577350, 0.577350]
+[DEBUG] Isometric View: 10 visible, 65 hidden polygons
+[DEBUG] plot_four_views: Front View projection normal: [0.000000, -1.000000, 0.000000]
+[DEBUG] Front View: 2 visible, 25 hidden polygons
+[DEBUG] plot_four_views: Side View projection normal: [1.000000, 0.000000, 0.000000]
+[DEBUG] Side View: 2 visible, 23 hidden polygons
+[DEBUG] Saved four-view plot to: /Users/sbedi/Nextcloud/Python/Solid/random_solids/PDFfiles/four_views_seed_290.pdf
+
+[STEP 6] Saving face polygons and connectivity matrices...
+
+[SAVE] Saved face polygons to: Output/solid_faces_seed_290.npy
+[SAVE] Saved volume: 4420.440837
+[SAVE] Saved connectivity matrices to: Output/connectivity_matrices_seed_290.npz
+       - Top view matrix shape: (20, 23)
+       - Front view matrix shape: (20, 23)
+       - Side view matrix shape: (22, 25)
+       - Number of vertices: 40
+
+======================================================================
+SOLID GENERATION COMPLETE
+======================================================================
+Files saved:
+  - Face polygons: Output/solid_faces_seed_290.npy
+  - Connectivity matrices: Output/connectivity_matrices_seed_290.npz
+
+To reconstruct the solid, run:
+  python Reconstruct_Solid.py --seed 290
+======================================================================
+[STEP 7] Saving all graphics to PDFfiles/build_solid_seed_290.pdf...
+[STEP 7] Graphics saved to PDF: PDFfiles/build_solid_seed_290.pdf
+
+[DEBUG] Checking original solid...
+Original solid type: <class 'OCC.Core.TopoDS.TopoDS_Compound'>
+Original solid is None: False
+
+[DEBUG] Checking rebuilt solid...
+Rebuilt solid type: <class 'NoneType'>
+Rebuilt solid is None: True

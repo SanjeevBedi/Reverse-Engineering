@@ -744,10 +744,6 @@ Vertex list (index: [x, y, z] in mm):
   [STEP 6.3] Selected boundary: 4 verts, area=1435.094239
   [STEP 6.3]   boundary_poly (vertex list): [16, 17, 23, 22]
   [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:2640: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
-  plt.show(block=False)
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:2641: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
-  plt.pause(0.5)  # Give time for the plot to render
 [POLY FORM]   Face 19: Found 1 polygon(s)
 [POLY FORM]     Polygon 1: 4 vertices, area=1435.094239
 [POLY FORM]       Vertices: [16, 17, 23, 22]
@@ -1019,10 +1015,12 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]   Face 26: Using visibility-based classification...
 [POLY FORM]     Face 26: Polygon 0 vertices: [21, 27, 43, 41]
 [POLY FORM]     Face 26: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:10304: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:2640: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show(block=False)
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:2641: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.pause(0.5)  # Give time for the plot to render
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:8720: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
   plt.tight_layout()
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:10306: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
-  plt.show(block=True)
 [POLY FORM]     Face 26: Edge visibility: 0 solid, 1 dashed, 0 mixed
 [POLY FORM]     Face 26: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
 [POLY FORM]   Face 27: Using visibility-based classification...
@@ -1045,23 +1043,167 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]     Face 30: Edge types: [2, 1, 1, 1] (1=solid, 2=dashed, 0=missing)
 [POLY FORM]     Face 30: Edge visibility: 0 solid, 0 dashed, 1 mixed
 [POLY FORM]     Face 30: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
-[POLY FORM]       Checking 3 holes for shared edges...
-[POLY FORM]     Face 2: Selected polygon [4, 5, 48, 49, 6, 7, 15, 14] as BOUNDARY
-[POLY FORM]       Contains 3 HOLE(s), 1 ALT(s), area=61324.26)
-[POLY FORM]         HOLE: [0, 1, 20, 21, 41, 40, 29, 28]
-[POLY FORM]         HOLE: [12, 13, 35, 34]
-[POLY FORM]         HOLE: [22, 23, 39, 38]
-[POLY FORM]         ALT: [5, 6, 49, 48]
-[POLY FORM]     Face 4: Selected polygon [29, 30, 42, 40] as BOUNDARY
-[POLY FORM]       Contains 0 HOLE(s), 1 ALT(s), area=423.49)
-[POLY FORM]         ALT: [1, 10, 26, 20]
-[POLY FORM]     Face 9: Selected polygon [4, 5, 24, 25, 6, 7, 45, 44] as BOUNDARY
-[POLY FORM]       Contains 0 HOLE(s), 1 ALT(s), area=45064.83)
-[POLY FORM]         ALT: [5, 6, 25, 24]
 
-[POLY FORM]   Detecting independent boundary polygons...
+[POLY FORM]   Face 1: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
 
-[POLY FORM]   Deduplicating polygons in each face...
+[POLY FORM]   Face 2: Processing 5 polygons with relationship matrix
+[POLY FORM]     Building 5x5 relationship matrix...
+[POLY FORM]     Relationship Matrix:
+[POLY FORM]          0   1   2   3   4
+[POLY FORM]        0   -  ST   S   S   S
+[POLY FORM]        1  ST   -   I   I   I
+[POLY FORM]        2   S   O   -   S   S
+[POLY FORM]        3   S   O   S   -   S
+[POLY FORM]        4   S   O   S   S   -
+[POLY FORM]     Preprocessing: Normalizing and deduplicating polygons...
+[POLY FORM]       Polygons after deduplication: 5 → 5
+[POLY FORM]     Step 1: Identifying separate faces and boundary...
+[POLY FORM]       Polygon 1 identified as BOUNDARY (fallback, score: 7)
+[POLY FORM]       Polygon 1 identified as BOUNDARY (score: 7)
+[POLY FORM]     Step 2: Tagging IT polygons...
+[POLY FORM]     Step 3: Analyzing holes with S/ST relationships...
+[POLY FORM]       Polygon 0 has ST with boundary → will be ALT
+[POLY FORM]       Polygon 2 has all S → independent hole
+[POLY FORM]       Polygon 3 has all S → independent hole
+[POLY FORM]       Polygon 4 has all S → independent hole
+[POLY FORM]     Step 4: Validating IT-tagged polygons...
+[POLY FORM]     Step 5: Executing merges...
+[POLY FORM]       Polygon 2 → independent hole (all S)
+[POLY FORM]       Polygon 3 → independent hole (all S)
+[POLY FORM]       Polygon 4 → independent hole (all S)
+[POLY FORM]       Polygon 0 → unclassified, marking as ALT
+[POLY FORM]     Step 6: Validating ALT constraint (no holes allowed)...
+[POLY FORM]     Final classification:
+[POLY FORM]       BOUNDARY: 1, HOLES: 3, ALTs: 1
+[POLY FORM]       [0] ALT: [5, 6, 49, 48]
+[POLY FORM]       [1] BOUNDARY: [4, 5, 48, 49, 6, 7, 15, 14]
+[POLY FORM]       [2] HOLE: [0, 1, 20, 21, 41, 40, 29, 28]
+[POLY FORM]       [3] HOLE: [12, 13, 35, 34]
+[POLY FORM]       [4] HOLE: [22, 23, 39, 38]
+
+[POLY FORM]   Face 3: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 4: Processing 2 polygons with relationship matrix
+[POLY FORM]     Building 2x2 relationship matrix...
+[POLY FORM]     Relationship Matrix:
+[POLY FORM]          0   1
+[POLY FORM]        0   -   S
+[POLY FORM]        1   S   -
+[POLY FORM]     Preprocessing: Normalizing and deduplicating polygons...
+[POLY FORM]       Polygons after deduplication: 2 → 2
+[POLY FORM]     Step 1: Identifying separate faces and boundary...
+[POLY FORM]       Polygon 0 is a separate face (all S)
+[POLY FORM]       Polygon 1 is a separate face (all S)
+[POLY FORM]       No clear boundary from matrix, using largest polygon 0
+[POLY FORM]     Step 2: Tagging IT polygons...
+[POLY FORM]     Step 3: Analyzing holes with S/ST relationships...
+[POLY FORM]     Step 4: Validating IT-tagged polygons...
+[POLY FORM]     Step 5: Executing merges...
+[POLY FORM]     Step 6: Validating ALT constraint (no holes allowed)...
+[POLY FORM]     Final classification:
+[POLY FORM]       BOUNDARY: 1, HOLES: 0, ALTs: 1
+[POLY FORM]       [0] BOUNDARY: [29, 30, 42, 40]
+[POLY FORM]       [1] ALT: [1, 10, 26, 20]
+
+[POLY FORM]   Face 5: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 6: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 7: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 8: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 9: Processing 2 polygons with relationship matrix
+[POLY FORM]     Building 2x2 relationship matrix...
+[POLY FORM]     Relationship Matrix:
+[POLY FORM]          0   1
+[POLY FORM]        0   -  ST
+[POLY FORM]        1  ST   -
+[POLY FORM]     Preprocessing: Normalizing and deduplicating polygons...
+[POLY FORM]       Polygons after deduplication: 2 → 2
+[POLY FORM]     Step 1: Identifying separate faces and boundary...
+[POLY FORM]       Polygon 0 identified as BOUNDARY (fallback, score: 1)
+[POLY FORM]       Polygon 0 identified as BOUNDARY (score: 1)
+[POLY FORM]     Step 2: Tagging IT polygons...
+[POLY FORM]     Step 3: Analyzing holes with S/ST relationships...
+[POLY FORM]       Polygon 1 has ST with boundary → will be ALT
+[POLY FORM]     Step 4: Validating IT-tagged polygons...
+[POLY FORM]     Step 5: Executing merges...
+[POLY FORM]       Polygon 1 → unclassified, marking as ALT
+[POLY FORM]     Step 6: Validating ALT constraint (no holes allowed)...
+[POLY FORM]     Final classification:
+[POLY FORM]       BOUNDARY: 1, HOLES: 0, ALTs: 1
+[POLY FORM]       [0] BOUNDARY: [5, 6, 25, 24]
+[POLY FORM]       [1] ALT: [4, 5, 24, 25, 6, 7, 45, 44]
+
+[POLY FORM]   Face 10: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 11: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 12: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 13: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 14: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 15: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 16: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 17: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 18: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 19: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 20: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 21: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 22: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 23: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 24: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 25: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 26: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 27: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 28: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 29: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 30: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
 [POLY FORM]     Face 4: Found independent boundary polygon [1, 10, 26, 20]
 [POLY FORM]     Face 4: Found 1 independent boundary polygon(s), checking containment and connectivity...
 [POLY FORM]     Found 1 connectivity group(s) among independent boundaries
@@ -1105,9 +1247,9 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]     Boundary vertices: [2, 24, 5, 48]
 [POLY FORM]   Face 8: 4 vertices, 0 hole(s), 0 alternate(s)
 [POLY FORM]     Boundary vertices: [3, 25, 6, 49]
-[POLY FORM]   Face 9: 8 vertices, 0 hole(s), 1 alternate(s)
-[POLY FORM]     Boundary vertices: [4, 5, 24, 25, 6, 7, 45, 44]
-[POLY FORM]     Alternate 0: [5, 6, 25, 24]
+[POLY FORM]   Face 9: 4 vertices, 0 hole(s), 1 alternate(s)
+[POLY FORM]     Boundary vertices: [5, 6, 25, 24]
+[POLY FORM]     Alternate 1: [4, 5, 24, 25, 6, 7, 45, 44]
 [POLY FORM]   Face 10: 4 vertices, 0 hole(s), 0 alternate(s)
 [POLY FORM]     Boundary vertices: [4, 14, 46, 44]
 [POLY FORM]   Face 11: 4 vertices, 0 hole(s), 0 alternate(s)
@@ -1184,115 +1326,91 @@ Vertex list (index: [x, y, z] in mm):
 
 [POLY FORM]     --- Polygons after pruning ---
 [POLY FORM]       [A] Face 5, Type: BOUNDARY, Vertices: [2, 3, 25, 24]
-[POLY FORM]       [B] Face 9, Type: BOUNDARY, Vertices: [4, 5, 24, 25, 6, 7, 45, 44]
+[POLY FORM]       [B] Face 9, Type: ALT, Vertices: [4, 5, 24, 25, 6, 7, 45, 44]
 [POLY FORM]       [C] Face 2, Type: BOUNDARY, Vertices: [4, 5, 48, 49, 6, 7, 15, 14]
 [POLY FORM]       [D] Face 8, Type: BOUNDARY, Vertices: [3, 25, 6, 49]
-[POLY FORM]       [E] Face 9, Type: ALT, Vertices: [5, 6, 25, 24]
+[POLY FORM]       [E] Face 9, Type: BOUNDARY, Vertices: [5, 6, 25, 24]
 [POLY FORM]       [F] Face 6, Type: BOUNDARY, Vertices: [2, 3, 49, 48]
 [POLY FORM]       [G] Face 7, Type: BOUNDARY, Vertices: [2, 24, 5, 48]
 [POLY FORM]       [H] Face 2, Type: ALT, Vertices: [5, 6, 49, 48]
 [POLY FORM]     --- Edges after pruning (20 total) ---
-[POLY FORM]       Edge (2, 3)
-[POLY FORM]       Edge (2, 24)
-[POLY FORM]       Edge (2, 48)
-[POLY FORM]       Edge (3, 25)
-[POLY FORM]       Edge (3, 49)
-[POLY FORM]       Edge (4, 5)
-[POLY FORM]       Edge (4, 14)
-[POLY FORM]       Edge (4, 44)
-[POLY FORM]       Edge (5, 6)
-[POLY FORM]       Edge (5, 24)
-[POLY FORM]       Edge (5, 48)
-[POLY FORM]       Edge (6, 7)
-[POLY FORM]       Edge (6, 25)
-[POLY FORM]       Edge (6, 49)
-[POLY FORM]       Edge (7, 15)
-[POLY FORM]       Edge (7, 45)
-[POLY FORM]       Edge (14, 15)
-[POLY FORM]       Edge (24, 25)
-[POLY FORM]       Edge (44, 45)
-[POLY FORM]       Edge (48, 49)
 
-[POLY FORM]   ========== INVALID EDGE LOOP MATCHING ==========
-[POLY FORM]   Analyzing invalid edges for closed loops...
-[POLY FORM]   Found 20 total edges from invalid polygons
-[POLY FORM]   Filtered to 6 edges with 3+ faces (truly invalid)
-[POLY FORM]     Edge (5, 24): 3 faces [F9(BOUNDARY), F9(ALT), F7(BOUNDARY)]
-[POLY FORM]     Edge (5, 48): 3 faces [F2(BOUNDARY), F7(BOUNDARY), F2(ALT)]
-[POLY FORM]     Edge (6, 25): 3 faces [F9(BOUNDARY), F8(BOUNDARY), F9(ALT)]
-[POLY FORM]     Edge (6, 49): 3 faces [F2(BOUNDARY), F8(BOUNDARY), F2(ALT)]
-[POLY FORM]     Edge (24, 25): 3 faces [F5(BOUNDARY), F9(BOUNDARY), F9(ALT)]
-[POLY FORM]     Edge (48, 49): 3 faces [F2(BOUNDARY), F6(BOUNDARY), F2(ALT)]
+======================================================================
+[POLY FORM] Step 6: COMBINATION STRATEGY
+======================================================================
+[POLY FORM] Goal: Add polygons back to base set to reduce boundary edges to 0
+[POLY FORM] Constraint: Do not increase invalid edges
+[POLY FORM] Starting with 8 polygon(s) after pruning
 
-[POLY FORM]   Finding loops with common polygon ownership...
-[POLY FORM]   Found 0 loop(s) with common polygon ownership
-[POLY FORM]   These loops belong to 0 unique polygon(s)
+[POLY FORM] Base set statistics:
+[POLY FORM]   Boundary: 6, Manifold: 59, Invalid: 0
 
-[POLY FORM]   No polygon matches found for invalid edge loops
+[POLY FORM] Extraction set grouped by face:
+[POLY FORM]   Face 2: 2 polygon(s)
+[POLY FORM]     - BOUNDARY: [4, 5, 48, 49, 6, 7, 15, 14]
+[POLY FORM]     - ALT: [5, 6, 49, 48]
+[POLY FORM]   Face 5: 1 polygon(s)
+[POLY FORM]     - BOUNDARY: [2, 3, 25, 24]
+[POLY FORM]   Face 6: 1 polygon(s)
+[POLY FORM]     - BOUNDARY: [2, 3, 49, 48]
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:8722: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show(block=True)
+[POLY FORM]   Face 7: 1 polygon(s)
+[POLY FORM]     - BOUNDARY: [2, 24, 5, 48]
+[POLY FORM]   Face 8: 1 polygon(s)
+[POLY FORM]     - BOUNDARY: [3, 25, 6, 49]
+[POLY FORM]   Face 9: 2 polygon(s)
+[POLY FORM]     - ALT: [4, 5, 24, 25, 6, 7, 45, 44]
+[POLY FORM]     - BOUNDARY: [5, 6, 25, 24]
 
-[POLY FORM]   Rebuilding global edge map after loop matching...
-[POLY FORM]     Global edge map: 0 boundary, 73 manifold, 6 invalid
-[POLY FORM]   ========== END LOOP MATCHING ==========
+[POLY FORM] === Iteration 1: Testing Combinations ===
 
-[POLY FORM]   ========== AUGMENTATION STRATEGY ==========
-[POLY FORM]   Goal: Add polygons from extraction set to base set
-[POLY FORM]   Constraint: Keep invalid edges = 0
-[POLY FORM]   Objective: Minimize boundary edges
+[POLY FORM] Testing combinations from all 6 faces (one polygon from each)...
 
-[POLY FORM]   Current state:
-[POLY FORM]     Base set: 6 boundary, 59 manifold, 0 invalid edges
-[POLY FORM]     Extraction set: 8 polygons
+[POLY FORM] Testing combinations from 5 faces...
+[POLY FORM]   [Test 3] Faces [2, 5, 6, 7, 9] - 5 polygons
+[POLY FORM]     → B:4, M:74, Inv:0 ✓ BETTER
 
-[POLY FORM]   ========== SKIPPING AUGMENTATION ==========
-[POLY FORM]   Reason: Base set already has 0 invalid edges
-[POLY FORM]   No augmentation needed - mesh is already valid
+[POLY FORM] Testing combinations from 4 faces...
 
-[POLY FORM]   Skipping augmentation: Extraction set is empty
+[POLY FORM] Testing combinations from 3 faces...
 
-[POLY FORM]   Proceeding with combination testing: 6 invalid edges remain
-[POLY FORM]   Extraction set after filtering removed polygons: 8 polygons
+[POLY FORM] Testing combinations from 2 faces...
 
-[POLY FORM]   Grouping polygons by face...
-[POLY FORM]     Found 6 faces with polygons:
-[POLY FORM]       Face 2: [C, H]
-[POLY FORM]       Face 5: [A]
-[POLY FORM]       Face 6: [F]
-[POLY FORM]       Face 7: [G]
-[POLY FORM]       Face 8: [D]
-[POLY FORM]       Face 9: [B, E]
+[POLY FORM] Testing polygons from individual faces...
 
-[POLY FORM]   Generating valid combinations...
-[POLY FORM]     Each face must have at least one polygon
-[POLY FORM]     Total combinations to test: 9
-[POLY FORM]       ✓ PERFECT: Combo [A, B, C, D, F, G] → Invalid: 0, Boundary: 0
-[POLY FORM]     Found perfect solution!
+[POLY FORM] Iteration 1 complete: 147 combinations tested
+[POLY FORM] Best result: B:4, M:74, Inv:0
 
-[POLY FORM]   Optimal combination found:
-[POLY FORM]     Polygons to KEEP:
-[POLY FORM]       [A] Face 5, Type: BOUNDARY, Vertices: [2, 3, 25, 24]
-[POLY FORM]       [B] Face 9, Type: BOUNDARY, Vertices: [4, 5, 24, 25, 6, 7, 45, 44]
-[POLY FORM]       [C] Face 2, Type: BOUNDARY, Vertices: [4, 5, 48, 49, 6, 7, 15, 14]
-[POLY FORM]       [D] Face 8, Type: BOUNDARY, Vertices: [3, 25, 6, 49]
-[POLY FORM]       [F] Face 6, Type: BOUNDARY, Vertices: [2, 3, 49, 48]
-[POLY FORM]       [G] Face 7, Type: BOUNDARY, Vertices: [2, 24, 5, 48]
-[POLY FORM]     Polygons to DELETE:
-[POLY FORM]       [E, H]
-[POLY FORM]       [E] Face 9, Type: ALT, Vertices: [5, 6, 25, 24]
-[POLY FORM]       [H] Face 2, Type: ALT, Vertices: [5, 6, 49, 48]
+[POLY FORM] Adding 5 polygon(s) back to base set:
+[POLY FORM]   Face 2 BOUNDARY: [4, 5, 48, 49, 6, 7, 15, 14]
+[POLY FORM]   Face 5 BOUNDARY: [2, 3, 25, 24]
+[POLY FORM]   Face 6 BOUNDARY: [2, 3, 49, 48]
+[POLY FORM]   Face 7 BOUNDARY: [2, 24, 5, 48]
+[POLY FORM]   Face 9 ALT: [4, 5, 24, 25, 6, 7, 45, 44]
+[POLY FORM] Remaining in extraction list: 3 polygon(s)
 
-[POLY FORM]   Applying optimal combination...
-[POLY FORM]     Removed 2 polygons
-[POLY FORM]     Kept 6 polygons from invalid-edge list
-[POLY FORM]     Updated edge statistics:
-[POLY FORM]       - Boundary edges: 0
-[POLY FORM]       - Manifold edges: 78
-[POLY FORM]       - Invalid edges: 0
+[POLY FORM] === Iteration 2: Processing Remaining Polygons ===
+[POLY FORM] Base set after iteration 1: B:4, M:74, Inv:0
+[POLY FORM] Iteration 2 complete: 7 combinations tested
+[POLY FORM] Best result: B:0, M:78, Inv:0
 
-[POLY FORM]   ✓ Invalid edges already resolved: 0 invalid edges
-[POLY FORM]   Skipping ALT vs BOUNDARY+HOLES testing
+[POLY FORM] Adding 1 polygon(s) back to base set:
+[POLY FORM]   Face 8 BOUNDARY: [3, 25, 6, 49]
+[POLY FORM] ✓ GOAL ACHIEVED: Boundary edges = 0!
+[POLY FORM] Deleting 2 remaining polygon(s)
+
+[POLY FORM] Combination strategy complete
+======================================================================
 
 [POLY FORM] Step 6.5: Removing duplicate polygons
 ----------------------------------------------------------------------
+
+[POLY FORM] Step 6.6: Checking faces for missing boundaries
+----------------------------------------------------------------------
+[POLY FORM]   Face 9: No BOUNDARY found, has 1 ALT polygon(s)
+[POLY FORM]     → Promoted ALT [4, 5, 24, 25, 6, 7, 45, 44] to BOUNDARY
+[POLY FORM]   Fixed 1 face(s) by promoting ALT to BOUNDARY
 
 [POLY FORM] Step 7: Compiling face results
 ----------------------------------------------------------------------
@@ -1305,91 +1423,9 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM] Found 0 face(s) with alternates
 
 ======================================================================
-[POLY FORM] EXTRACTION COMPLETE: 31 faces found
+[POLY FORM] CHECKING FOR DUPLICATE FACES
 ======================================================================
-[POLY FORM] Summary:
-[POLY FORM]   - Total faces: 31
-[POLY FORM]   - Faces with holes: 1
-[POLY FORM]   - Total holes: 3
-[POLY FORM]   - Faces with alternates: 0
-[POLY FORM]   Face 1: 6 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [0, 1, 10, 11, 9, 8]
-[POLY FORM]   Face 2: 8 vertices, 3 hole(s)
-[POLY FORM]     Outer boundary vertices: [4, 5, 48, 49, 6, 7, 15, 14]
-[POLY FORM]     Hole 1: 8 vertices
-[POLY FORM]       Vertices: [0, 1, 20, 21, 41, 40, 29, 28]
-[POLY FORM]       Hole area (2D projection): 1567.920762
-[POLY FORM]       Hole center (3D): [358.35, 289.70, 104.45]
-[POLY FORM]     Hole 2: 4 vertices
-[POLY FORM]       Vertices: [12, 13, 35, 34]
-[POLY FORM]       Hole area (2D projection): 461.764181
-[POLY FORM]       Hole center (3D): [358.35, 343.36, 90.44]
-[POLY FORM]     Hole 3: 4 vertices
-[POLY FORM]       Vertices: [22, 23, 39, 38]
-[POLY FORM]       Hole area (2D projection): 971.388486
-[POLY FORM]       Hole center (3D): [358.35, 399.58, 120.33]
-[POLY FORM]   Face 3: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [0, 8, 32, 28]
-[POLY FORM]   Face 4: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [29, 30, 42, 40]
-[POLY FORM]   Face 5: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [2, 3, 25, 24]
-[POLY FORM]   Face 6: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [2, 3, 49, 48]
-[POLY FORM]   Face 7: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [2, 24, 5, 48]
-[POLY FORM]   Face 8: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [3, 25, 6, 49]
-[POLY FORM]   Face 9: 8 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [4, 5, 24, 25, 6, 7, 45, 44]
-[POLY FORM]   Face 10: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [4, 14, 46, 44]
-[POLY FORM]   Face 11: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [7, 15, 47, 45]
-[POLY FORM]   Face 12: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [8, 9, 33, 32]
-[POLY FORM]   Face 13: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [9, 11, 31, 33]
-[POLY FORM]   Face 14: 8 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [10, 11, 31, 30, 42, 43, 27, 26]
-[POLY FORM]   Face 15: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [12, 13, 51, 50]
-[POLY FORM]   Face 16: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [12, 34, 18, 50]
-[POLY FORM]   Face 17: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [13, 35, 19, 51]
-[POLY FORM]   Face 18: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [14, 15, 47, 46]
-[POLY FORM]   Face 19: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [16, 17, 23, 22]
-[POLY FORM]   Face 20: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [16, 17, 37, 36]
-[POLY FORM]   Face 21: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [16, 22, 38, 36]
-[POLY FORM]   Face 22: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [17, 23, 39, 37]
-[POLY FORM]   Face 23: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [18, 19, 35, 34]
-[POLY FORM]   Face 24: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [18, 19, 51, 50]
-[POLY FORM]   Face 25: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [20, 21, 27, 26]
-[POLY FORM]   Face 26: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [21, 27, 43, 41]
-[POLY FORM]   Face 27: 6 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [28, 29, 30, 31, 33, 32]
-[POLY FORM]   Face 28: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [36, 37, 39, 38]
-[POLY FORM]   Face 29: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [40, 41, 43, 42]
-[POLY FORM]   Face 30: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [44, 45, 47, 46]
-[POLY FORM]   Face 31: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [1, 10, 26, 20]
-
-[POLY FORM] Step 7.5: Checking for touching holes within faces
-----------------------------------------------------------------------
-[POLY FORM]   No touching holes found
+[POLY FORM]   No duplicate faces found
 
 [CRITICAL] Extracted 31 faces
 
@@ -1699,6 +1735,8 @@ Face 30: 4 vertices, 0 holes
             FINAL: (358.4,354.9,80.4) → (358.4,331.9,80.4) → (358.4,331.9,100.5) → (358.4,354.9,100.5) → (358.4,354.9,80.4)
           Traversing Wire 3.4 edges...
             Wire 3.4 orientation: REVERSED
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/Reconstruct_Solid.py:5087: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
+  plt.tight_layout()
             ✓ Using BRepTools_WireExplorer for proper wire traversal
               Edge 0: vertex (358.4,410.4,97.9)
               Edge 1: vertex (358.4,388.7,97.9)
@@ -1723,8 +1761,6 @@ Face 30: 4 vertices, 0 holes
    Processing Face 5...
           Traversing Wire 5.1 edges...
             Wire 5.1 orientation: REVERSED
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/Reconstruct_Solid.py:5087: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
-  plt.tight_layout()
             ✓ Using BRepTools_WireExplorer for proper wire traversal
               Edge 0: vertex (306.0,276.4,62.9)
               Edge 1: vertex (358.4,276.4,62.9)

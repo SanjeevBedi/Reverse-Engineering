@@ -2,9 +2,9 @@
   plt.show(block=False)
 /Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:2641: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
   plt.pause(0.5)  # Give time for the plot to render
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:10304: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:8720: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
   plt.tight_layout()
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:10306: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:8722: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
   plt.show(block=True)
 [WARNING] config_system not available, using hardcoded values
 [DEBUG] __name__ = Reconstruction.Base_Solid
@@ -327,9 +327,17 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]     Face 5: Edge visibility: 0 solid, 0 dashed, 1 mixed
 [POLY FORM]     Face 5: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
 
-[POLY FORM]   Detecting independent boundary polygons...
+[POLY FORM]   Face 1: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
 
-[POLY FORM]   Deduplicating polygons in each face...
+[POLY FORM]   Face 3: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 4: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
+
+[POLY FORM]   Face 5: Processing 1 polygons with relationship matrix
+[POLY FORM]     Single polygon → BOUNDARY
 
 [POLY FORM]   Building initial edge distribution with ALL polygons (BOUNDARY + HOLES + ALL ALTs)...
 [POLY FORM]     Registered 4 total polygons
@@ -362,21 +370,12 @@ Vertex list (index: [x, y, z] in mm):
   Raw verts: [0, 1, 3, 2]... (type: <class 'int'>)
   Num selected_vertices: 8
 
-[POLY FORM]   ✓ Invalid edges already resolved: 0 invalid edges
-[POLY FORM]   Note: 6 boundary edges remain (will be handled separately)
-
-[POLY FORM BOUNDARY] Analyzing boundary edge neighborhoods...
-[POLY FORM BOUNDARY]   6 boundary edges
-[POLY FORM BOUNDARY]   6 boundary vertices
-[POLY FORM BOUNDARY]   Built neighborhoods for 6 vertices
-[POLY FORM BOUNDARY]     Found closed loop: 6 vertices
-[POLY FORM BOUNDARY]   Found 1 closed loop(s)
-[POLY FORM BOUNDARY]     Loop 1: NOT PLANAR (max deviation: 217.9324mm), skipping
-[POLY FORM BOUNDARY]   Added 0 boundary polygon(s)
-[POLY FORM]   Skipping ALT vs BOUNDARY+HOLES testing
-
 [POLY FORM] Step 6.5: Removing duplicate polygons
 ----------------------------------------------------------------------
+
+[POLY FORM] Step 6.6: Checking faces for missing boundaries
+----------------------------------------------------------------------
+[POLY FORM]   All faces have valid boundaries
 
 [POLY FORM] Step 7: Compiling face results
 ----------------------------------------------------------------------
@@ -391,27 +390,9 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM] Found 0 face(s) with alternates
 
 ======================================================================
-[POLY FORM] EXTRACTION COMPLETE: 4 faces found
+[POLY FORM] CHECKING FOR DUPLICATE FACES
 ======================================================================
-[POLY FORM] Summary:
-[POLY FORM]   - Total faces: 4
-[POLY FORM]   - Faces with holes: 0
-[POLY FORM]   - Total holes: 0
-[POLY FORM]   - Faces with alternates: 0
-[POLY FORM]   Face 1: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [0, 1, 3, 2]
-[POLY FORM]   Face 2: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [0, 2, 6, 4]
-[POLY FORM]   Face 3: 4 vertices, 0 hole(s)
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/Reconstruct_Solid.py:5087: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
-  plt.tight_layout()
-[POLY FORM]     Vertices: [1, 3, 7, 5]
-[POLY FORM]   Face 4: 4 vertices, 0 hole(s)
-[POLY FORM]     Vertices: [2, 3, 7, 6]
-
-[POLY FORM] Step 7.5: Checking for touching holes within faces
-----------------------------------------------------------------------
-[POLY FORM]   No touching holes found
+[POLY FORM]   No duplicate faces found
 
 [CRITICAL] Extracted 4 faces
 
@@ -425,6 +406,8 @@ Face 1: 4 vertices, 0 holes
   Normal: [0.000000, 0.000000, 1.000000], d=-0.000001
   Vertices: [0, 2, 6, 4]
 Face 2: 4 vertices, 0 holes
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/Reconstruct_Solid.py:5087: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
+  plt.tight_layout()
   Normal: [0.000000, 0.000000, 1.000000], d=-506.169713
   Vertices: [1, 3, 7, 5]
 Face 3: 4 vertices, 0 holes

@@ -999,12 +999,30 @@ def project_vertex_to_view(vertex, normal):
 
 
 def find_matching_row(proj_2d, view_matrix, tolerance=1e-5):
-    """Find row in view matrix matching the 2D projection"""
+    """Find row in view matrix matching the 2D projection.
+    Returns the first match. WARNING: Multiple 3D vertices can project to same 2D point!"""
+    matches = []
     for i in range(view_matrix.shape[0]):
         matrix_proj = (view_matrix[i, 1], view_matrix[i, 2])
         if np.allclose(proj_2d, matrix_proj, atol=tolerance):
-            return i
-    return None
+            matches.append(i)
+    
+    if len(matches) > 1:
+        # Multiple vertices project to same 2D location
+        # This can happen with vertical edges or occlusion
+        pass  # Will add debug output in calling code
+    
+    return matches[0] if matches else None
+
+
+def find_all_matching_rows(proj_2d, view_matrix, tolerance=1e-5):
+    """Find ALL rows in view matrix matching the 2D projection"""
+    matches = []
+    for i in range(view_matrix.shape[0]):
+        matrix_proj = (view_matrix[i, 1], view_matrix[i, 2])
+        if np.allclose(proj_2d, matrix_proj, atol=tolerance):
+            matches.append(i)
+    return matches
 
 
 def filter_candidate_vertices(top_matrix, front_matrix, side_matrix):
@@ -1256,6 +1274,9 @@ def build_square_connectivity_matrices(
     
     print(f"Projecting {N} vertices to each view...")
     
+    # Debug: Track specific vertical edges during connectivity building
+    debug_pairs = [(22, 23), (37, 38), (40, 41), (42, 43), (45, 46)]
+    
     # Build connectivity matrices
     for i in range(N):
         tp_i = top_proj[i]
@@ -1286,6 +1307,30 @@ def build_square_connectivity_matrices(
             # Side view connectivity
             if side_idx_i is not None and side_idx_j is not None:
                 side_conn[i, j] = side_matrix[side_idx_i, 3 + side_idx_j]
+            
+            # Debug specific pairs
+            if (i, j) in debug_pairs or (j, i) in debug_pairs:
+                pair = (min(i,j), max(i,j))
+                
+                # Find all matching rows for both vertices
+                top_matches_i = find_all_matching_rows(tp_i, top_matrix)
+                top_matches_j = find_all_matching_rows(tp_j, top_matrix)
+                front_matches_i = find_all_matching_rows(fp_i, front_matrix)
+                front_matches_j = find_all_matching_rows(fp_j, front_matrix)
+                side_matches_i = find_all_matching_rows(sp_i, side_matrix)
+                side_matches_j = find_all_matching_rows(sp_j, side_matrix)
+                
+                print(f"\n[DEBUG CONN BUILD] Edge {pair}:")
+                print(f"  Top: idx_i={top_idx_i} (of {len(top_matches_i)} matches), idx_j={top_idx_j} (of {len(top_matches_j)} matches), conn={top_conn[i,j]}")
+                print(f"       All matches: i={top_matches_i}, j={top_matches_j}")
+                print(f"  Front: idx_i={front_idx_i} (of {len(front_matches_i)} matches), idx_j={front_idx_j} (of {len(front_matches_j)} matches), conn={front_conn[i,j]}")
+                print(f"       All matches: i={front_matches_i}, j={front_matches_j}")
+                print(f"  Side: idx_i={side_idx_i} (of {len(side_matches_i)} matches), idx_j={side_idx_j} (of {len(side_matches_j)} matches), conn={side_conn[i,j]}")
+                print(f"       All matches: i={side_matches_i}, j={side_matches_j}")
+                print(f"  Projections:")
+                print(f"    Top:   V{i}={tp_i}, V{j}={tp_j}, same={np.allclose(tp_i, tp_j, atol=1e-6)}")
+                print(f"    Front: V{i}={fp_i}, V{j}={fp_j}, same={np.allclose(fp_i, fp_j, atol=1e-6)}")
+                print(f"    Side:  V{i}={sp_i}, V{j}={sp_j}, same={np.allclose(sp_i, sp_j, atol=1e-6)}")
             
             # Add connectivity for vertices at same 2D position in one view
             # if connected in other two views
@@ -1420,6 +1465,32 @@ def main():
     print(f"  - Edges with conn=3 (all views): {edges_conn3}")
     print(f"  - Edges with conn=2 (two views): {edges_conn2}")
     print(f"  - Edges with conn=1 (one view): {edges_conn1}")
+    
+    # Debug specific vertical edges
+    print("\n[DEBUG VERTICAL EDGES] Checking connectivity for vertical edges:")
+    vertical_pairs = [(22, 23), (37, 38), (40, 41), (42, 43), (45, 46)]
+    for v1, v2 in vertical_pairs:
+        if v1 < len(selected_vertices) and v2 < len(selected_vertices):
+            c1, c2 = selected_vertices[v1], selected_vertices[v2]
+            dx = abs(c2[0] - c1[0])
+            dy = abs(c2[1] - c1[1])
+            dz = abs(c2[2] - c1[2])
+            
+            top_val = top_conn_binary[v1, v2]
+            front_val = front_conn_binary[v1, v2]
+            side_val = side_conn_binary[v1, v2]
+            merged_val = merged_conn[v1, v2]
+            
+            print(f"  V{v1}-V{v2}: Δx={dx:.1f}, Δy={dy:.1f}, Δz={dz:.1f}")
+            print(f"    Top={top_val}, Front={front_val}, Side={side_val} → merged_conn={merged_val}")
+            print(f"    V{v1}: ({c1[0]:.1f}, {c1[1]:.1f}, {c1[2]:.1f})")
+            print(f"    V{v2}: ({c2[0]:.1f}, {c2[1]:.1f}, {c2[2]:.1f})")
+            
+            # Check original connectivity values (before binarization)
+            top_orig = top_conn[v1, v2]
+            front_orig = front_conn[v1, v2]
+            side_orig = side_conn[v1, v2]
+            print(f"    Original: Top={top_orig}, Front={front_orig}, Side={side_orig}")
     
     print(f"\n[DEBUG] BEFORE deduplication:")
     print(f"[DEBUG]   Vertices: {len(selected_vertices)}")
@@ -2435,6 +2506,38 @@ def main():
                             else:
                                 current_neighbors.add(edge[0])
                         print(f"       Neighbors from edge list: {sorted(current_neighbors)}")
+                        
+                        # Consult merged connectivity matrix for potential neighbors
+                        connectivity_neighbors = set()
+                        high_confidence_neighbors = set()  # conn == 3 (all views)
+                        if merged_conn is not None and v_idx < len(merged_conn):
+                            for other_v in range(len(merged_conn)):
+                                if other_v != v_idx and merged_conn[v_idx, other_v] > 0:
+                                    connectivity_neighbors.add(other_v)
+                                    if merged_conn[v_idx, other_v] == 3:
+                                        high_confidence_neighbors.add(other_v)
+                            print(f"       Neighbors from connectivity matrix: {sorted(connectivity_neighbors)}")
+                            
+                            # Find neighbors in connectivity but NOT in edge list (potential missing edges)
+                            missing_in_edge_list = connectivity_neighbors - current_neighbors
+                            if len(missing_in_edge_list) > 0:
+                                print(f"       → Connectivity shows {len(missing_in_edge_list)} additional neighbor(s) NOT in edge list:")
+                                for other_v in sorted(missing_in_edge_list):
+                                    conn_count = merged_conn[v_idx, other_v]
+                                    marker = " ★ HIGH CONFIDENCE" if conn_count == 3 else ""
+                                    print(f"         v{v_idx}-v{other_v} (seen in {conn_count} view(s)){marker}")
+                            
+                            # Extract high-confidence edges (conn==3) as missing edges
+                            high_conf_missing = high_confidence_neighbors - current_neighbors
+                            if len(high_conf_missing) > 0:
+                                print(f"       → Extracting {len(high_conf_missing)} high-confidence edge(s) (conn==3) for polygon completion:")
+                                for other_v in sorted(high_conf_missing):
+                                    edge = (min(v_idx, other_v), max(v_idx, other_v))
+                                    if edge not in missing_edges:
+                                        missing_edges.append(edge)
+                                        print(f"         Added v{v_idx}-v{other_v} to missing edges")
+                        else:
+                            print(f"       Connectivity matrix not available for vertex {v_idx}")
                         
                         # Map each edge from the edge list to ALL faces that contain it
                         edge_list_to_faces = {}
