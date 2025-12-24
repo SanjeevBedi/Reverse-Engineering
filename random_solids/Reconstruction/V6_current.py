@@ -1819,12 +1819,48 @@ def plot_four_views(solid, user_normal,
             if not isinstance(outer_boundary, (list, tuple)) or len(outer_boundary) < 3:
                 return
 
+            # Check if this face contains any target edges
+            face_has_target = False
+            for debug_e1, debug_e2 in debug_edges:
+                for i in range(len(outer_boundary)):
+                    v1 = outer_boundary[i]
+                    v2 = outer_boundary[(i + 1) % len(outer_boundary)]
+                    if ((vertices_match(v1, debug_e1) and vertices_match(v2, debug_e2)) or
+                        (vertices_match(v1, debug_e2) and vertices_match(v2, debug_e1))):
+                        face_has_target = True
+                        print(f"[FACE] {label}: Processing face with target edge {debug_e1}↔{debug_e2}")
+                        print(f"       Face has {len(outer_boundary)} vertices, visibility={visibility_value}")
+                        break
+                if face_has_target:
+                    break
+
             # Use outer scope variables - don't redefine them
             for i in range(len(outer_boundary)):
                 v1_3d = outer_boundary[i]
                 v2_3d = outer_boundary[(i + 1) % len(outer_boundary)]
+                
+                # Check if this is a target edge
+                is_target_edge = False
+                for debug_e1, debug_e2 in debug_edges:
+                    if ((vertices_match(v1_3d, debug_e1) and vertices_match(v2_3d, debug_e2)) or
+                        (vertices_match(v1_3d, debug_e2) and vertices_match(v2_3d, debug_e1))):
+                        is_target_edge = True
+                        break
+                
                 idx1 = find_3d_vertex_index(v1_3d)
                 idx2 = find_3d_vertex_index(v2_3d)
+                
+                if is_target_edge:
+                    print(f"[EDGE] {label}: Target edge {v1_3d}↔{v2_3d}")
+                    print(f"       Indices: idx1={idx1}, idx2={idx2}")
+                    if idx1 is not None and idx2 is not None:
+                        if idx1 == idx2:
+                            print(f"       → SKIPPED (degenerate: both project to same index)")
+                        else:
+                            print(f"       → ADDED (visibility={visibility_value})")
+                    else:
+                        print(f"       → NOT FOUND in vertex list")
+                
                 if (idx1 is not None and idx2 is not None and idx1 != idx2):
                     vertex_array[idx1, idx2] = visibility_value
                     vertex_array[idx2, idx1] = visibility_value
