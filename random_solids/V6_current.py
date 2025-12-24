@@ -1327,14 +1327,6 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal, no_graph
     array_B = []  # Depth-processed polygons (visible)
     array_C = []  # Hidden faces + intersections
     
-    # Debug: track which faces contain our target edges
-    debug_edges_3d = [
-        ([42.72, 33.36, 0.00], [42.72, 33.36, 18.64]),  # V25-V26
-        ([29.88, 30.12, 0.00], [29.88, 30.12, 18.64]),  # V0-V1
-        ([36.50, 23.50, 0.00], [36.50, 23.50, 18.64]),  # V4-V5
-    ]
-    debug_edge_names = ["V25-V26", "V0-V1", "V4-V5"]
-    
     print(f"Unit projection normal: [{unit_projection_normal[0]:.6f}, {unit_projection_normal[1]:.6f}, {unit_projection_normal[2]:.6f}]")
     print("\nStep 1: Initial classification and polygon projection...")
 
@@ -1383,16 +1375,6 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal, no_graph
             # The 3D edges are still real and must be captured for vertex reconstruction
             # NOTE: A face may be degenerate in one view but not in others!
             if outer_boundary and len(outer_boundary) >= 3:
-                # Check if this face contains any of our debug edges
-                face_debug_edges = []
-                for edge_idx, (v1_3d, v2_3d) in enumerate(debug_edges_3d):
-                    for i in range(len(outer_boundary)):
-                        vi = outer_boundary[i]
-                        vj = outer_boundary[(i+1) % len(outer_boundary)]
-                        if ((np.allclose(vi, v1_3d, atol=0.01) and np.allclose(vj, v2_3d, atol=0.01)) or
-                            (np.allclose(vi, v2_3d, atol=0.01) and np.allclose(vj, v1_3d, atol=0.01))):
-                            face_debug_edges.append(debug_edge_names[edge_idx])
-                
                 polygon_data_enhanced = {
                     'polygon': polygon,
                     'name': f"Face_{face_id}",
@@ -1401,7 +1383,6 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal, no_graph
                     'original_index': i,
                     'dot_product': dot_product,
                     'has_holes': len(projected_holes) > 0,
-                    'debug_edges': face_debug_edges,  # Track debug edges
                     # REMOVED: Don't store is_degenerate flag - check per view!
                 }
                 valid_polygons.append(polygon_data_enhanced)
@@ -1409,26 +1390,15 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal, no_graph
                 
                 # Report polygon status
                 hole_info = f" with {len(projected_holes)} holes" if projected_holes else ""
-                debug_info = f" [Contains: {', '.join(face_debug_edges)}]" if face_debug_edges else ""
                 if polygon.area < 1e-6:
-                    print(f"  → Added Face_{face_id} (DEGENERATE in this view: area={polygon.area:.2e}){hole_info}{debug_info} [3D edges will be extracted]")
+                    print(f"  → Added Face_{face_id} (DEGENERATE in this view: area={polygon.area:.2e}){hole_info} [3D edges will be extracted]")
                 else:
-                    print(f"  → Added Face_{face_id} (area: {polygon.area:.2f}){hole_info}{debug_info}")
-                print(f"      [DEBUG] Face_{face_id} dot_product: {dot_product:.6f} {'(visible)' if dot_product > 0 else '(hidden)'}")
+                    print(f"  → Added Face_{face_id} (area: {polygon.area:.2f}){hole_info}")
         except Exception as e:
             print(f"Face F{face_id}: Projection error - {e}")
     
     print(f"\nStep 2: Starting historic polygon classification algorithm...")
     print(f"Initial array_A: {len(array_A_initial)} polygons")
-    print(f"[DEBUG] Initial faces in array_A before historic algorithm:")
-    for i, poly_data in enumerate(array_A_initial):
-        name = poly_data['name']
-        dot_product = poly_data['dot_product']
-        area = poly_data['polygon'].area
-        debug_edges = poly_data.get('debug_edges', [])
-        debug_info = f" [DEBUG_EDGES: {', '.join(debug_edges)}]" if debug_edges else ""
-        is_degen = " (DEGENERATE)" if poly_data.get('is_degenerate', False) else ""
-        print(f"  A{i+1}: {name} (dot={dot_product:.3f}, area={area:.2f}){is_degen}{debug_info}")
 
 
     # Print summary of hidden polygons for top view
@@ -1567,16 +1537,12 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal, no_graph
                             'parent_face': Pi_parent_face,
                             # Also track Pj's parent face for potential edge extraction
                             'parent_face_secondary': Pj_parent_face,
-                            # Track debug edges from both faces
-                            'debug_edges': (Pi_data.get('debug_edges', []) + 
-                                          Pj_data.get('debug_edges', [])),
                             # FIXED: Use original face name
                             'associated_face': Pi_name,
                             'original_index': -1,
                             'dot_product': 0
                         }
                         array_C.append(intersection_data)
-                        print(f"[DEBUG] Added intersection to Array_C: {intersection_name}, area={intersection.area}")
 
                         # Apply depth-based boolean operations
                         if Pi_depth > Pj_depth:
@@ -1657,19 +1623,6 @@ def classify_faces_by_projection(face_polygons, unit_projection_normal, no_graph
             array_C,
             unit_projection_normal
         )
-    
-    # Debug: print which faces with debug edges ended up in array_B vs array_C
-    print(f"\n[DEBUG CLASSIFICATION] Final arrays for view with normal {unit_projection_normal}:")
-    print(f"  array_B (visible): {len(array_B)} polygons")
-    for poly_data in array_B:
-        debug_edges = poly_data.get('debug_edges', [])
-        if debug_edges:
-            print(f"    {poly_data.get('name', 'Unknown')} [Contains: {', '.join(debug_edges)}]")
-    print(f"  array_C (hidden): {len(array_C)} polygons")
-    for poly_data in array_C:
-        debug_edges = poly_data.get('debug_edges', [])
-        if debug_edges:
-            print(f"    {poly_data.get('name', 'Unknown')} [Contains: {', '.join(debug_edges)}]")
     
     return [], array_B, array_C
 
@@ -1866,26 +1819,11 @@ def create_view_connectivity_matrix(visible, hidden, projection_normal, view_nam
     edges_found = 0
     degenerate_edges_skipped = 0
     
-    # Debug: track specific edges we're looking for
-    debug_edges = [
-        (25, 26),  # V22-V23 in front view
-        (0, 1),    # V42-V43 in side view
-        (4, 5),    # V45-V46 in side view
-    ]
-    debug_edge_info = {}
-    for v1, v2 in debug_edges:
-        debug_edge_info[(v1, v2)] = {'found_in_polygons': 0, 'added_to_matrix': 0, 'degenerate': 0, 'missing_index': 0}
-    
-    # Check if all_vertices_3d is available for debug
-    if all_vertices_3d is None:
-        print(f"[DEBUG EDGE] {view_name}: WARNING - all_vertices_3d is None, cannot track debug edges by index")
-    
     poly_count = 0
     for poly_data in all_polygons:
         parent_face = poly_data.get('parent_face', None)
         parent_face_secondary = poly_data.get('parent_face_secondary', None)
         poly_name = poly_data.get('name', f'Poly_{poly_count}')
-        debug_edges_in_poly = poly_data.get('debug_edges', [])
         
         # Process both primary and secondary parent faces (for intersection polygons)
         parent_faces_to_process = []
@@ -1895,8 +1833,6 @@ def create_view_connectivity_matrix(visible, hidden, projection_normal, view_nam
             parent_faces_to_process.append(('secondary', parent_face_secondary))
         
         if not parent_faces_to_process:
-            if debug_edges_in_poly:
-                print(f"[DEBUG EDGE] {view_name}: {poly_name} [Contains: {', '.join(debug_edges_in_poly)}] has NO parent_face - SKIPPING!")
             continue
         
         poly_count += 1
@@ -1908,35 +1844,12 @@ def create_view_connectivity_matrix(visible, hidden, projection_normal, view_nam
                 vertices_3d = parent_face_data
                 
             if not isinstance(vertices_3d, (list, tuple)) or len(vertices_3d) < 3:
-                if debug_edges_in_poly:
-                    print(f"[DEBUG EDGE] {view_name}: {poly_name} [{face_type}] [Contains: {', '.join(debug_edges_in_poly)}] has invalid vertices_3d - SKIPPING!")
                 continue
-            
-            if debug_edges_in_poly and face_type == 'primary':
-                print(f"[DEBUG EDGE] {view_name}: Processing {poly_name} [Contains: {', '.join(debug_edges_in_poly)}] with {len(vertices_3d)} vertices")
-            elif debug_edges_in_poly and face_type == 'secondary':
-                print(f"[DEBUG EDGE] {view_name}: Processing {poly_name} [SECONDARY face] with {len(vertices_3d)} vertices")
         
-            #print(f"[SB DEBUG] {view_name}: Processed polygon {poly_data.get('name', 'Unknown')} with {len(vertices_3d)} vertices")       
             # Process edges in this polygon
             for i in range(len(vertices_3d)):
                 v1_3d = vertices_3d[i]
                 v2_3d = vertices_3d[(i + 1) % len(vertices_3d)]
-                
-                # Check if this is one of our debug edges (by 3D coordinates)
-                is_debug_edge = False
-                debug_key = None
-                if all_vertices_3d is not None:
-                    for v1_idx, v2_idx in debug_edges:
-                        if v1_idx < len(all_vertices_3d) and v2_idx < len(all_vertices_3d):
-                            dbg_v1 = all_vertices_3d[v1_idx]
-                            dbg_v2 = all_vertices_3d[v2_idx]
-                            if ((np.allclose(v1_3d, dbg_v1, atol=0.01) and np.allclose(v2_3d, dbg_v2, atol=0.01)) or
-                                (np.allclose(v1_3d, dbg_v2, atol=0.01) and np.allclose(v2_3d, dbg_v1, atol=0.01))):
-                                is_debug_edge = True
-                                debug_key = (v1_idx, v2_idx)
-                                debug_edge_info[debug_key]['found_in_polygons'] += 1
-                                break
                 
                 # Project both vertices
                 v1_proj = project_vertex_to_plane(v1_3d, projection_normal)
@@ -1961,9 +1874,6 @@ def create_view_connectivity_matrix(visible, hidden, projection_normal, view_nam
                         # This is normal for edges perpendicular to view (e.g., vertical edges in Top view)
                         # Skip adding to this view's connectivity matrix
                         degenerate_edges_skipped += 1
-                        if is_debug_edge:
-                            debug_edge_info[debug_key]['degenerate'] += 1
-                            print(f"[DEBUG EDGE] {view_name}: Edge V{debug_key[0]}-V{debug_key[1]} is DEGENERATE (both project to row {v1_idx})")
                     else:
                         # Determine visibility value:
                         # 1 = visible/solid line (in visible polygons)
@@ -1978,25 +1888,10 @@ def create_view_connectivity_matrix(visible, hidden, projection_normal, view_nam
                         if result_matrix[v2_idx, 3 + v1_idx] == 0 or visibility_value == 1:
                             result_matrix[v2_idx, 3 + v1_idx] = visibility_value
                         edges_found += 1
-                        
-                        if is_debug_edge:
-                            debug_edge_info[debug_key]['added_to_matrix'] += 1
-                            print(f"[DEBUG EDGE] {view_name}: Edge V{debug_key[0]}-V{debug_key[1]} ADDED to matrix[{v1_idx}, {v2_idx}] with visibility={visibility_value}")
-                else:
-                    if is_debug_edge:
-                        debug_edge_info[debug_key]['missing_index'] += 1
-                        print(f"[DEBUG EDGE] {view_name}: Edge V{debug_key[0]}-V{debug_key[1]} vertex index NOT FOUND (v1_idx={v1_idx}, v2_idx={v2_idx})")
-                #print(f"[SB DEBUG] {view_name}: Processed edge from vertex {v1_3d} to {v2_3d} with visibility {visibility_value} ")
-
     
-    print(f"[DEBUG] {view_name}: Added {edges_found} edges to connectivity matrix")
-    print(f"[DEBUG] {view_name}: Skipped {degenerate_edges_skipped} degenerate edges (project to points)")
-    print(f"[DEBUG] {view_name}: Matrix shape: {result_matrix.shape}")
-    
-    # Print debug edge summary
-    print(f"\n[DEBUG EDGE SUMMARY] {view_name}:")
-    for (v1, v2), info in debug_edge_info.items():
-        print(f"  Edge V{v1}-V{v2}: found_in_polygons={info['found_in_polygons']}, added={info['added_to_matrix']}, degenerate={info['degenerate']}, missing_idx={info['missing_index']}")
+    print(f"{view_name}: Added {edges_found} edges to connectivity matrix")
+    print(f"{view_name}: Skipped {degenerate_edges_skipped} degenerate edges (project to points)")
+    print(f"{view_name}: Matrix shape: {result_matrix.shape}")
     
     # Ensure connectivity part is symmetric (mirrored about the diagonal)
     # n_vertices = result_matrix.shape[0]

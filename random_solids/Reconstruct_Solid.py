@@ -1274,9 +1274,6 @@ def build_square_connectivity_matrices(
     
     print(f"Projecting {N} vertices to each view...")
     
-    # Debug: Track specific vertical edges during connectivity building
-    debug_pairs = [(22, 23), (37, 38), (40, 41), (42, 43), (45, 46)]
-    
     # Build connectivity matrices
     for i in range(N):
         tp_i = top_proj[i]
@@ -1307,38 +1304,11 @@ def build_square_connectivity_matrices(
             # Side view connectivity
             if side_idx_i is not None and side_idx_j is not None:
                 side_conn[i, j] = side_matrix[side_idx_i, 3 + side_idx_j]
-            
-            # Debug specific pairs
-            if (i, j) in debug_pairs or (j, i) in debug_pairs:
-                pair = (min(i,j), max(i,j))
-                
-                # Find all matching rows for both vertices
-                top_matches_i = find_all_matching_rows(tp_i, top_matrix)
-                top_matches_j = find_all_matching_rows(tp_j, top_matrix)
-                front_matches_i = find_all_matching_rows(fp_i, front_matrix)
-                front_matches_j = find_all_matching_rows(fp_j, front_matrix)
-                side_matches_i = find_all_matching_rows(sp_i, side_matrix)
-                side_matches_j = find_all_matching_rows(sp_j, side_matrix)
-                
-                print(f"\n[DEBUG CONN BUILD] Edge {pair}:")
-                print(f"  Top: idx_i={top_idx_i} (of {len(top_matches_i)} matches), idx_j={top_idx_j} (of {len(top_matches_j)} matches), conn={top_conn[i,j]}")
-                print(f"       All matches: i={top_matches_i}, j={top_matches_j}")
-                print(f"  Front: idx_i={front_idx_i} (of {len(front_matches_i)} matches), idx_j={front_idx_j} (of {len(front_matches_j)} matches), conn={front_conn[i,j]}")
-                print(f"       All matches: i={front_matches_i}, j={front_matches_j}")
-                print(f"  Side: idx_i={side_idx_i} (of {len(side_matches_i)} matches), idx_j={side_idx_j} (of {len(side_matches_j)} matches), conn={side_conn[i,j]}")
-                print(f"       All matches: i={side_matches_i}, j={side_matches_j}")
-                print(f"  Projections:")
-                print(f"    Top:   V{i}={tp_i}, V{j}={tp_j}, same={np.allclose(tp_i, tp_j, atol=1e-6)}")
-                print(f"    Front: V{i}={fp_i}, V{j}={fp_j}, same={np.allclose(fp_i, fp_j, atol=1e-6)}")
-                print(f"    Side:  V{i}={sp_i}, V{j}={sp_j}, same={np.allclose(sp_i, sp_j, atol=1e-6)}")
     
     # Second pass: Add connectivity for degenerate edges (vertices projecting to same point)
     # If two vertices project to the same 2D point in one view but are connected in another view,
     # infer they should be connected (this handles edges perpendicular to a view)
-    print(f"\n[DEBUG] Adding degenerate edge connectivity...")
     degenerate_edges_added = 0
-    
-    debug_pairs_track = [(22, 23), (42, 43), (45, 46)]
     for i in range(N):
         tp_i = top_proj[i]
         fp_i = front_proj[i]
@@ -1349,42 +1319,26 @@ def build_square_connectivity_matrices(
             fp_j = front_proj[j]
             sp_j = side_proj[j]
             
-            is_debug = (i, j) in debug_pairs_track or (j, i) in debug_pairs_track
-            
             # Top view: if degenerate and connected in front OR side, add to top
             if np.allclose(tp_i, tp_j, atol=1e-6) and top_conn[i, j] == 0:
-                if is_debug:
-                    print(f"  Pair ({i},{j}): Top degenerate, top_conn=0, front_conn={front_conn[i,j]}, side_conn={side_conn[i,j]}")
                 if front_conn[i, j] > 0 or side_conn[i, j] > 0:
                     top_conn[i, j] = 1
                     top_conn[j, i] = 1
                     degenerate_edges_added += 1
-                    if is_debug:
-                        print(f"    → ADDED to top_conn")
             
             # Front view: if degenerate and connected in top OR side, add to front
             if np.allclose(fp_i, fp_j, atol=1e-6) and front_conn[i, j] == 0:
-                if is_debug:
-                    print(f"  Pair ({i},{j}): Front degenerate, front_conn=0, top_conn={top_conn[i,j]}, side_conn={side_conn[i,j]}")
                 if top_conn[i, j] > 0 or side_conn[i, j] > 0:
                     front_conn[i, j] = 1
                     front_conn[j, i] = 1
                     degenerate_edges_added += 1
-                    if is_debug:
-                        print(f"    → ADDED to front_conn")
             
             # Side view: if degenerate and connected in top OR front, add to side  
             if np.allclose(sp_i, sp_j, atol=1e-6) and side_conn[i, j] == 0:
-                if is_debug:
-                    print(f"  Pair ({i},{j}): Side degenerate, side_conn=0, top_conn={top_conn[i,j]}, front_conn={front_conn[i,j]}")
                 if front_conn[i, j] > 0 or top_conn[i, j] > 0:
                     side_conn[i, j] = 1
                     side_conn[j, i] = 1
                     degenerate_edges_added += 1
-                    if is_debug:
-                        print(f"    → ADDED to side_conn")
-    
-    print(f"[DEBUG] Added {degenerate_edges_added} degenerate edges")
     
     print(f"Built connectivity matrices:")
     print(f"  - Top view: {np.sum(top_conn > 0) // 2} edges")
