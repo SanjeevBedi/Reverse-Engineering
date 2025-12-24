@@ -1815,6 +1815,20 @@ def create_view_connectivity_matrix(visible, hidden, projection_normal, view_nam
     
     # Step 3: Populate connectivity matrix from polygon edges
     edges_found = 0
+    degenerate_edges_skipped = 0
+    
+    # Debug tracking for specific vertex pairs (for seed 250 investigation)
+    debug_edges = [
+        ((427.2, 333.6, 0.0), (427.2, 333.6, 186.4)),    # V22-V23
+        ((379.1, 381.6, 0.0), (379.1, 381.6, 186.4)),    # V37-V38
+        ((365.0, 333.6, 186.4), (365.0, 333.6, 304.2)),  # V40-V41
+        ((298.8, 301.2, 0.0), (298.8, 301.2, 186.4)),    # V42-V43
+        ((365.0, 235.0, 0.0), (365.0, 235.0, 186.4)),    # V45-V46
+    ]
+    
+    def vertices_match(v1, v2, tol=0.1):
+        """Check if two vertices match within tolerance"""
+        return np.allclose(v1, v2, atol=tol)
     
     for poly_data in all_polygons:
         parent_face = poly_data.get('parent_face', None)
@@ -1850,28 +1864,56 @@ def create_view_connectivity_matrix(visible, hidden, projection_normal, view_nam
                     v2_idx = idx
             
             # Add edge to connectivity matrix (OUTSIDE the vertex search loop)
-            if v1_idx is not None and v2_idx is not None and v1_idx != v2_idx:
-                # Determine visibility value:
-                # 1 = visible/solid line (in visible polygons)
-                # 2 = hidden/dashed line (in hidden polygons)
-                is_visible = id(poly_data) in visible_set
-                visibility_value = 1 if is_visible else 2
+            if v1_idx is not None and v2_idx is not None:
+                # Check if this is one of our debug edges
+                is_debug_edge = False
+                for debug_v1, debug_v2 in debug_edges:
+                    if (vertices_match(v1_3d, debug_v1) and vertices_match(v2_3d, debug_v2)) or \
+                       (vertices_match(v1_3d, debug_v2) and vertices_match(v2_3d, debug_v1)):
+                        is_debug_edge = True
+                        break
                 
-                # Debug first few edges
-                if edges_found < 3:
-                    print(f"[DEBUG] {view_name}: Edge {edges_found}: poly_data id={id(poly_data)}, in visible_set={is_visible}, visibility={visibility_value}")
-                
-                # Add connection in both directions
-                # Prefer solid (1) over dashed (2) if edge already exists
-                if result_matrix[v1_idx, 3 + v2_idx] == 0 or visibility_value == 1:
-                    result_matrix[v1_idx, 3 + v2_idx] = visibility_value
-                if result_matrix[v2_idx, 3 + v1_idx] == 0 or visibility_value == 1:
-                    result_matrix[v2_idx, 3 + v1_idx] = visibility_value
-                edges_found += 1
+                # Check if edge is degenerate (projects to a point)
+                if v1_idx == v2_idx:
+                    # Degenerate edge - both vertices project to same 2D point
+                    # This is normal for edges perpendicular to view (e.g., vertical edges in Top view)
+                    # Skip adding to this view's connectivity matrix
+                    degenerate_edges_skipped += 1
+                    if is_debug_edge:
+                        print(f"[DEBUG VERT] {view_name}: SKIPPED degenerate edge")
+                        print(f"             V1_3D: {v1_3d}, V2_3D: {v2_3d}")
+                        print(f"             V1_proj: {v1_proj}, V2_proj: {v2_proj}")
+                        print(f"             v1_idx={v1_idx}, v2_idx={v2_idx} (SAME)")
+                else:
+                    # Determine visibility value:
+                    # 1 = visible/solid line (in visible polygons)
+                    # 2 = hidden/dashed line (in hidden polygons)
+                    is_visible = id(poly_data) in visible_set
+                    visibility_value = 1 if is_visible else 2
+                    
+                    if is_debug_edge:
+                        print(f"[DEBUG VERT] {view_name}: ADDED edge with visibility={visibility_value}")
+                        print(f"             V1_3D: {v1_3d}, V2_3D: {v2_3d}")
+                        print(f"             V1_proj: {v1_proj}, V2_proj: {v2_proj}")
+                        print(f"             v1_idx={v1_idx}, v2_idx={v2_idx}")
+                        print(f"             matrix[{v1_idx},{v2_idx}] = {visibility_value}")
+                    
+                    # Debug first few edges
+                    if edges_found < 3:
+                        print(f"[DEBUG] {view_name}: Edge {edges_found}: poly_data id={id(poly_data)}, in visible_set={is_visible}, visibility={visibility_value}")
+                    
+                    # Add connection in both directions
+                    # Prefer solid (1) over dashed (2) if edge already exists
+                    if result_matrix[v1_idx, 3 + v2_idx] == 0 or visibility_value == 1:
+                        result_matrix[v1_idx, 3 + v2_idx] = visibility_value
+                    if result_matrix[v2_idx, 3 + v1_idx] == 0 or visibility_value == 1:
+                        result_matrix[v2_idx, 3 + v1_idx] = visibility_value
+                    edges_found += 1
             #print(f"[SB DEBUG] {view_name}: Processed edge from vertex {v1_3d} to {v2_3d} with visibility {visibility_value} ")
 
     
     print(f"[DEBUG] {view_name}: Added {edges_found} edges to connectivity matrix")
+    print(f"[DEBUG] {view_name}: Skipped {degenerate_edges_skipped} degenerate edges (project to points)")
     print(f"[DEBUG] {view_name}: Matrix shape: {result_matrix.shape}")
     # Ensure connectivity part is symmetric (mirrored about the diagonal)
     # n_vertices = result_matrix.shape[0]

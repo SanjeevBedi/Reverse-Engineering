@@ -117,6 +117,8 @@ Merged connectivity matrix summary:
   - Edges with conn=2 (two views): 12
   - Edges with conn=1 (one view): 10
 
+[DEBUG VERTICAL EDGES] Checking connectivity for vertical edges:
+
 [DEBUG] BEFORE deduplication:
 [DEBUG]   Vertices: 18
 [DEBUG]   Edges conn=3: 27
@@ -253,21 +255,44 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM] F10:  4 vertices: [9, 10, 13, 14]
 [POLY FORM] F11:  4 vertices: [11, 12, 13, 14]
 [POLY FORM] F12:  4 vertices: [15, 16, 17, 18]
-[POLY FORM]   Face 1: 4 edges with conn=3: [(0, 1), (0, 4), (1, 5), (4, 5)]
-[POLY FORM]   Face 2: 4 edges with conn=3: [(0, 1), (0, 14), (1, 15), (14, 15)]
-[POLY FORM]   Face 3: 4 edges with conn=3: [(0, 4), (0, 14), (4, 16), (14, 16)]
-[POLY FORM]   Face 4: 9 edges with conn=3: [(1, 5), (1, 15), (3, 7), (3, 9), (5, 17), (7, 11), (9, 13), (11, 13), (15, 17)]
-[POLY FORM]   Face 5: 4 edges with conn=3: [(2, 3), (2, 6), (3, 7), (6, 7)]
-[POLY FORM]   Face 6: 4 edges with conn=3: [(2, 3), (2, 8), (3, 9), (8, 9)]
-[POLY FORM]   Face 7: 5 edges with conn=3: [(2, 6), (2, 8), (6, 10), (8, 12), (10, 12)]
-[POLY FORM]   Face 8: 4 edges with conn=3: [(4, 5), (4, 16), (5, 17), (16, 17)]
-[POLY FORM]   Face 9: 4 edges with conn=3: [(6, 7), (6, 10), (7, 11), (10, 11)]
-[POLY FORM]   Face 10: 4 edges with conn=3: [(8, 9), (8, 12), (9, 13), (12, 13)]
-[POLY FORM]   Face 11: 4 edges with conn=3: [(10, 11), (10, 12), (11, 13), (12, 13)]
-[POLY FORM]   Face 12: 4 edges with conn=3: [(14, 15), (14, 16), (15, 17), (16, 17)]
+[POLY FORM]   Face 1: 4 edges with conn=3: [(1, 2), (1, 5), (2, 6), (5, 6)]
+[POLY FORM]   Face 2: 4 edges with conn=3: [(1, 2), (1, 15), (2, 16), (15, 16)]
+[POLY FORM]   Face 3: 4 edges with conn=3: [(1, 5), (1, 15), (5, 17), (15, 17)]
+[POLY FORM]   Face 4: 9 edges with conn=3: [(2, 6), (2, 16), (4, 8), (4, 10), (6, 18), (8, 12), (10, 14), (12, 14), (16, 18)]
+[POLY FORM]   Face 5: 4 edges with conn=3: [(3, 4), (3, 7), (4, 8), (7, 8)]
+[POLY FORM]   Face 6: 4 edges with conn=3: [(3, 4), (3, 9), (4, 10), (9, 10)]
+[POLY FORM]   Face 7: 5 edges with conn=3: [(3, 7), (3, 9), (7, 11), (9, 13), (11, 13)]
+[POLY FORM]   Face 8: 4 edges with conn=3: [(5, 6), (5, 17), (6, 18), (17, 18)]
+[POLY FORM]   Face 9: 4 edges with conn=3: [(7, 8), (7, 11), (8, 12), (11, 12)]
+[POLY FORM]   Face 10: 4 edges with conn=3: [(9, 10), (9, 13), (10, 14), (13, 14)]
+[POLY FORM]   Face 11: 4 edges with conn=3: [(11, 12), (11, 13), (12, 14), (13, 14)]
+[POLY FORM]   Face 12: 4 edges with conn=3: [(15, 16), (15, 17), (16, 18), (17, 18)]
+
+[POLY FORM] Step 4.6: Synchronizing vertex assignments with edge lists
 
 [POLY FORM] Step 5.5: Processing collinear edges
 ----------------------------------------------------------------------
+
+[POLY FORM] Step 5.5.1: Analyzing vertex connectivity (conn==3 only)
+[POLY FORM]   Vertices with conn==3 edges:
+     v0: 3 edges (conn==3)
+     v1: 3 edges (conn==3)
+     v2: 3 edges (conn==3)
+     v3: 3 edges (conn==3)
+     v4: 3 edges (conn==3)
+     v5: 3 edges (conn==3)
+     v6: 3 edges (conn==3)
+     v7: 3 edges (conn==3)
+     v8: 3 edges (conn==3)
+     v9: 3 edges (conn==3)
+     v10: 3 edges (conn==3)
+     v11: 3 edges (conn==3)
+     v12: 3 edges (conn==3)
+     v13: 3 edges (conn==3)
+     v14: 3 edges (conn==3)
+     v15: 3 edges (conn==3)
+     v16: 3 edges (conn==3)
+     v17: 3 edges (conn==3)
 
 [POLY FORM]   Processing Face 1: 4 edges
 
@@ -292,6 +317,8 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]   Processing Face 11: 4 edges
 
 [POLY FORM]   Processing Face 12: 4 edges
+
+[POLY FORM] Identified 0 two-edge vertices: []
 
 [POLY FORM] Step 5.5 Complete: Collinear edge processing finished
 
@@ -378,6 +405,14 @@ Vertex list (index: [x, y, z] in mm):
   [STEP 6.3]   boundary_poly (vertex list): [2, 3, 9, 8]
   [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
 [POLY FORM]   Face 6: Found 1 polygon(s)
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:2682: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show(block=False)
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:2683: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.pause(0.5)  # Give time for the plot to render
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:8871: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
+  plt.tight_layout()
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:8873: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show(block=True)
 [POLY FORM]     Polygon 1: 4 vertices, area=2698.811322
 [POLY FORM]       Vertices: [2, 3, 9, 8]
 
@@ -395,14 +430,6 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]   Face 8: Total edges available: 4
   [STEP 6.1] Iteration 1: 4 remaining edges before filter
   [STEP 6.1] Finding all polygons from 4 edges...
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:2640: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
-  plt.show(block=False)
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:2641: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
-  plt.pause(0.5)  # Give time for the plot to render
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:8720: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
-  plt.tight_layout()
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:8722: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
-  plt.show(block=True)
   [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
   [STEP 6.3] Selected boundary: 4 verts, area=54677.614119
   [STEP 6.3]   boundary_poly (vertex list): [4, 5, 17, 16]
@@ -714,6 +741,8 @@ Face 11: 4 vertices, 0 holes
 [DEBUG] Passing 12 extracted faces to plot
 [DEBUG] Passing 12 original faces to plot
 [DEBUG] Original face structure has keys: ['outer_boundary', 'holes']
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/Reconstruct_Solid.py:5190: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
+  plt.tight_layout()
 [DEBUG] plot_extracted_polygon_faces: About to call plt.show(block=True)...
 [DEBUG] plot_extracted_polygon_faces: Returned from plt.show(block=True)
 [DEBUG] plot_extracted_polygon_faces: Closed figure, returning from function
@@ -733,8 +762,6 @@ Face 11: 4 vertices, 0 holes
    Successfully created face 4
    Successfully created face 5
    Successfully created face 6
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/Reconstruct_Solid.py:5087: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
-  plt.tight_layout()
    Successfully created face 7
    Successfully created face 8
    Successfully created face 9

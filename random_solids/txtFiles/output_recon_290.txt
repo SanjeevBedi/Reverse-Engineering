@@ -139,6 +139,54 @@ Step 3 Complete: Filtered to 40 vertices
 BUILDING CONNECTIVITY MATRICES
 ======================================================================
 Projecting 40 vertices to each view...
+
+[DEBUG CONN BUILD] Edge (22, 23):
+  Top: idx_i=1 (of 1 matches), idx_j=1 (of 1 matches), conn=0
+       All matches: i=[1], j=[1]
+  Front: idx_i=0 (of 1 matches), idx_j=1 (of 1 matches), conn=1
+       All matches: i=[0], j=[1]
+  Side: idx_i=3 (of 1 matches), idx_j=2 (of 1 matches), conn=1
+       All matches: i=[3], j=[2]
+  Projections:
+    Top:   V22=[135. 195.], V23=[135. 195.], same=True
+    Front: V22=[1.35000000e+02 1.00000001e-06], V23=[135.         295.29658345], same=False
+    Side:  V22=[1.95000000e+02 1.00000001e-06], V23=[195.         295.29658345], same=False
+
+[DEBUG CONN BUILD] Edge (22, 23):
+  Top: idx_i=1 (of 1 matches), idx_j=1 (of 1 matches), conn=0
+       All matches: i=[1], j=[1]
+  Front: idx_i=1 (of 1 matches), idx_j=0 (of 1 matches), conn=1
+       All matches: i=[1], j=[0]
+  Side: idx_i=2 (of 1 matches), idx_j=3 (of 1 matches), conn=1
+       All matches: i=[2], j=[3]
+  Projections:
+    Top:   V23=[135. 195.], V22=[135. 195.], same=True
+    Front: V23=[135.         295.29658345], V22=[1.35000000e+02 1.00000001e-06], same=False
+    Side:  V23=[195.         295.29658345], V22=[1.95000000e+02 1.00000001e-06], same=False
+
+[DEBUG CONN BUILD] Edge (37, 38):
+  Top: idx_i=5 (of 1 matches), idx_j=19 (of 1 matches), conn=0
+       All matches: i=[5], j=[19]
+  Front: idx_i=11 (of 1 matches), idx_j=16 (of 1 matches), conn=0
+       All matches: i=[11], j=[16]
+  Side: idx_i=8 (of 1 matches), idx_j=21 (of 1 matches), conn=0
+       All matches: i=[8], j=[21]
+  Projections:
+    Top:   V37=[136.15309614 290.98819085], V38=[190.54279542 336.03266286], same=False
+    Front: V37=[136.15309614 295.29658345], V38=[190.54279542 219.85197929], same=False
+    Side:  V37=[290.98819085 295.29658345], V38=[336.03266286 219.85197929], same=False
+
+[DEBUG CONN BUILD] Edge (37, 38):
+  Top: idx_i=19 (of 1 matches), idx_j=5 (of 1 matches), conn=0
+       All matches: i=[19], j=[5]
+  Front: idx_i=16 (of 1 matches), idx_j=11 (of 1 matches), conn=0
+       All matches: i=[16], j=[11]
+  Side: idx_i=21 (of 1 matches), idx_j=8 (of 1 matches), conn=0
+       All matches: i=[21], j=[8]
+  Projections:
+    Top:   V38=[190.54279542 336.03266286], V37=[136.15309614 290.98819085], same=False
+    Front: V38=[190.54279542 219.85197929], V37=[136.15309614 295.29658345], same=False
+    Side:  V38=[336.03266286 219.85197929], V37=[290.98819085 295.29658345], same=False
 Built connectivity matrices:
   - Top view: 115 edges
   - Front view: 136 edges
@@ -150,6 +198,18 @@ Merged connectivity matrix summary:
   - Edges with conn=3 (all views): 61
   - Edges with conn=2 (two views): 64
   - Edges with conn=1 (one view): 69
+
+[DEBUG VERTICAL EDGES] Checking connectivity for vertical edges:
+  V22-V23: Δx=0.0, Δy=0.0, Δz=295.3
+    Top=1, Front=1, Side=1 → merged_conn=3
+    V22: (135.0, 195.0, 0.0)
+    V23: (135.0, 195.0, 295.3)
+    Original: Top=1, Front=1, Side=1
+  V37-V38: Δx=54.4, Δy=45.0, Δz=75.4
+    Top=0, Front=0, Side=0 → merged_conn=0
+    V37: (136.2, 291.0, 295.3)
+    V38: (190.5, 336.0, 219.9)
+    Original: Top=0, Front=0, Side=0
 
 [DEBUG] BEFORE deduplication:
 [DEBUG]   Vertices: 40
@@ -325,42 +385,173 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM] F19:  4 vertices: [19, 20, 39, 40]
 [POLY FORM] F20:  4 vertices: [23, 24, 35, 36]
 [POLY FORM] F21:  4 vertices: [33, 34, 37, 38]
-[POLY FORM]   Face 1: 9 edges with conn=3: [(0, 1), (0, 20), (1, 25), (20, 21), (21, 29), (24, 25), (24, 28), (25, 29), (28, 29)]
-[POLY FORM]   Face 2: 4 edges with conn=3: [(0, 1), (0, 30), (1, 31), (30, 31)]
-[POLY FORM]   Face 3: 4 edges with conn=3: [(0, 20), (0, 30), (2, 20), (2, 30)]
-[POLY FORM]   Face 4: 22 edges with conn=3: [(1, 25), (1, 31), (3, 15), (3, 21), (5, 27), (5, 39), (7, 9), (7, 29), (9, 25), (11, 15), (11, 31), (11, 33), (13, 17), (13, 35), (15, 37), (17, 23), (19, 27), (19, 39), (21, 29), (23, 35), (25, 29), (33, 37)]
-[POLY FORM]   Face 5: 4 edges with conn=3: [(2, 3), (2, 20), (3, 21), (20, 21)]
-[POLY FORM]   Face 6: 9 edges with conn=3: [(2, 3), (2, 30), (3, 15), (10, 11), (10, 14), (11, 15), (11, 31), (14, 15), (30, 31)]
-[POLY FORM]   Face 7: 4 edges with conn=3: [(4, 5), (4, 26), (5, 27), (26, 27)]
-[POLY FORM]   Face 8: 4 edges with conn=3: [(4, 5), (4, 38), (5, 39), (38, 39)]
-[POLY FORM]   Face 9: 4 edges with conn=3: [(4, 26), (4, 38), (18, 26), (18, 38)]
-[POLY FORM]   Face 10: 4 edges with conn=3: [(6, 7), (6, 8), (7, 9), (8, 9)]
-[POLY FORM]   Face 11: 8 edges with conn=3: [(6, 7), (6, 28), (7, 29), (14, 15), (14, 36), (15, 37), (28, 29), (36, 37)]
-[POLY FORM]   Face 12: 8 edges with conn=3: [(6, 8), (6, 28), (8, 24), (10, 14), (10, 32), (14, 36), (24, 28), (32, 36)]
-[POLY FORM]   Face 13: 8 edges with conn=3: [(8, 9), (8, 24), (9, 25), (10, 11), (10, 32), (11, 33), (24, 25), (32, 33)]
-[POLY FORM]   Face 14: 4 edges with conn=3: [(12, 13), (12, 16), (13, 17), (16, 17)]
-[POLY FORM]   Face 15: 3 edges with conn=3: [(12, 13), (12, 34), (13, 35)]
-[POLY FORM]   Face 16: 4 edges with conn=3: [(12, 16), (12, 34), (16, 22), (22, 34)]
-[POLY FORM]   Face 17: 4 edges with conn=3: [(16, 17), (16, 22), (17, 23), (22, 23)]
-[POLY FORM]   Face 18: 4 edges with conn=3: [(18, 19), (18, 26), (19, 27), (26, 27)]
-[POLY FORM]   Face 19: 4 edges with conn=3: [(18, 19), (18, 38), (19, 39), (38, 39)]
-[POLY FORM]   Face 20: 3 edges with conn=3: [(22, 23), (22, 34), (23, 35)]
-[POLY FORM]   Face 21: 4 edges with conn=3: [(32, 33), (32, 36), (33, 37), (36, 37)]
+[POLY FORM]   Face 1: 9 edges with conn=3: [(1, 2), (1, 21), (2, 26), (21, 22), (22, 30), (25, 26), (25, 29), (26, 30), (29, 30)]
+[POLY FORM]   Face 2: 4 edges with conn=3: [(1, 2), (1, 31), (2, 32), (31, 32)]
+[POLY FORM]   Face 3: 4 edges with conn=3: [(1, 21), (1, 31), (3, 21), (3, 31)]
+[POLY FORM]   Face 4: 22 edges with conn=3: [(2, 26), (2, 32), (4, 16), (4, 22), (6, 28), (6, 40), (8, 10), (8, 30), (10, 26), (12, 16), (12, 32), (12, 34), (14, 18), (14, 36), (16, 38), (18, 24), (20, 28), (20, 40), (22, 30), (24, 36), (26, 30), (34, 38)]
+[POLY FORM]   Face 5: 4 edges with conn=3: [(3, 4), (3, 21), (4, 22), (21, 22)]
+[POLY FORM]   Face 6: 9 edges with conn=3: [(3, 4), (3, 31), (4, 16), (11, 12), (11, 15), (12, 16), (12, 32), (15, 16), (31, 32)]
+[POLY FORM]   Face 7: 4 edges with conn=3: [(5, 6), (5, 27), (6, 28), (27, 28)]
+[POLY FORM]   Face 8: 4 edges with conn=3: [(5, 6), (5, 39), (6, 40), (39, 40)]
+[POLY FORM]   Face 9: 4 edges with conn=3: [(5, 27), (5, 39), (19, 27), (19, 39)]
+[POLY FORM]   Face 10: 4 edges with conn=3: [(7, 8), (7, 9), (8, 10), (9, 10)]
+[POLY FORM]   Face 11: 8 edges with conn=3: [(7, 8), (7, 29), (8, 30), (15, 16), (15, 37), (16, 38), (29, 30), (37, 38)]
+[POLY FORM]   Face 12: 8 edges with conn=3: [(7, 9), (7, 29), (9, 25), (11, 15), (11, 33), (15, 37), (25, 29), (33, 37)]
+[POLY FORM]   Face 13: 8 edges with conn=3: [(9, 10), (9, 25), (10, 26), (11, 12), (11, 33), (12, 34), (25, 26), (33, 34)]
+[POLY FORM]   Face 14: 4 edges with conn=3: [(13, 14), (13, 17), (14, 18), (17, 18)]
+[POLY FORM]   Face 15: 3 edges with conn=3: [(13, 14), (13, 35), (14, 36)]
+[POLY FORM]   Face 16: 4 edges with conn=3: [(13, 17), (13, 35), (17, 23), (23, 35)]
+[POLY FORM]   Face 17: 4 edges with conn=3: [(17, 18), (17, 23), (18, 24), (23, 24)]
+[POLY FORM]   Face 18: 4 edges with conn=3: [(19, 20), (19, 27), (20, 28), (27, 28)]
+[POLY FORM]   Face 19: 4 edges with conn=3: [(19, 20), (19, 39), (20, 40), (39, 40)]
+[POLY FORM]   Face 20: 3 edges with conn=3: [(23, 24), (23, 35), (24, 36)]
+[POLY FORM]   Face 21: 4 edges with conn=3: [(33, 34), (33, 37), (34, 38), (37, 38)]
+
+[POLY FORM] Step 4.6: Synchronizing vertex assignments with edge lists
 
 [POLY FORM] Step 5.5: Processing collinear edges
 ----------------------------------------------------------------------
 
+[POLY FORM] Step 5.5.1: Analyzing vertex connectivity (conn==3 only)
+[POLY FORM]   Vertices with conn==3 edges:
+     v0: 3 edges (conn==3)
+     v1: 3 edges (conn==3)
+     v2: 3 edges (conn==3)
+     v3: 3 edges (conn==3)
+     v4: 3 edges (conn==3)
+     v5: 3 edges (conn==3)
+     v6: 3 edges (conn==3)
+     v7: 3 edges (conn==3)
+     v8: 3 edges (conn==3)
+     v9: 3 edges (conn==3)
+     v10: 3 edges (conn==3)
+     v11: 4 edges (conn==3)
+     v12: 3 edges (conn==3)
+     v13: 3 edges (conn==3)
+     v14: 3 edges (conn==3)
+     v15: 4 edges (conn==3)
+     v16: 3 edges (conn==3)
+     v17: 3 edges (conn==3)
+     v18: 3 edges (conn==3)
+     v19: 3 edges (conn==3)
+     v20: 3 edges (conn==3)
+     v21: 3 edges (conn==3)
+     v22: 3 edges (conn==3)
+     v23: 3 edges (conn==3)
+     v24: 3 edges (conn==3)
+     v25: 4 edges (conn==3)
+     v26: 3 edges (conn==3)
+     v27: 3 edges (conn==3)
+     v28: 3 edges (conn==3)
+     v29: 4 edges (conn==3)
+     v30: 3 edges (conn==3)
+     v31: 3 edges (conn==3)
+     v32: 3 edges (conn==3)
+     v33: 3 edges (conn==3)
+     v34: 2 edges (conn==3)
+     v35: 2 edges (conn==3)
+     v36: 3 edges (conn==3)
+     v37: 3 edges (conn==3)
+     v38: 3 edges (conn==3)
+     v39: 3 edges (conn==3)
+
 [POLY FORM]   Processing Face 1: 9 edges
+      Edge (1, 25): Found 2 collinear vertices
+         Vertex sequence (by t): [1, 25, 29, 21]
+         Edge (1, 25): conn=3 - WILL ADD
+         Edge (25, 29): conn=3 - WILL ADD
+         Edge (29, 21): conn=3 - WILL ADD
+      Edge (21, 29): Found 2 collinear vertices
+         Vertex sequence (by t): [21, 29, 25, 1]
+         Edge (21, 29): conn=3 - WILL ADD
+         Edge (29, 25): conn=3 - WILL ADD
+         Edge (25, 1): conn=3 - WILL ADD
+      Edge (25, 29): Found 2 collinear vertices
+         Vertex sequence (by t): [1, 25, 29, 21]
+         Edge (1, 25): conn=3 - WILL ADD
+         Edge (25, 29): conn=3 - WILL ADD
+         Edge (29, 21): conn=3 - WILL ADD
+      Updating edges: removing 3, adding 9
+      Face 1 now has 15 edges, 8 vertices
 
 [POLY FORM]   Processing Face 2: 4 edges
 
 [POLY FORM]   Processing Face 3: 4 edges
 
 [POLY FORM]   Processing Face 4: 22 edges
+      Edge (1, 25): Found 2 collinear vertices
+         Vertex sequence (by t): [1, 25, 29, 21]
+         Edge (1, 25): conn=3 - WILL ADD
+         Edge (25, 29): conn=3 - WILL ADD
+         Edge (29, 21): conn=3 - WILL ADD
+      Edge (3, 15): Found 2 collinear vertices
+         Vertex sequence (by t): [3, 15, 11, 31]
+         Edge (3, 15): conn=3 - WILL ADD
+         Edge (15, 11): conn=3 - WILL ADD
+         Edge (11, 31): conn=3 - WILL ADD
+      Edge (7, 29): Found 2 collinear vertices
+         Vertex sequence (by t): [7, 29, 15, 37]
+         Edge (7, 29): conn=3 - WILL ADD
+         Edge (29, 15): conn=1 - SKIPPED (too low)
+         Edge (15, 37): conn=3 - WILL ADD
+      Edge (9, 25): Found 2 collinear vertices
+         Vertex sequence (by t): [9, 25, 11, 33]
+         Edge (9, 25): conn=3 - WILL ADD
+         Edge (25, 11): conn=1 - SKIPPED (too low)
+         Edge (11, 33): conn=3 - WILL ADD
+      Edge (11, 15): Found 2 collinear vertices
+         Vertex sequence (by t): [31, 11, 15, 3]
+         Edge (31, 11): conn=3 - WILL ADD
+         Edge (11, 15): conn=3 - WILL ADD
+         Edge (15, 3): conn=3 - WILL ADD
+      Edge (11, 31): Found 2 collinear vertices
+         Vertex sequence (by t): [3, 15, 11, 31]
+         Edge (3, 15): conn=3 - WILL ADD
+         Edge (15, 11): conn=3 - WILL ADD
+         Edge (11, 31): conn=3 - WILL ADD
+      Edge (11, 33): Found 2 collinear vertices
+         Vertex sequence (by t): [9, 25, 11, 33]
+         Edge (9, 25): conn=3 - WILL ADD
+         Edge (25, 11): conn=1 - SKIPPED (too low)
+         Edge (11, 33): conn=3 - WILL ADD
+      Edge (15, 37): Found 2 collinear vertices
+         Vertex sequence (by t): [7, 29, 15, 37]
+         Edge (7, 29): conn=3 - WILL ADD
+         Edge (29, 15): conn=1 - SKIPPED (too low)
+         Edge (15, 37): conn=3 - WILL ADD
+      Edge (21, 29): Found 2 collinear vertices
+         Vertex sequence (by t): [21, 29, 25, 1]
+         Edge (21, 29): conn=3 - WILL ADD
+         Edge (29, 25): conn=3 - WILL ADD
+         Edge (25, 1): conn=3 - WILL ADD
+      Edge (25, 29): Found 2 collinear vertices
+         Vertex sequence (by t): [1, 25, 29, 21]
+         Edge (1, 25): conn=3 - WILL ADD
+         Edge (25, 29): conn=3 - WILL ADD
+         Edge (29, 21): conn=3 - WILL ADD
+      Updating edges: removing 10, adding 26
+      Face 4 now has 38 edges, 20 vertices
 
 [POLY FORM]   Processing Face 5: 4 edges
 
 [POLY FORM]   Processing Face 6: 9 edges
+      Edge (3, 15): Found 2 collinear vertices
+         Vertex sequence (by t): [3, 15, 11, 31]
+         Edge (3, 15): conn=3 - WILL ADD
+         Edge (15, 11): conn=3 - WILL ADD
+         Edge (11, 31): conn=3 - WILL ADD
+      Edge (11, 15): Found 2 collinear vertices
+         Vertex sequence (by t): [31, 11, 15, 3]
+         Edge (31, 11): conn=3 - WILL ADD
+         Edge (11, 15): conn=3 - WILL ADD
+         Edge (15, 3): conn=3 - WILL ADD
+      Edge (11, 31): Found 2 collinear vertices
+         Vertex sequence (by t): [3, 15, 11, 31]
+         Edge (3, 15): conn=3 - WILL ADD
+         Edge (15, 11): conn=3 - WILL ADD
+         Edge (11, 31): conn=3 - WILL ADD
+      Updating edges: removing 3, adding 9
+      Face 6 now has 15 edges, 8 vertices
 
 [POLY FORM]   Processing Face 7: 4 edges
 
@@ -371,10 +562,76 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]   Processing Face 10: 4 edges
 
 [POLY FORM]   Processing Face 11: 8 edges
+      Edge (6, 28): Found 2 collinear vertices
+         Vertex sequence (by t): [6, 28, 14, 36]
+         Edge (6, 28): conn=3 - WILL ADD
+         Edge (28, 14): conn=0 - SKIPPED (too low)
+         Edge (14, 36): conn=3 - WILL ADD
+      Edge (7, 29): Found 2 collinear vertices
+         Vertex sequence (by t): [7, 29, 15, 37]
+         Edge (7, 29): conn=3 - WILL ADD
+         Edge (29, 15): conn=1 - SKIPPED (too low)
+         Edge (15, 37): conn=3 - WILL ADD
+      Edge (14, 36): Found 2 collinear vertices
+         Vertex sequence (by t): [6, 28, 14, 36]
+         Edge (6, 28): conn=3 - WILL ADD
+         Edge (28, 14): conn=0 - SKIPPED (too low)
+         Edge (14, 36): conn=3 - WILL ADD
+      Edge (15, 37): Found 2 collinear vertices
+         Vertex sequence (by t): [7, 29, 15, 37]
+         Edge (7, 29): conn=3 - WILL ADD
+         Edge (29, 15): conn=1 - SKIPPED (too low)
+         Edge (15, 37): conn=3 - WILL ADD
+      Updating edges: removing 4, adding 8
+      Face 11 now has 12 edges, 8 vertices
 
 [POLY FORM]   Processing Face 12: 8 edges
+      Edge (6, 28): Found 2 collinear vertices
+         Vertex sequence (by t): [6, 28, 14, 36]
+         Edge (6, 28): conn=3 - WILL ADD
+         Edge (28, 14): conn=0 - SKIPPED (too low)
+         Edge (14, 36): conn=3 - WILL ADD
+      Edge (8, 24): Found 2 collinear vertices
+         Vertex sequence (by t): [8, 24, 10, 32]
+         Edge (8, 24): conn=3 - WILL ADD
+         Edge (24, 10): conn=0 - SKIPPED (too low)
+         Edge (10, 32): conn=3 - WILL ADD
+      Edge (10, 32): Found 2 collinear vertices
+         Vertex sequence (by t): [8, 24, 10, 32]
+         Edge (8, 24): conn=3 - WILL ADD
+         Edge (24, 10): conn=0 - SKIPPED (too low)
+         Edge (10, 32): conn=3 - WILL ADD
+      Edge (14, 36): Found 2 collinear vertices
+         Vertex sequence (by t): [6, 28, 14, 36]
+         Edge (6, 28): conn=3 - WILL ADD
+         Edge (28, 14): conn=0 - SKIPPED (too low)
+         Edge (14, 36): conn=3 - WILL ADD
+      Updating edges: removing 4, adding 8
+      Face 12 now has 12 edges, 8 vertices
 
 [POLY FORM]   Processing Face 13: 8 edges
+      Edge (8, 24): Found 2 collinear vertices
+         Vertex sequence (by t): [8, 24, 10, 32]
+         Edge (8, 24): conn=3 - WILL ADD
+         Edge (24, 10): conn=0 - SKIPPED (too low)
+         Edge (10, 32): conn=3 - WILL ADD
+      Edge (9, 25): Found 2 collinear vertices
+         Vertex sequence (by t): [9, 25, 11, 33]
+         Edge (9, 25): conn=3 - WILL ADD
+         Edge (25, 11): conn=1 - SKIPPED (too low)
+         Edge (11, 33): conn=3 - WILL ADD
+      Edge (10, 32): Found 2 collinear vertices
+         Vertex sequence (by t): [8, 24, 10, 32]
+         Edge (8, 24): conn=3 - WILL ADD
+         Edge (24, 10): conn=0 - SKIPPED (too low)
+         Edge (10, 32): conn=3 - WILL ADD
+      Edge (11, 33): Found 2 collinear vertices
+         Vertex sequence (by t): [9, 25, 11, 33]
+         Edge (9, 25): conn=3 - WILL ADD
+         Edge (25, 11): conn=1 - SKIPPED (too low)
+         Edge (11, 33): conn=3 - WILL ADD
+      Updating edges: removing 4, adding 8
+      Face 13 now has 12 edges, 8 vertices
 
 [POLY FORM]   Processing Face 14: 4 edges
 
@@ -392,12 +649,14 @@ Vertex list (index: [x, y, z] in mm):
 
 [POLY FORM]   Processing Face 21: 4 edges
 
+[POLY FORM] Identified 0 two-edge vertices: []
+
 [POLY FORM] Step 5.5 Complete: Collinear edge processing finished
 
 [POLY FORM] Step 6: Forming polygons from edges (REVISED)
 ----------------------------------------------------------------------
 
-[POLY FORM]   Face 1: Total edges available: 9
+[POLY FORM]   Face 1: Total edges available: 15
   [STEP 6.1] Iteration 1: 9 remaining edges before filter
   [STEP 6.1] Finding all polygons from 9 edges...
   [STEP 6.2.5] After deduplication: 3 unique, 0 alternates kept
@@ -443,7 +702,7 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]     Polygon 1: 4 vertices, area=259.491710
 [POLY FORM]       Vertices: [0, 20, 2, 30]
 
-[POLY FORM]   Face 4: Total edges available: 22
+[POLY FORM]   Face 4: Total edges available: 38
   [STEP 6.1] Iteration 1: 22 remaining edges before filter
   [STEP 6.1] Finding all polygons from 22 edges...
   [STEP 6.2.5] After deduplication: 5 unique, 3 alternates kept
@@ -523,7 +782,7 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]     Polygon 1: 4 vertices, area=674.054411
 [POLY FORM]       Vertices: [2, 3, 21, 20]
 
-[POLY FORM]   Face 6: Total edges available: 9
+[POLY FORM]   Face 6: Total edges available: 15
   [STEP 6.1] Iteration 1: 9 remaining edges before filter
   [STEP 6.1] Finding all polygons from 9 edges...
   [STEP 6.2.5] After deduplication: 3 unique, 0 alternates kept
@@ -591,33 +850,33 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]     Polygon 1: 4 vertices, area=763.114938
 [POLY FORM]       Vertices: [6, 7, 9, 8]
 
-[POLY FORM]   Face 11: Total edges available: 8
+[POLY FORM]   Face 11: Total edges available: 12
   [STEP 6.1] Iteration 1: 8 remaining edges before filter
   [STEP 6.1] Finding all polygons from 8 edges...
   [STEP 6.2.5] After deduplication: 2 unique, 0 alternates kept
   [STEP 6.3] Selected boundary: 4 verts, area=122.416872
-  [STEP 6.3]   boundary_poly (vertex list): [14, 36, 37, 15]
+  [STEP 6.3]   boundary_poly (vertex list): [6, 28, 29, 7]
   [STEP 6.4] Polygon 1: SEPARATE FACE (no intersection, no shared edges)
-  [STEP 6.4]   Vertices: [6, 7, 29, 28]
+  [STEP 6.4]   Vertices: [14, 15, 37, 36]
   [STEP 6.6] Polygon 4 verts: OUTSIDE
   [STEP 6.6] Classified: 0 holes, 1 outside, 0 removed
   [STEP 6.8] 1 outside polygons, 4 outside verts → next iteration
   [STEP 6.1] Iteration 2: 4 remaining edges before filter
   [STEP 6.1] merged_conn available, filtering edges...
   [STEP 6.1] Filtered out 0 edges with conn≠3 (4 edges remain)
-  [STEP 6.1] Remaining edges with conn=3: [(6, 7), (6, 28), (7, 29), (28, 29)]
+  [STEP 6.1] Remaining edges with conn=3: [(14, 15), (14, 36), (15, 37), (36, 37)]
   [STEP 6.1] Finding all polygons from 4 edges...
   [STEP 6.2.5] After deduplication: 1 unique, 0 alternates kept
   [STEP 6.3] Selected boundary: 4 verts, area=122.416872
-  [STEP 6.3]   boundary_poly (vertex list): [6, 7, 29, 28]
+  [STEP 6.3]   boundary_poly (vertex list): [14, 36, 37, 15]
   [STEP 6.6] Classified: 0 holes, 0 outside, 0 removed
 [POLY FORM]   Face 11: Found 2 polygon(s)
 [POLY FORM]     Polygon 1: 4 vertices, area=122.416872
-[POLY FORM]       Vertices: [14, 15, 37, 36]
-[POLY FORM]     Polygon 2: 4 vertices, area=122.416872
 [POLY FORM]       Vertices: [6, 7, 29, 28]
+[POLY FORM]     Polygon 2: 4 vertices, area=122.416872
+[POLY FORM]       Vertices: [14, 15, 37, 36]
 
-[POLY FORM]   Face 12: Total edges available: 8
+[POLY FORM]   Face 12: Total edges available: 12
   [STEP 6.1] Iteration 1: 8 remaining edges before filter
   [STEP 6.1] Finding all polygons from 8 edges...
   [STEP 6.2.5] After deduplication: 2 unique, 0 alternates kept
@@ -643,7 +902,7 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]     Polygon 2: 4 vertices, area=13.206235
 [POLY FORM]       Vertices: [10, 14, 36, 32]
 
-[POLY FORM]   Face 13: Total edges available: 8
+[POLY FORM]   Face 13: Total edges available: 12
   [STEP 6.1] Iteration 1: 8 remaining edges before filter
   [STEP 6.1] Finding all polygons from 8 edges...
   [STEP 6.2.5] After deduplication: 2 unique, 0 alternates kept
@@ -806,7 +1065,11 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]     Face 6: Edge visibility: 0 solid, 2 dashed, 0 mixed
 [POLY FORM]     Face 6: Processing 2 dashed/mixed-edge polygon(s) for HOLES/ALT
 [POLY FORM]   Face 7: Using visibility-based classification...
-[POLY FORM]     Face 7: Polygon 0 vertices: [4, 5, 27, 26]
+[POLY FORM]     Face 7: Polygon 0 vertices: [4, 5, 27, 26]/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:2640: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show(block=False)
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:2641: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.pause(0.5)  # Give time for the plot to render
+
 [POLY FORM]     Face 7: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
 [POLY FORM]     Face 7: Edge visibility: 0 solid, 1 dashed, 0 mixed
 [POLY FORM]     Face 7: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
@@ -826,9 +1089,9 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]     Face 10: Edge visibility: 0 solid, 1 dashed, 0 mixed
 [POLY FORM]     Face 10: Processing 1 dashed/mixed-edge polygon(s) for HOLES/ALT
 [POLY FORM]   Face 11: Using visibility-based classification...
-[POLY FORM]     Face 11: Polygon 0 vertices: [14, 15, 37, 36]
+[POLY FORM]     Face 11: Polygon 0 vertices: [6, 7, 29, 28]
 [POLY FORM]     Face 11: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
-[POLY FORM]     Face 11: Polygon 1 vertices: [6, 7, 29, 28]
+[POLY FORM]     Face 11: Polygon 1 vertices: [14, 15, 37, 36]
 [POLY FORM]     Face 11: Edge types: [2, 2, 2, 2] (1=solid, 2=dashed, 0=missing)
 [POLY FORM]     Face 11: Edge visibility: 0 solid, 2 dashed, 0 mixed
 [POLY FORM]     Face 11: Processing 2 dashed/mixed-edge polygon(s) for HOLES/ALT
@@ -997,14 +1260,6 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]       Polygon 0 is a separate face (all S)
 [POLY FORM]       Polygon 1 is a separate face (all S)
 [POLY FORM]       No clear boundary from matrix, using largest polygon 0
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:2640: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
-  plt.show(block=False)
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:2641: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
-  plt.pause(0.5)  # Give time for the plot to render
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:8720: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
-  plt.tight_layout()
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:8722: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
-  plt.show(block=True)
 [POLY FORM]     Step 2: Tagging IT polygons...
 [POLY FORM]     Step 3: Analyzing holes with S/ST relationships...
 [POLY FORM]     Step 4: Validating IT-tagged polygons...
@@ -1012,8 +1267,8 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]     Step 6: Validating ALT constraint (no holes allowed)...
 [POLY FORM]     Final classification:
 [POLY FORM]       BOUNDARY: 1, HOLES: 0, ALTs: 1
-[POLY FORM]       [0] BOUNDARY: [14, 15, 37, 36]
-[POLY FORM]       [1] ALT: [6, 7, 29, 28]
+[POLY FORM]       [0] BOUNDARY: [6, 7, 29, 28]
+[POLY FORM]       [1] ALT: [14, 15, 37, 36]
 
 [POLY FORM]   Face 12: Processing 2 polygons with relationship matrix
 [POLY FORM]     Building 2x2 relationship matrix...
@@ -1076,12 +1331,12 @@ Vertex list (index: [x, y, z] in mm):
 
 [POLY FORM]   Face 21: Processing 1 polygons with relationship matrix
 [POLY FORM]     Single polygon → BOUNDARY
-[POLY FORM]     Face 11: Found independent boundary polygon [6, 7, 29, 28]
+[POLY FORM]     Face 11: Found independent boundary polygon [14, 15, 37, 36]
 [POLY FORM]     Face 11: Found 1 independent boundary polygon(s), checking containment and connectivity...
 [POLY FORM]     Found 1 connectivity group(s) among independent boundaries
 [POLY FORM]     Created new face for group 0 with 1 polygon(s)
 [POLY FORM]     Face 11: Keeping 1 polygon(s) (BOUNDARY and attached HOLES/ALTs)
-[POLY FORM]       Kept: BOUNDARY [14, 15, 37, 36]
+[POLY FORM]       Kept: BOUNDARY [6, 7, 29, 28]
 [POLY FORM]     Face 12: Found independent boundary polygon [10, 14, 36, 32]
 [POLY FORM]     Face 12: Found 1 independent boundary polygon(s), checking containment and connectivity...
 [POLY FORM]     Found 1 connectivity group(s) among independent boundaries
@@ -1111,6 +1366,10 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]   - Total faces: 24
 [POLY FORM]   - Faces with holes: 1
 [POLY FORM]   - Total holes: 2
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:8829: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
+  plt.tight_layout()
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/V6_current.py:8831: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show(block=True)
 [POLY FORM]   - Faces with alternates: 2
 [POLY FORM]   Face 1: 4 vertices, 0 hole(s), 1 alternate(s)
 [POLY FORM]     Boundary vertices: [24, 25, 29, 28]
@@ -1137,7 +1396,7 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]   Face 10: 4 vertices, 0 hole(s), 0 alternate(s)
 [POLY FORM]     Boundary vertices: [6, 7, 9, 8]
 [POLY FORM]   Face 11: 4 vertices, 0 hole(s), 0 alternate(s)
-[POLY FORM]     Boundary vertices: [14, 15, 37, 36]
+[POLY FORM]     Boundary vertices: [6, 7, 29, 28]
 [POLY FORM]   Face 12: 4 vertices, 0 hole(s), 0 alternate(s)
 [POLY FORM]     Boundary vertices: [6, 8, 24, 28]
 [POLY FORM]   Face 13: 4 vertices, 0 hole(s), 0 alternate(s)
@@ -1157,7 +1416,7 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]   Face 21: 4 vertices, 0 hole(s), 0 alternate(s)
 [POLY FORM]     Boundary vertices: [32, 33, 37, 36]
 [POLY FORM]   Face 22: 4 vertices, 0 hole(s), 0 alternate(s)
-[POLY FORM]     Boundary vertices: [6, 7, 29, 28]
+[POLY FORM]     Boundary vertices: [14, 15, 37, 36]
 [POLY FORM]   Face 23: 4 vertices, 0 hole(s), 0 alternate(s)
 [POLY FORM]     Boundary vertices: [10, 14, 36, 32]
 [POLY FORM]   Face 24: 4 vertices, 0 hole(s), 0 alternate(s)
@@ -1194,13 +1453,13 @@ Vertex list (index: [x, y, z] in mm):
 
 [POLY FORM]     --- Polygons after pruning ---
 [POLY FORM]       [A] Face 1, Type: ALT, Vertices: [0, 1, 25, 24, 28, 29, 21, 20]
-[POLY FORM]       [B] Face 22, Type: BOUNDARY, Vertices: [6, 7, 29, 28]
+[POLY FORM]       [B] Face 22, Type: BOUNDARY, Vertices: [14, 15, 37, 36]
 [POLY FORM]       [C] Face 12, Type: BOUNDARY, Vertices: [6, 8, 24, 28]
 [POLY FORM]       [D] Face 1, Type: BOUNDARY, Vertices: [24, 25, 29, 28]
 [POLY FORM]       [E] Face 13, Type: BOUNDARY, Vertices: [8, 9, 25, 24]
 [POLY FORM]       [F] Face 24, Type: BOUNDARY, Vertices: [10, 11, 33, 32]
 [POLY FORM]       [G] Face 6, Type: ALT, Vertices: [2, 3, 15, 14, 10, 11, 31, 30]
-[POLY FORM]       [H] Face 11, Type: BOUNDARY, Vertices: [14, 15, 37, 36]
+[POLY FORM]       [H] Face 11, Type: BOUNDARY, Vertices: [6, 7, 29, 28]
 [POLY FORM]       [I] Face 6, Type: BOUNDARY, Vertices: [10, 11, 15, 14]
 [POLY FORM]       [J] Face 23, Type: BOUNDARY, Vertices: [10, 14, 36, 32]
 [POLY FORM]     --- Edges after pruning (32 total) ---
@@ -1223,13 +1482,13 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM]     - ALT: [2, 3, 15, 14, 10, 11, 31, 30]
 [POLY FORM]     - BOUNDARY: [10, 11, 15, 14]
 [POLY FORM]   Face 11: 1 polygon(s)
-[POLY FORM]     - BOUNDARY: [14, 15, 37, 36]
+[POLY FORM]     - BOUNDARY: [6, 7, 29, 28]
 [POLY FORM]   Face 12: 1 polygon(s)
 [POLY FORM]     - BOUNDARY: [6, 8, 24, 28]
 [POLY FORM]   Face 13: 1 polygon(s)
 [POLY FORM]     - BOUNDARY: [8, 9, 25, 24]
 [POLY FORM]   Face 22: 1 polygon(s)
-[POLY FORM]     - BOUNDARY: [6, 7, 29, 28]
+[POLY FORM]     - BOUNDARY: [14, 15, 37, 36]
 [POLY FORM]   Face 23: 1 polygon(s)
 [POLY FORM]     - BOUNDARY: [10, 14, 36, 32]
 [POLY FORM]   Face 24: 1 polygon(s)
@@ -1245,8 +1504,6 @@ Vertex list (index: [x, y, z] in mm):
 
 [POLY FORM] Testing combinations from 5 faces...
 [POLY FORM]   [Test 1] Faces [1, 6, 11, 12, 13] - 5 polygons
-[POLY FORM]     → B:16, M:42, Inv:0 ✓ BETTER
-[POLY FORM]   [Test 37] Faces [1, 6, 11, 23, 24] - 5 polygons
 [POLY FORM]     → B:14, M:43, Inv:0 ✓ BETTER
 
 [POLY FORM] Testing combinations from 4 faces...
@@ -1263,9 +1520,9 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM] Adding 5 polygon(s) back to base set:
 [POLY FORM]   Face 1 ALT: [0, 1, 25, 24, 28, 29, 21, 20]
 [POLY FORM]   Face 6 ALT: [2, 3, 15, 14, 10, 11, 31, 30]
-[POLY FORM]   Face 11 BOUNDARY: [14, 15, 37, 36]
-[POLY FORM]   Face 23 BOUNDARY: [10, 14, 36, 32]
-[POLY FORM]   Face 24 BOUNDARY: [10, 11, 33, 32]
+[POLY FORM]   Face 11 BOUNDARY: [6, 7, 29, 28]
+[POLY FORM]   Face 12 BOUNDARY: [6, 8, 24, 28]
+[POLY FORM]   Face 13 BOUNDARY: [8, 9, 25, 24]
 [POLY FORM] Remaining in extraction list: 5 polygon(s)
 
 [POLY FORM] === Iteration 2: Processing Remaining Polygons ===
@@ -1274,9 +1531,9 @@ Vertex list (index: [x, y, z] in mm):
 [POLY FORM] Best result: B:6, M:53, Inv:0
 
 [POLY FORM] Adding 3 polygon(s) back to base set:
-[POLY FORM]   Face 12 BOUNDARY: [6, 8, 24, 28]
-[POLY FORM]   Face 13 BOUNDARY: [8, 9, 25, 24]
-[POLY FORM]   Face 22 BOUNDARY: [6, 7, 29, 28]
+[POLY FORM]   Face 22 BOUNDARY: [14, 15, 37, 36]
+[POLY FORM]   Face 23 BOUNDARY: [10, 14, 36, 32]
+[POLY FORM]   Face 24 BOUNDARY: [10, 11, 33, 32]
 
 [POLY FORM] === Iteration 3: Processing Remaining Polygons ===
 [POLY FORM] Base set after iteration 2: B:6, M:53, Inv:0
@@ -1356,7 +1613,7 @@ Face 9: 4 vertices, 0 holes
   Vertices: [6, 7, 9, 8]
 Face 10: 4 vertices, 0 holes
   Normal: [1.000000, 0.000000, 0.000000], d=-136.153096
-  Vertices: [14, 15, 37, 36]
+  Vertices: [6, 7, 29, 28]
 Face 11: 4 vertices, 0 holes
   Normal: [0.000000, 0.000000, 1.000000], d=-211.190752
   Vertices: [6, 8, 24, 28]
@@ -1383,7 +1640,7 @@ Face 18: 4 vertices, 0 holes
   Vertices: [32, 33, 37, 36]
 Face 19: 4 vertices, 0 holes
   Normal: [1.000000, 0.000000, 0.000000], d=-136.153096
-  Vertices: [6, 7, 29, 28]
+  Vertices: [14, 15, 37, 36]
 Face 20: 4 vertices, 0 holes
   Normal: [0.000000, 0.000000, 1.000000], d=-211.190752
   Vertices: [10, 14, 36, 32]
@@ -1480,7 +1737,7 @@ Face 21: 4 vertices, 0 holes
      Face 8: 4 vertices: [4, 5, 39, 38]
      Face 9: 4 vertices: [38, 18, 26, 4]
      Face 10: 4 vertices: [6, 7, 9, 8]
-     Face 11: 4 vertices: [14, 15, 37, 36]
+     Face 11: 4 vertices: [6, 7, 29, 28]
      Face 12: 4 vertices: [6, 8, 24, 28]
      Face 13: 4 vertices: [8, 9, 25, 24]
      Face 14: 4 vertices: [16, 17, 13, 12]
@@ -1489,7 +1746,7 @@ Face 21: 4 vertices, 0 holes
      Face 17: 4 vertices: [26, 27, 19, 18]
      Face 18: 4 vertices: [18, 19, 39, 38]
      Face 19: 4 vertices: [36, 37, 33, 32]
-     Face 20: 4 vertices: [6, 7, 29, 28]
+     Face 20: 4 vertices: [14, 15, 37, 36]
      Face 21: 4 vertices: [32, 36, 14, 10]
      Face 22: 4 vertices: [10, 11, 33, 32]
    Total outer faces: 22
@@ -1532,6 +1789,11 @@ Face 21: 4 vertices, 0 holes
 
      v34 (has 2 edges in edge list):
        Neighbors from edge list: [12, 22]
+       Neighbors from connectivity matrix: [12, 13, 22, 23, 35]
+       → Connectivity shows 3 additional neighbor(s) NOT in edge list:
+         v34-v13 (seen in 1 view(s))
+         v34-v23 (seen in 1 view(s))
+         v34-v35 (seen in 1 view(s))
        Edges from edge list mapped to faces:
          v34-v12: 1 face(s) [15]
          v34-v22: 1 face(s) [15]
@@ -1546,6 +1808,11 @@ Face 21: 4 vertices, 0 holes
 
      v35 (has 2 edges in edge list):
        Neighbors from edge list: [13, 23]
+       Neighbors from connectivity matrix: [12, 13, 22, 23, 34]
+       → Connectivity shows 3 additional neighbor(s) NOT in edge list:
+         v35-v12 (seen in 1 view(s))
+         v35-v22 (seen in 1 view(s))
+         v35-v34 (seen in 1 view(s))
        Edges from edge list mapped to faces:
          v35-v13: 1 face(s) [4]
          v35-v23: 1 face(s) [4]
@@ -1717,8 +1984,6 @@ Face 21: 4 vertices, 0 holes
           Traversing Wire 5.1 edges...
             Wire 5.1 orientation: FORWARD
             ✓ Using BRepTools_WireExplorer for proper wire traversal
-/Users/sbedi/Nextcloud/Python/Solid/random_solids/Reconstruct_Solid.py:5087: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
-  plt.tight_layout()
               Edge 0: vertex (134.2,298.1,177.1)
               Edge 1: vertex (134.2,298.1,295.3)
               Edge 2: vertex (134.2,292.4,295.3)
@@ -1789,13 +2054,13 @@ Face 21: 4 vertices, 0 holes
           Traversing Wire 11.1 edges...
             Wire 11.1 orientation: FORWARD
             ✓ Using BRepTools_WireExplorer for proper wire traversal
-              Edge 0: vertex (136.2,292.4,211.2)
-              Edge 1: vertex (136.2,292.4,295.3)
-              Edge 2: vertex (136.2,291.0,295.3)
-              Edge 3: vertex (136.2,291.0,211.2)
+              Edge 0: vertex (136.2,299.6,211.2)
+              Edge 1: vertex (136.2,299.6,295.3)
+              Edge 2: vertex (136.2,298.1,295.3)
+              Edge 3: vertex (136.2,298.1,211.2)
             ✓ Wire traversal complete: 4 vertices
             Added closing vertex to complete wire loop
-            FINAL: (136.2,292.4,211.2) → (136.2,292.4,295.3) → (136.2,291.0,295.3) → (136.2,291.0,211.2) → (136.2,292.4,211.2)
+            FINAL: (136.2,299.6,211.2) → (136.2,299.6,295.3) → (136.2,298.1,295.3) → (136.2,298.1,211.2) → (136.2,299.6,211.2)
    Processing Face 12...
           Traversing Wire 12.1 edges...
             Wire 12.1 orientation: REVERSED
@@ -1806,6 +2071,8 @@ Face 21: 4 vertices, 0 holes
               Edge 3: vertex (145.2,298.1,211.2)
             ✓ Wire traversal complete: 4 vertices
             Added closing vertex to complete wire loop
+/Users/sbedi/Nextcloud/Python/Solid/random_solids/Reconstruct_Solid.py:5190: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
+  plt.tight_layout()
             FINAL: (145.2,299.6,211.2) → (136.2,299.6,211.2) → (136.2,298.1,211.2) → (145.2,298.1,211.2) → (145.2,299.6,211.2)
    Processing Face 13...
           Traversing Wire 13.1 edges...
@@ -1888,13 +2155,13 @@ Face 21: 4 vertices, 0 holes
           Traversing Wire 20.1 edges...
             Wire 20.1 orientation: FORWARD
             ✓ Using BRepTools_WireExplorer for proper wire traversal
-              Edge 0: vertex (136.2,299.6,211.2)
-              Edge 1: vertex (136.2,299.6,295.3)
-              Edge 2: vertex (136.2,298.1,295.3)
-              Edge 3: vertex (136.2,298.1,211.2)
+              Edge 0: vertex (136.2,292.4,211.2)
+              Edge 1: vertex (136.2,292.4,295.3)
+              Edge 2: vertex (136.2,291.0,295.3)
+              Edge 3: vertex (136.2,291.0,211.2)
             ✓ Wire traversal complete: 4 vertices
             Added closing vertex to complete wire loop
-            FINAL: (136.2,299.6,211.2) → (136.2,299.6,295.3) → (136.2,298.1,295.3) → (136.2,298.1,211.2) → (136.2,299.6,211.2)
+            FINAL: (136.2,292.4,211.2) → (136.2,292.4,295.3) → (136.2,291.0,295.3) → (136.2,291.0,211.2) → (136.2,292.4,211.2)
    Processing Face 21...
           Traversing Wire 21.1 edges...
             Wire 21.1 orientation: REVERSED
