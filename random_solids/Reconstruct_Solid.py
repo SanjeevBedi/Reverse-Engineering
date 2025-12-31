@@ -2185,7 +2185,6 @@ def main():
     print(f"   Face summary:")
     
     # Print summary of all faces created (with vertex information)
-    face_counter = 0
     for face_idx, face in enumerate(extracted_faces):
         if not (isinstance(face, dict) and 'vertices' in face):
             continue
@@ -2193,13 +2192,14 @@ def main():
         if face_idx in confirmed_dummy_faces:
             continue
         
-        face_counter += 1
+        # Use original_face_idx if available, otherwise use sequential numbering
+        display_face_num = face.get('original_face_idx', face_idx) + 1
         vertices = face['vertices']
         holes = face.get('holes', [])
         alternates = face.get('alternates', [])
         
         # Print main face
-        print(f"     Face {face_counter}: {len(vertices)} vertices: {vertices}")
+        print(f"     Face {display_face_num}: {len(vertices)} vertices: {vertices}")
         
         # Print holes if any
         if holes:
@@ -3575,6 +3575,8 @@ def main():
                     print(f"      Original polygon: {polygon}")
                     
                     # Find alternate edges from connectivity matrix
+                    # IMPORTANT: Only use edges with conn=3 (seen in all 3 views)
+                    # to avoid using diagonal edges that cut across face interiors
                     alternate_edges = []
                     
                     for i, v_idx in enumerate(polygon):
@@ -3585,7 +3587,9 @@ def main():
                             if v_other == v_idx or v_other == prev_idx or v_other == next_idx:
                                 continue
                             
-                            if merged_conn[v_idx, v_other] > 0:
+                            # Check connectivity: must be ==3 (all views) to avoid diagonals
+                            edge_conn = merged_conn[v_idx, v_other]
+                            if edge_conn == 3:
                                 edge = tuple(sorted([v_idx, v_other]))
                                 if edge not in alternate_edges:
                                     alternate_edges.append(edge)
@@ -4690,28 +4694,46 @@ def main():
             if len(vertices) < 3:
                 return None, None
             
-            # Use first 3 non-collinear vertices to compute plane
-            v0 = vertices[0]
-            v1 = vertices[1]
-            v2 = vertices[2]
+            # Remove duplicate closing vertex if present
+            unique_vertices = []
+            for i, v in enumerate(vertices):
+                # Check if this is a duplicate of any previous vertex
+                is_duplicate = False
+                for prev_v in unique_vertices:
+                    if np.allclose(v, prev_v, atol=1e-6):
+                        is_duplicate = True
+                        break
+                if not is_duplicate:
+                    unique_vertices.append(v)
             
-            # Two edge vectors
-            edge1 = v1 - v0
-            edge2 = v2 - v0
-            
-            # Normal is cross product
-            normal = np.cross(edge1, edge2)
-            norm_len = np.linalg.norm(normal)
-            
-            if norm_len < 1e-10:
+            if len(unique_vertices) < 3:
                 return None, None
             
-            normal = normal / norm_len  # Normalize
+            # Find first 3 non-collinear vertices
+            v0 = unique_vertices[0]
+            normal = None
             
-            # Distance from origin: d = -normal · v0
-            distance = -np.dot(normal, v0)
+            for i in range(1, len(unique_vertices) - 1):
+                v1 = unique_vertices[i]
+                for j in range(i + 1, len(unique_vertices)):
+                    v2 = unique_vertices[j]
+                    
+                    # Two edge vectors
+                    edge1 = v1 - v0
+                    edge2 = v2 - v0
+                    
+                    # Normal is cross product
+                    normal = np.cross(edge1, edge2)
+                    norm_len = np.linalg.norm(normal)
+                    
+                    if norm_len > 1e-10:
+                        normal = normal / norm_len  # Normalize
+                        # Distance from origin: d = -normal · v0
+                        distance = -np.dot(normal, v0)
+                        return normal, distance
             
-            return normal, distance
+            # All vertices are collinear
+            return None, None
         
         def faces_coplanar(face1, face2, angle_tol=0.01, dist_tol=0.05):
             """Check if two faces are on the same plane
@@ -5021,8 +5043,10 @@ def main():
         face_texts = []
         matched_collections = []
         unmatched_collections = []
+        missing_collections = []
         matched_lines = []
         unmatched_lines = []
+        missing_lines = []
         
         for face_idx, face_data in enumerate(extracted_occ_faces):
             outer = face_data['outer_boundary']
@@ -5034,17 +5058,17 @@ def main():
             # Determine if this face is matched or unmatched
             is_matched = face_matches[face_idx]['matched']
             
-            # Color coding: Green for matched, Red for unmatched
+            # Color coding: Green for matched, Yellow for unmatched reconstructed
             if is_matched:
                 face_color = 'green'
                 edge_color = 'darkgreen'
                 label_color = 'darkgreen'
                 label_bg = 'lightgreen'
             else:
-                face_color = 'red'
-                edge_color = 'darkred'
-                label_color = 'darkred'
-                label_bg = 'lightcoral'
+                face_color = 'yellow'
+                edge_color = 'orange'
+                label_color = 'orange'
+                label_bg = 'lightyellow'
             
             # Plot outer boundary with colored shading
             if len(outer) > 2:
@@ -5137,6 +5161,68 @@ def main():
                                        alpha=0.7, edgecolor='none'))
                         vertex_texts.append(txt)
         
+        # Plot missing original faces in blue
+        missing_face_count = 0
+        if face_polygons is not None and len(matched_original) > 0:
+            missing_face_count = sum(1 for m in matched_original if not m)
+            for orig_idx, is_matched in enumerate(matched_original):
+                if not is_matched:
+                    orig_face = face_polygons[orig_idx]
+                    outer_key = 'outer_boundary' if 'outer_boundary' in orig_face else 'vertices'
+                    
+                    if outer_key in orig_face:
+                        outer = np.array(orig_face[outer_key])
+                        
+                        if len(outer) > 2:
+                            # Create filled polygon with blue color
+                            poly = Poly3DCollection([outer], alpha=0.3,
+                                                   facecolors='blue',
+                                                   edgecolors='darkblue', linewidths=2)
+                            ax.add_collection3d(poly)
+                            missing_collections.append(poly)
+                            
+                            # Plot outer boundary edges
+                            outer_closed = np.vstack([outer, outer[0]])
+                            line = ax.plot(outer_closed[:, 0], outer_closed[:, 1],
+                                         outer_closed[:, 2],
+                                         color='darkblue', linewidth=2,
+                                         label='Missing Original' if orig_idx == next((i for i, m in enumerate(matched_original) if not m), None)
+                                         else None)
+                            missing_lines.extend(line)
+                            
+                            scatter = ax.scatter(outer[:, 0], outer[:, 1], outer[:, 2],
+                                               color='darkblue', s=40)
+                            missing_collections.append(scatter)
+                            
+                            # Add vertex labels
+                            for v_idx, v in enumerate(outer):
+                                actual_idx = find_vertex_index(v, selected_vertices)
+                                if actual_idx is not None:
+                                    label = f'v{actual_idx}'
+                                else:
+                                    label = f'V{v_idx}'
+                                
+                                txt = ax.text(v[0], v[1], v[2], label,
+                                       color='black', fontsize=8, ha='center', va='bottom',
+                                       bbox=dict(boxstyle='round,pad=0.3',
+                                               facecolor='white',
+                                               alpha=0.7, edgecolor='none'))
+                                vertex_texts.append(txt)
+                            
+                            # Add face number at centroid
+                            centroid = np.mean(outer, axis=0)
+                            face_label = f'Orig{orig_idx+1} ✗'
+                            
+                            txt = ax.text(centroid[0], centroid[1], centroid[2],
+                                   face_label,
+                                   color='darkblue', fontsize=12, ha='center', va='center',
+                                   weight='bold',
+                                   bbox=dict(boxstyle='round,pad=0.4', facecolor='lightblue',
+                                           alpha=0.8, edgecolor='black', linewidth=1.5))
+                            face_texts.append(txt)
+        else:
+            missing_face_count = 0
+        
         ax.set_title(f'Reconstructed Solid: {face_count} Faces (Colored Shading)',
                     fontsize=14)
         ax.set_xlabel('X')
@@ -5146,14 +5232,23 @@ def main():
         # Enable mouse rotation
         ax.mouse_init()
         
-        if face_count > 0:
-            ax.legend(loc='upper right', fontsize=10)
+        # Add color legend for face types
+        from matplotlib.patches import Patch
+        legend_elements = [
+            Patch(facecolor='green', edgecolor='darkgreen', alpha=0.5, 
+                  label=f'Matched Faces ({len([m for m in face_matches if m["matched"]])})'),
+            Patch(facecolor='yellow', edgecolor='orange', alpha=0.5, 
+                  label=f'Unmatched Reconstructed ({len([m for m in face_matches if not m["matched"]])})'),
+            Patch(facecolor='blue', edgecolor='darkblue', alpha=0.5, 
+                  label=f'Missing Original ({missing_face_count})')
+        ]
+        ax.legend(handles=legend_elements, loc='upper right', fontsize=10, framealpha=0.9)
         
         # Add toggle buttons for labels and shading
-        checkbox_ax = plt.axes([0.02, 0.65, 0.17, 0.25])
+        checkbox_ax = plt.axes([0.02, 0.6, 0.20, 0.30])
         labels_check = ['Vertex Labels', 'Face Labels', 'Polygon Shading',
-                       'Matched Faces', 'Unmatched Faces']
-        visibility = [True, True, True, True, True]
+                       'Matched Faces', 'Unmatched Recon', 'Missing Original']
+        visibility = [True, True, True, True, True, True]
         check = CheckButtons(checkbox_ax, labels_check, visibility)
         
         def toggle_labels(label):
@@ -5164,7 +5259,7 @@ def main():
                 for txt in face_texts:
                     txt.set_visible(not txt.get_visible())
             elif label == 'Polygon Shading':
-                for poly in matched_collections + unmatched_collections:
+                for poly in matched_collections + unmatched_collections + missing_collections:
                     if isinstance(poly, Poly3DCollection):
                         poly.set_visible(not poly.get_visible())
             elif label == 'Matched Faces':
@@ -5173,11 +5268,17 @@ def main():
                     item.set_visible(vis)
                 for line in matched_lines:
                     line.set_visible(vis)
-            elif label == 'Unmatched Faces':
+            elif label == 'Unmatched Recon':
                 vis = not unmatched_collections[0].get_visible() if unmatched_collections else True
                 for item in unmatched_collections:
                     item.set_visible(vis)
                 for line in unmatched_lines:
+                    line.set_visible(vis)
+            elif label == 'Missing Original':
+                vis = not missing_collections[0].get_visible() if missing_collections else True
+                for item in missing_collections:
+                    item.set_visible(vis)
+                for line in missing_lines:
                     line.set_visible(vis)
             fig.canvas.draw_idle()
         
@@ -5393,6 +5494,29 @@ def main():
         print(f"  - Total faces: {sum(shell_face_counts)}")
         print(f"  - Volume: {recon_volume:.6f} mm³")
         
+        # Volume comparison
+        if original_volume is not None:
+            volume_diff = recon_volume - original_volume
+            volume_diff_pct = (volume_diff / original_volume) * 100 if original_volume != 0 else 0
+            summary_stats['volume_difference'] = volume_diff
+            summary_stats['volume_difference_percent'] = volume_diff_pct
+            
+            print("\nVolume Comparison:")
+            print(f"  - Original volume:      {original_volume:.6f} mm³")
+            print(f"  - Reconstructed volume: {recon_volume:.6f} mm³")
+            print(f"  - Difference:           {volume_diff:+.6f} mm³ ({volume_diff_pct:+.2f}%)")
+            if abs(volume_diff_pct) < 1.0:
+                print(f"  - Status: ✓ Excellent match (< 1% difference)")
+            elif abs(volume_diff_pct) < 5.0:
+                print(f"  - Status: Good match (< 5% difference)")
+            elif abs(volume_diff_pct) < 10.0:
+                print(f"  - Status: Acceptable match (< 10% difference)")
+            else:
+                print(f"  - Status: ⚠ Significant difference (≥ 10%)")
+        else:
+            summary_stats['volume_difference'] = None
+            summary_stats['volume_difference_percent'] = None
+        
         if 'face_matches' in locals():
             print("\nFace Matching:")
             print(f"  - Matched faces: {total_matched}/{original_num_faces}")
@@ -5406,6 +5530,8 @@ def main():
         summary_stats['reconstructed_shell_face_counts'] = []
         summary_stats['reconstructed_total_faces'] = 0
         summary_stats['reconstructed_volume'] = None
+        summary_stats['volume_difference'] = None
+        summary_stats['volume_difference_percent'] = None
         summary_stats['matched_faces'] = 0
         summary_stats['unmatched_reconstructed_faces'] = 0
         summary_stats['missing_original_faces'] = original_num_faces
@@ -5445,9 +5571,31 @@ def main():
                 f.write(f"  - Volume: "
                        f"{summary_stats['reconstructed_volume']:.6f} mm³\n")
             
+            # Add volume comparison if both volumes are available
+            if (summary_stats.get('original_volume') is not None and 
+                summary_stats.get('reconstructed_volume') is not None):
+                f.write("\nVolume Comparison:\n")
+                f.write(f"  - Original volume:      "
+                       f"{summary_stats['original_volume']:.6f} mm³\n")
+                f.write(f"  - Reconstructed volume: "
+                       f"{summary_stats['reconstructed_volume']:.6f} mm³\n")
+                if summary_stats.get('volume_difference') is not None:
+                    f.write(f"  - Difference:           "
+                           f"{summary_stats['volume_difference']:+.6f} mm³ "
+                           f"({summary_stats['volume_difference_percent']:+.2f}%)\n")
+                    if abs(summary_stats['volume_difference_percent']) < 1.0:
+                        f.write(f"  - Status: ✓ Excellent match (< 1% difference)\n")
+                    elif abs(summary_stats['volume_difference_percent']) < 5.0:
+                        f.write(f"  - Status: Good match (< 5% difference)\n")
+                    elif abs(summary_stats['volume_difference_percent']) < 10.0:
+                        f.write(f"  - Status: Acceptable match (< 10% difference)\n")
+                    else:
+                        f.write(f"  - Status: ⚠ Significant difference (≥ 10%)\n")
+                f.write("\n")
+            
             # Add face matching information
             if 'matched_faces' in summary_stats:
-                f.write("\nFace Matching:\n")
+                f.write("Face Matching:\n")
                 f.write(f"  - Matched faces: {summary_stats['matched_faces']}"
                        f"/{summary_stats['original_num_faces']}\n")
                 f.write(f"  - Unmatched reconstructed faces: "

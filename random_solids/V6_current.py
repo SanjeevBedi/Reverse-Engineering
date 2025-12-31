@@ -2444,6 +2444,7 @@ def plot_extraction_debug(selected_vertices, unique_faces, edge_face_map_all, in
         'base_edges': [],
         'extraction_edges': [],
         'invalid_edges_lines': [],
+        'boundary_edges_lines': [],
         'vertex_labels': [],
         'original_edges': []
     }
@@ -2453,6 +2454,7 @@ def plot_extraction_debug(selected_vertices, unique_faces, edge_face_map_all, in
         'base': 'blue',
         'extraction': 'red',
         'invalid_edge': 'magenta',
+        'boundary_edge': 'yellow',
         'vertex': 'black',
         'original': 'lightgray'
     }
@@ -2567,6 +2569,22 @@ def plot_extraction_debug(selected_vertices, unique_faces, edge_face_map_all, in
                 current_edge_map[edge] = []
             current_edge_map[edge].append((poly_info['face_idx'], poly_info['polygon_idx'], 'EXTRACTION'))
     
+    # Plot boundary edges (edges with only 1 face) in yellow
+    boundary_edge_count = 0
+    for edge, face_list in current_edge_map.items():
+        if len(face_list) == 1:
+            v1, v2 = edge
+            if v1 < len(selected_vertices) and v2 < len(selected_vertices):
+                p1 = selected_vertices[v1]
+                p2 = selected_vertices[v2]
+                line = ax.plot3D([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], 
+                               color=colors['boundary_edge'], linewidth=3, alpha=1.0, marker='s', markersize=3)[0]
+                plot_elements['boundary_edges_lines'].append(line)
+                boundary_edge_count += 1
+    
+    if boundary_edge_count > 0:
+        print(f"[DEBUG PLOT] Plotted {boundary_edge_count} boundary edges in current state")
+    
     # Plot edges that appear in 3+ faces
     invalid_edge_count = 0
     for edge, face_list in current_edge_map.items():
@@ -2607,9 +2625,9 @@ def plot_extraction_debug(selected_vertices, unique_faces, edge_face_map_all, in
     ax.set_title(title, fontsize=14, fontweight='bold')
     
     # Create checkboxes for toggling visibility
-    rax = plt.axes([0.02, 0.4, 0.18, 0.3], facecolor='lightgray')
-    labels = ['Base Set', 'Extraction Set', 'Invalid Edges', 'Vertex Labels', 'Original Edges']
-    visibility = [True, True, True, True, False]
+    rax = plt.axes([0.02, 0.35, 0.18, 0.35], facecolor='lightgray')
+    labels = ['Base Set', 'Extraction Set', 'Invalid Edges', 'Boundary Edges', 'Vertex Labels', 'Original Edges']
+    visibility = [True, True, True, True, True, False]
     check = CheckButtons(rax, labels, visibility)
     
     # Store check in fig to prevent garbage collection
@@ -2624,6 +2642,9 @@ def plot_extraction_debug(selected_vertices, unique_faces, edge_face_map_all, in
                 line.set_visible(not line.get_visible())
         elif label == 'Invalid Edges':
             for line in plot_elements['invalid_edges_lines']:
+                line.set_visible(not line.get_visible())
+        elif label == 'Boundary Edges':
+            for line in plot_elements['boundary_edges_lines']:
                 line.set_visible(not line.get_visible())
         elif label == 'Vertex Labels':
             for txt in plot_elements['vertex_labels']:
@@ -2651,9 +2672,22 @@ def plot_extraction_debug(selected_vertices, unique_faces, edge_face_map_all, in
     # Add legend info to title
     info_text = (f"Base: {len(plot_elements['base_edges'])} edges | "
                 f"Extraction: {len(plot_elements['extraction_edges'])} edges | "
+                f"Boundary: {len(plot_elements['boundary_edges_lines'])} edges | "
                 f"Invalid: {len(plot_elements['invalid_edges_lines'])} edges")
     ax.text2D(0.5, 0.95, info_text, transform=ax.transAxes, 
              fontsize=10, ha='center', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    
+    # Add color legend
+    from matplotlib.lines import Line2D
+    legend_elements = [
+        Line2D([0], [0], color=colors['base'], linewidth=2, label='Base Set (remaining polygons)'),
+        Line2D([0], [0], color=colors['extraction'], linewidth=2, label='Extraction Set (to be removed)'),
+        Line2D([0], [0], color=colors['boundary_edge'], linewidth=3, marker='s', label='Boundary Edges (1 face)'),
+        Line2D([0], [0], color=colors['invalid_edge'], linewidth=3, marker='o', label='Invalid Edges (3+ faces)'),
+        Line2D([0], [0], color=colors['original'], linewidth=1, alpha=0.5, label='Original Manifold Edges'),
+        Line2D([0], [0], marker='$V$', color=colors['vertex'], linestyle='None', markersize=8, label='Vertex Labels')
+    ]
+    ax.legend(handles=legend_elements, loc='upper left', fontsize=9, framealpha=0.9)
     
     # Show non-blocking
     plt.ion()  # Turn on interactive mode
@@ -3263,13 +3297,18 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
     # Display final vertex assignments
     print(f"\n[POLY FORM]   Final assignments (tolerance={current_tolerance/2 if iteration > 1 else current_tolerance:.4f}mm):")
     for face_idx, face_eq in enumerate(unique_faces):
-        vertices_display = [v+1 for v in face_eq['vertices_on_face']]
-        print(f"[POLY FORM] F{face_idx+1:2d}: {len(face_eq['vertices_on_face']):2d} vertices: {vertices_display}")
+        vertices_display = face_eq['vertices_on_face']  # Keep 0-indexed
+        print(f"[POLY FORM] F{face_idx:2d}: {len(face_eq['vertices_on_face']):2d} vertices: {vertices_display}")
     
     
     for face_idx, face_eq in enumerate(unique_faces):
         edges_on_face = []
         vertices_on_face = face_eq['vertices_on_face']
+        
+        # DIAGNOSTIC: Check indexing consistency for Face 5
+        if face_idx == 4:  # Face 5 (0-indexed as 4)
+            print(f"\n[DIAGNOSTIC] Face {face_idx} before edge detection:")
+            print(f"  vertices_on_face (0-indexed): {sorted(vertices_on_face)}")
         
         # Check all pairs of vertices on this face
         for i in range(len(vertices_on_face)):
@@ -3282,9 +3321,145 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     edges_on_face.append((v_i, v_j))
         
         face_eq['edges_on_face'] = edges_on_face
-        # Display edges with 1-indexed vertices for consistency with vertex display
-        edges_display = [(v1+1, v2+1) for v1, v2 in edges_on_face]
-        print(f"[POLY FORM]   Face {face_idx+1}: {len(edges_on_face)} edges with conn=3: {edges_display}")
+        
+        # DIAGNOSTIC: Check edges for Face 5
+        if face_idx == 4:
+            print(f"[DIAGNOSTIC] Face {face_idx} edges (0-indexed): {edges_on_face}")
+        
+        # Display edges with 0-indexed vertices to match plot
+        edges_display = edges_on_face  # Keep 0-indexed
+        print(f"[POLY FORM]   Face {face_idx}: {len(edges_on_face)} edges with conn=3: {edges_display}")
+    
+    # DIAGNOSTIC: Check if edges with conn=3 can form closed polygons not in face polygons
+    print("\n[POLY FORM] Step 4.5b: Checking for potential missing polygons from conn=3 edges")
+    for face_idx, face_eq in enumerate(unique_faces):
+        edges_on_face = face_eq.get('edges_on_face', [])
+        
+        if len(edges_on_face) < 3:
+            continue  # Need at least 3 edges to form a polygon
+        
+        # Try to find closed loops in these edges
+        from collections import defaultdict
+        edge_graph = defaultdict(list)
+        for v1, v2 in edges_on_face:
+            edge_graph[v1].append(v2)
+            edge_graph[v2].append(v1)
+        
+        # Find closed loops
+        visited_edges = set()
+        closed_loops = []
+        
+        for start_v in edge_graph:
+            if len(edge_graph[start_v]) == 0:
+                continue
+            
+            path = [start_v]
+            current = start_v
+            
+            while True:
+                # Find next unvisited neighbor
+                next_v = None
+                for neighbor in edge_graph[current]:
+                    edge_key = tuple(sorted([current, neighbor]))
+                    if edge_key not in visited_edges:
+                        next_v = neighbor
+                        visited_edges.add(edge_key)
+                        break
+                
+                if next_v is None:
+                    break
+                
+                if next_v == start_v and len(path) >= 3:
+                    # Closed loop found!
+                    closed_loops.append(path[:])
+                    break
+                
+                path.append(next_v)
+                current = next_v
+                
+                if len(path) > len(edge_graph):
+                    break
+        
+        if len(closed_loops) > 0:
+            print(f"[POLY FORM]   Face {face_idx}: Found {len(closed_loops)} potential closed loop(s) from conn=3 edges")
+            
+            # Check if these loops are already in the face's polygons
+            existing_polygons = face_eq.get('polygons', [])
+            
+            if len(existing_polygons) == 0:
+                print(f"[POLY FORM]     Face {face_idx} has NO existing polygons")
+            
+            for loop_idx, loop in enumerate(closed_loops):
+                loop_set = set(loop)
+                
+                # Check if this loop matches any existing polygon
+                found_match = False
+                for poly_idx, poly_data in enumerate(existing_polygons):
+                    if poly_data.get('removed', False):
+                        continue
+                    poly_verts = poly_data.get('vertices', [])
+                    poly_set = set(poly_verts)
+                    
+                    if loop_set == poly_set or loop_set.issubset(poly_set):
+                        found_match = True
+                        break
+                
+                if not found_match:
+                    # This loop is NOT in any existing polygon - ADD IT!
+                    loop_display = loop  # Keep 0-indexed
+                    print(f"[POLY FORM]     ⚠️  Loop {loop_idx+1} NOT FOUND in face polygons: {loop_display}")
+                    
+                    if len(existing_polygons) > 0:
+                        print(f"[POLY FORM]         Existing polygons in Face {face_idx}:")
+                        for poly_idx, poly_data in enumerate(existing_polygons):
+                            if poly_data.get('removed', False):
+                                continue
+                            poly_verts = poly_data.get('vertices', [])
+                            poly_display = poly_verts  # Keep 0-indexed
+                            poly_type = poly_data.get('polygon_type', 'UNKNOWN')
+                            print(f"[POLY FORM]           Polygon {poly_idx} ({poly_type}): {poly_display}")
+                    
+                    # Check planarity of this loop
+                    if len(loop) >= 3:
+                        loop_verts_3d = [selected_vertices[v_idx] for v_idx in loop]
+                        
+                        # Fit plane using SVD
+                        centroid = np.mean(loop_verts_3d, axis=0)
+                        centered = np.array(loop_verts_3d) - centroid
+                        _, _, Vt = np.linalg.svd(centered)
+                        computed_normal = Vt[-1]
+                        computed_d = -np.dot(computed_normal, centroid)
+                        
+                        # Check max distance from fitted plane
+                        max_dist = 0.0
+                        for v in loop_verts_3d:
+                            dist = abs(np.dot(computed_normal, v) + computed_d)
+                            max_dist = max(max_dist, dist)
+                        
+                        if max_dist < 0.001:  # 1 micron tolerance
+                            print(f"[POLY FORM]         ✓ Loop is planar (deviation: {max_dist:.6f}mm)")
+                            print(f"[POLY FORM]         → Adding loop as new polygon to Face {face_idx}")
+                            
+                            # Add this loop as a new polygon
+                            new_poly_data = {
+                                'vertices': loop,
+                                'normal': tuple(computed_normal),
+                                'd': computed_d,
+                                'removed': False,
+                                'polygon_type': 'BOUNDARY'
+                            }
+                            
+                            # Ensure face has 'polygons' list
+                            if 'polygons' not in face_eq:
+                                face_eq['polygons'] = []
+                            
+                            face_eq['polygons'].append(new_poly_data)
+                            print(f"[POLY FORM]         → Added as polygon {len(face_eq['polygons'])-1}")
+                        else:
+                            print(f"[POLY FORM]         ✗ Loop is NON-PLANAR (deviation: {max_dist:.6f}mm) - skipping")
+                else:
+                    loop_display = loop  # Keep 0-indexed
+                    print(f"[POLY FORM]     Loop {loop_idx+1} exists in face polygons: {loop_display}")
     
     # CRITICAL: Update all face vertex lists from their edges
     # This ensures vertices_on_face includes ALL vertices that participate in edges
@@ -3303,13 +3478,13 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             missing_verts = original_verts - vertices_from_edges
             
             if len(new_verts) > 0 or len(missing_verts) > 0:
-                print(f"[POLY FORM]   Face {face_idx+1}:")
-                print(f"[POLY FORM]     Original {len(original_verts)} verts: {sorted([v+1 for v in original_verts])}")
-                print(f"[POLY FORM]     From edges {len(vertices_from_edges)} verts: {sorted([v+1 for v in vertices_from_edges])}")
+                print(f"[POLY FORM]   Face {face_idx}:")
+                print(f"[POLY FORM]     Original {len(original_verts)} verts: {sorted(original_verts)}")
+                print(f"[POLY FORM]     From edges {len(vertices_from_edges)} verts: {sorted(vertices_from_edges)}")
                 if len(new_verts) > 0:
-                    print(f"[POLY FORM]     NEW (in edges, not assigned): {sorted([v+1 for v in new_verts])}")
+                    print(f"[POLY FORM]     NEW (in edges, not assigned): {sorted(new_verts)}")
                 if len(missing_verts) > 0:
-                    print(f"[POLY FORM]     MISSING (assigned, no edges): {sorted([v+1 for v in missing_verts])}")
+                    print(f"[POLY FORM]     MISSING (assigned, no edges): {sorted(missing_verts)}")
                 
                 face_eq['vertices_on_face'] = sorted(list(vertices_from_edges))
                 print(f"[POLY FORM]     Updated to {len(face_eq['vertices_on_face'])} vertices")
@@ -3383,6 +3558,13 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
     # Track two-edge vertices for later use
     two_edge_vertices = set()
     
+    # Track edge splits for cross-face propagation
+    global_edge_splits = {}  # {original_edge: [(v_mid, t), ...]} - sorted by t
+    
+    # Track which edges came from splitting high-connectivity edges
+    # These should be preserved even if their individual connectivity is low
+    split_edge_from_high_conn = set()  # Set of edges that came from conn>=3 splits
+    
     # Process each face
     for face_idx, face_eq in enumerate(unique_faces):
         edges_on_face = face_eq['edges_on_face']
@@ -3391,7 +3573,19 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
         if len(edges_on_face) == 0:
             continue
         
-        print(f"\n[POLY FORM]   Processing Face {face_idx+1}: {len(edges_on_face)} edges")
+        print(f"\n[POLY FORM]   Processing Face {face_idx}: {len(edges_on_face)} edges")
+        
+        # Store the original vertices assigned to this face before collinear splitting
+        # This prevents vertices from other faces being added via collinear detection
+        original_face_vertices = set(vertices_on_face)
+        
+        # DIAGNOSTIC: Check Face 5 for vertex 30
+        if face_idx == 4:  # Face 5 is 0-indexed as 4
+            print(f"      [DIAGNOSTIC] Face {face_idx} vertices_on_face (0-indexed): {sorted(vertices_on_face)}")
+            if 29 in vertices_on_face:
+                print(f"      [DIAGNOSTIC] ✓ Vertex 29 IS in Face {face_idx}")
+            else:
+                print(f"      [DIAGNOSTIC] ✗ Vertex 29 NOT in Face {face_idx} - cannot detect collinearity!")
         
         # Store edges to process and new edges to add
         edges_to_remove = []
@@ -3403,6 +3597,9 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             start_pos = selected_vertices[v_start]
             end_pos = selected_vertices[v_end]
             
+            # DIAGNOSTIC: Check specific edge (5, 72) for vertex 30 (0-indexed: 4, 71 for 29)
+            is_diagnostic_edge = (v_start == 4 and v_end == 71) or (v_start == 71 and v_end == 4)
+            
             # Find all vertices that lie on this line (including beyond endpoints)
             collinear_vertices = []
             
@@ -3411,10 +3608,24 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                 if v_idx == v_start or v_idx == v_end:
                     continue
                 
+                # IMPORTANT: Only check vertices that were originally assigned to this face
+                # This prevents vertices from other faces being added via collinear detection
+                if v_idx not in original_face_vertices:
+                    continue
+                
                 v_pos = selected_vertices[v_idx]
                 is_on_seg, is_inside, t = point_on_ray_segment(
                     start_pos, end_pos, v_pos, tolerance=0.1
                 )
+                
+                # DIAGNOSTIC: Special output for vertex 30 (0-indexed: 29)
+                if is_diagnostic_edge and v_idx == 29:
+                    print(f"      [DIAGNOSTIC] Checking v29 on edge ({v_start}, {v_end}):")
+                    print(f"         is_on_seg={is_on_seg}, is_inside={is_inside}, t={t:.6f}")
+                    print(f"         v_pos={v_pos}")
+                    print(f"         start_pos={start_pos}, end_pos={end_pos}")
+                    dist_to_line = np.linalg.norm(v_pos - (start_pos + t * (end_pos - start_pos)))
+                    print(f"         distance_to_line={dist_to_line:.6f}")
                 
                 # Consider ALL vertices on the line, regardless of position
                 # We'll sequence them by t and use connectivity to determine edges
@@ -3430,9 +3641,10 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             # and sequence them by t parameter
             all_vertices_on_line = []
             
-            # Add collinear vertices
+            # Add collinear vertices (ONLY if they're inside the segment)
             for v_idx, t, is_inside in collinear_vertices:
-                all_vertices_on_line.append((v_idx, t))
+                if is_inside:  # Only include vertices actually ON the segment
+                    all_vertices_on_line.append((v_idx, t))
             
             # Add the original endpoints
             all_vertices_on_line.append((v_start, 0.0))
@@ -3441,18 +3653,27 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             # Sort all vertices by their t parameter
             all_vertices_on_line.sort(key=lambda x: x[1])
             
-            # Remove duplicates while preserving order
+            # Remove duplicates while preserving order (keep first occurrence)
             seen = set()
             vertex_sequence = []
+            vertex_to_t = {}  # Map vertex to its t parameter
             for v_idx, t in all_vertices_on_line:
                 if v_idx not in seen:
                     seen.add(v_idx)
                     vertex_sequence.append(v_idx)
+                    vertex_to_t[v_idx] = t
             
             print(f"         Vertex sequence (by t): {vertex_sequence}")
             
             # Step 5.5.3: Check connectivity between consecutive vertices
-            # Only add edges where merged_conn >= 2
+            # For collinear splits: if original edge had conn>=3, accept ALL sub-edges
+            # even if individual connectivity is lower (the path is valid through collinearity)
+            original_edge_conn = merged_conn[v_start, v_end]
+            is_collinear_split = len(vertex_sequence) > 2
+            
+            if is_collinear_split:
+                print(f"         Original edge ({v_start}, {v_end}): conn={original_edge_conn}")
+            
             edges_to_add_for_this_edge = []
             for i in range(len(vertex_sequence) - 1):
                 v1 = vertex_sequence[i]
@@ -3461,11 +3682,22 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                 new_edge = (min(v1, v2), max(v1, v2))
                 conn_value = merged_conn[v1, v2]
                 
-                if conn_value >= 2:  # Allow conn==2 or conn==3
+                # CRITICAL CHECK: Edge must exist in merged_conn (conn > 0)
+                # Even for collinear splits, the split edges must be valid edges in the connectivity matrix
+                if conn_value == 0:
+                    print(f"         Edge ({v1}, {v2}): conn=0 - SKIPPED (edge does not exist in connectivity matrix)")
+                    continue
+                
+                # Accept edge if: (1) it has conn>=3, OR (2) it's a collinear split of a conn>=3 edge AND exists in merged_conn
+                if conn_value >= 3:
                     edges_to_add_for_this_edge.append(new_edge)
                     print(f"         Edge ({v1}, {v2}): conn={conn_value} - WILL ADD")
+                elif is_collinear_split and original_edge_conn >= 3:
+                    edges_to_add_for_this_edge.append(new_edge)
+                    split_edge_from_high_conn.add(new_edge)  # Track this as a split from high-conn edge
+                    print(f"         Edge ({v1}, {v2}): conn={conn_value} - WILL ADD (collinear split of conn={original_edge_conn} edge)")
                 else:
-                    print(f"         Edge ({v1}, {v2}): conn={conn_value} - SKIPPED (too low)")
+                    print(f"         Edge ({v1}, {v2}): conn={conn_value} - SKIPPED (need conn>=3 for reverse engineering)")
             
             # If we're adding edges different from the original edge, update
             if len(edges_to_add_for_this_edge) > 0 and len(vertex_sequence) > 2:
@@ -3474,6 +3706,16 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                 
                 # Add all the validated edges
                 edges_to_add.extend(edges_to_add_for_this_edge)
+                
+                # Record this split for cross-face propagation
+                # Store intermediate vertices with their t parameters (exclude endpoints)
+                # Only record if not already recorded for this edge
+                if outer_edge not in global_edge_splits:
+                    global_edge_splits[outer_edge] = []
+                    for i in range(1, len(vertex_sequence) - 1):  # Skip endpoints
+                        v_mid = vertex_sequence[i]
+                        t_val = vertex_to_t[v_mid]
+                        global_edge_splits[outer_edge].append((v_mid, t_val))
                 
                 # Check for two-edge vertices (vertices with exactly 2 neighbors on this line)
                 for i in range(1, len(vertex_sequence) - 1):  # Skip endpoints
@@ -3502,11 +3744,15 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
         if len(edges_to_remove) > 0 or len(edges_to_add) > 0:
             print(f"      Updating edges: removing {len(edges_to_remove)}, "
                   f"adding {len(edges_to_add)}")
+            print(f"      Edges to remove: {sorted(edges_to_remove)}")
+            print(f"      Edges to add: {sorted(edges_to_add)}")
             
             # Remove old edges
             for edge in edges_to_remove:
                 if edge in edges_on_face:
                     edges_on_face.remove(edge)
+                else:
+                    print(f"      WARNING: Edge {edge} not found in edges_on_face for removal")
             
             # Add new edges
             edges_on_face.extend(edges_to_add)
@@ -3522,12 +3768,76 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                 vertices_from_edges.add(v2)
             face_eq['vertices_on_face'] = sorted(list(vertices_from_edges))
             
-            print(f"      Face {face_idx+1} now has {len(edges_on_face)} edges, {len(face_eq['vertices_on_face'])} vertices")
+            print(f"      Face {face_idx} now has {len(edges_on_face)} edges, {len(face_eq['vertices_on_face'])} vertices")
     
     # Store two-edge vertices for use in Vertex Valency Analysis
     print(f"\n[POLY FORM] Identified {len(two_edge_vertices)} two-edge vertices: {sorted(two_edge_vertices)}")
     
     print("\n[POLY FORM] Step 5.5 Complete: Collinear edge processing finished")
+    
+    # ==========================================================================
+    # Step 5.6: Propagate edge splits across all faces
+    # ==========================================================================
+    print("\n[POLY FORM] Step 5.6: Propagating edge splits across all faces...")
+    print(f"[POLY FORM]   Found {len(global_edge_splits)} edge(s) that were split")
+    
+    if global_edge_splits:
+        # For each split edge, update ALL faces that contain it
+        for original_edge, intermediates in global_edge_splits.items():
+            v1, v2 = original_edge
+            
+            # Check if original edge had high connectivity
+            original_edge_conn = merged_conn[v1, v2]
+            is_high_conn_split = (original_edge_conn >= 3)
+            
+            # Build complete vertex sequence (sorted by t parameter)
+            sorted_intermediates = sorted(intermediates, key=lambda x: x[1])
+            vertex_sequence = [v1] + [v_mid for v_mid, t in sorted_intermediates] + [v2]
+            
+            # Build sub-edges
+            sub_edges = []
+            for i in range(len(vertex_sequence) - 1):
+                sub_edge = (min(vertex_sequence[i], vertex_sequence[i+1]), 
+                           max(vertex_sequence[i], vertex_sequence[i+1]))
+                sub_edges.append(sub_edge)
+                # Track sub-edges from high-connectivity splits
+                if is_high_conn_split:
+                    split_edge_from_high_conn.add(sub_edge)
+            
+            print(f"[POLY FORM]   Edge {original_edge} split with vertices {[v for v, t in sorted_intermediates]}")
+            print(f"[POLY FORM]     Sub-edges: {sub_edges}")
+            
+            # Find all faces that have this edge and update them
+            faces_updated = 0
+            for face_idx, face_eq in enumerate(unique_faces):
+                edges_on_face = face_eq['edges_on_face']
+                
+                # If this face still has the original unsplit edge, replace it
+                if original_edge in edges_on_face:
+                    print(f"[POLY FORM]     Updating Face {face_idx}: replacing {original_edge} with {sub_edges}")
+                    
+                    # Remove the original edge
+                    edges_on_face.remove(original_edge)
+                    
+                    # Add sub-edges (avoid duplicates)
+                    for sub_edge in sub_edges:
+                        if sub_edge not in edges_on_face:
+                            edges_on_face.append(sub_edge)
+                    
+                    # Update vertices_on_face to include intermediate vertices
+                    vertices_from_edges = set()
+                    for e1, e2 in edges_on_face:
+                        vertices_from_edges.add(e1)
+                        vertices_from_edges.add(e2)
+                    face_eq['vertices_on_face'] = sorted(list(vertices_from_edges))
+                    face_eq['edges_on_face'] = edges_on_face
+                    
+                    faces_updated += 1
+            
+            if faces_updated > 0:
+                print(f"[POLY FORM]     Updated {faces_updated} face(s)")
+    
+    print(f"\n[POLY FORM] Step 5.6 Complete: Edge splits propagated across all faces")
     
     # Step 6: Join edges to make polygons (connected rings)
     print("\n[POLY FORM] Step 6: Forming polygons from edges (REVISED)")
@@ -3920,12 +4230,19 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
     
     def build_polygons_from_face_edges(edges_on_face, vertices_on_face,
                                        selected_verts, normal,
-                                       merged_conn=None):
+                                       merged_conn=None, split_edges_from_high_conn=None):
         """
         [STEP 6] Build boundary and holes from face edges using DFS cycle detection.
         Returns dict with 'faces' list and 'unused_edges'
+        
+        Args:
+            split_edges_from_high_conn: Set of edges that came from splitting high-connectivity edges.
+                                       These should be preserved even if conn<3.
         """
         DEBUG_STEPS = False  # Set to True to enable STEP debug output
+        
+        if split_edges_from_high_conn is None:
+            split_edges_from_high_conn = set()
         
         if DEBUG_STEPS:
             print(f"  [STEP 6.0] Building polygons from {len(edges_on_face)} edges")
@@ -3997,8 +4314,12 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                         if v1 < len(merged_conn) and v2 < len(merged_conn):
                             edge_conn_value = max(merged_conn[v1, v2], merged_conn[v2, v1])
                         
+                        # Keep edge if: (1) conn==3, OR (2) it's a split from high-conn edge
                         if edge_conn_value == 3:
                             filtered_remaining_edges.add(edge)
+                        elif edge in split_edges_from_high_conn:
+                            filtered_remaining_edges.add(edge)
+                            print(f"  [STEP 6.1]   Keeping edge {edge}: conn={edge_conn_value} (split from high-conn edge)")
                         else:
                             edges_filtered_out += 1
                             print(f"  [STEP 6.1]   Filtering edge {edge}: conn={edge_conn_value}")
@@ -4027,6 +4348,32 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             all_possible_polygons = find_all_cycles_from_edges(
                 remaining_edges_list, verts_2d)
             
+            # [STEP 6.1] IMPORTANT: In first iteration, ensure we find ALL possible cycles
+            # including longer ones that might contain shorter cycles as sub-paths
+            if iteration == 1 and len(all_possible_polygons) > 0:
+                print(f"  [STEP 6.1] First iteration: Found {len(all_possible_polygons)} polygon(s)")
+                print(f"  [STEP 6.1] Polygon sizes: {[len(p) for p in all_possible_polygons]}")
+                
+                # Check if we might be missing larger cycles
+                # A larger cycle exists if there are edges not in any found polygon
+                edges_in_polygons = set()
+                for poly in all_possible_polygons:
+                    for i in range(len(poly)):
+                        v1 = poly[i]
+                        v2 = poly[(i + 1) % len(poly)]
+                        edge = (min(v1, v2), max(v1, v2))
+                        edges_in_polygons.add(edge)
+                
+                unused_edges_set = set(remaining_edges_list) - edges_in_polygons
+                if len(unused_edges_set) > 0:
+                    print(f"  [STEP 6.1] WARNING: {len(unused_edges_set)} edges not in any polygon: {unused_edges_set}")
+                    print(f"  [STEP 6.1] These edges might form a larger cycle that was missed")
+                    
+                    # Diagnostic: show which edges are used vs unused
+                    print(f"  [STEP 6.1] All input edges: {sorted(remaining_edges_list)}")
+                    print(f"  [STEP 6.1] Edges in found polygons: {sorted(edges_in_polygons)}")
+                    print(f"  [STEP 6.1] Note: DFS may be closing smaller cycles early, missing larger ones")
+            
             if not all_possible_polygons:
                 print("  [STEP 6.1] No polygons found, attempting closure...")
                 
@@ -4044,8 +4391,11 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     ep1, ep2 = endpoints
                     print(f"  [STEP 6.1] Chain endpoints: V{ep1}, V{ep2}")
                     
-                    # [STEP 6.1] Check connectivity (require conn == 3)
+                    # [STEP 6.1] Check connectivity (require conn == 3 OR split edge)
+                    closing_edge = (min(ep1, ep2), max(ep1, ep2))
                     edge_conn_value = 0
+                    is_split_edge = closing_edge in split_edges_from_high_conn
+                    
                     if merged_conn is not None:
                         if (ep1 < len(merged_conn) and
                                 ep2 < len(merged_conn)):
@@ -4057,8 +4407,11 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     else:
                         print("  [STEP 6.1] WARNING: merged_conn not available")
                     
-                    if merged_conn is None or edge_conn_value == 3:
-                        print(f"  [STEP 6.1] Adding closing edge ({ep1}, {ep2})")
+                    if merged_conn is None or edge_conn_value == 3 or is_split_edge:
+                        if is_split_edge and edge_conn_value != 3:
+                            print(f"  [STEP 6.1] Adding closing edge ({ep1}, {ep2}) [split from high-conn edge]")
+                        else:
+                            print(f"  [STEP 6.1] Adding closing edge ({ep1}, {ep2})")
                         
                         remaining_edges_list.append((ep1, ep2))
                         all_possible_polygons = (
@@ -4072,13 +4425,75 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                             print(f"  [STEP 6.1] Found "
                                   f"{len(all_possible_polygons)} polygon(s)")
                     else:
+                        # Try to find indirect path through used edges
                         print(f"  [STEP 6.1] Closing edge invalid "
                               f"(conn={edge_conn_value}, need 3)")
-                        break
+                        print(f"  [STEP 6.1] Checking for indirect path through used edges...")
+                        
+                        # Build adjacency from ALL edges in the original face (used + remaining)
+                        all_face_edges_adj = {}
+                        for edge in edge_set:  # All original edges for this face
+                            v1, v2 = edge
+                            all_face_edges_adj.setdefault(v1, []).append(v2)
+                            all_face_edges_adj.setdefault(v2, []).append(v1)
+                        
+                        # BFS to find path from ep1 to ep2 using only edges with conn>=2
+                        from collections import deque
+                        queue = deque([(ep1, [ep1])])
+                        visited = {ep1}
+                        found_path = False
+                        indirect_edges = []
+                        
+                        while queue and not found_path:
+                            current, path = queue.popleft()
+                            
+                            if current == ep2:
+                                found_path = True
+                                # Extract edges from path
+                                for i in range(len(path) - 1):
+                                    v1, v2 = path[i], path[i+1]
+                                    edge = (min(v1, v2), max(v1, v2))
+                                    if edge not in remaining_edges:
+                                        indirect_edges.append(edge)
+                                break
+                            
+                            if current in all_face_edges_adj:
+                                for neighbor in all_face_edges_adj[current]:
+                                    if neighbor not in visited:
+                                        # Check if edge has conn >= 2
+                                        edge_tuple = (min(current, neighbor), max(current, neighbor))
+                                        conn_val = 0
+                                        if merged_conn is not None and current < len(merged_conn) and neighbor < len(merged_conn):
+                                            conn_val = max(merged_conn[current, neighbor], merged_conn[neighbor, current])
+                                        
+                                        if conn_val >= 2 or edge_tuple in split_edges_from_high_conn:
+                                            visited.add(neighbor)
+                                            queue.append((neighbor, path + [neighbor]))
+                        
+                        if found_path and indirect_edges:
+                            print(f"  [STEP 6.1] Found indirect path through {len(indirect_edges)} used edges")
+                            print(f"  [STEP 6.1] Adding used edges to close polygon: {indirect_edges}")
+                            
+                            # Add the indirect path edges to remaining_edges_list
+                            for edge in indirect_edges:
+                                remaining_edges_list.append(edge)
+                            
+                            all_possible_polygons = find_all_cycles_from_edges(
+                                remaining_edges_list, verts_2d)
+                            
+                            if all_possible_polygons:
+                                print(f"  [STEP 6.1] Found "
+                                      f"{len(all_possible_polygons)} polygon(s) using indirect path")
+                            else:
+                                print("  [STEP 6.1] ERROR: Still no polygons after adding indirect path")
+                                break
+                        else:
+                            print(f"  [STEP 6.1] No valid indirect path found")
+                            break
                 elif len(endpoints) > 2:
-                    # Multiple endpoints - try to connect pairs with conn=3 edges
+                    # Multiple endpoints - try to connect pairs with conn=3 edges OR split edges
                     print(f"  [STEP 6.1] Found {len(endpoints)} endpoints: {endpoints}")
-                    print("  [STEP 6.1] Attempting to connect endpoint pairs with conn=3 edges...")
+                    print("  [STEP 6.1] Attempting to connect endpoint pairs with conn=3 edges or split edges...")
                     
                     # Try all possible pairings of endpoints
                     from itertools import combinations
@@ -4087,9 +4502,15 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     if merged_conn is not None:
                         for ep1, ep2 in combinations(endpoints, 2):
                             if ep1 < len(merged_conn) and ep2 < len(merged_conn):
+                                closing_edge = (min(ep1, ep2), max(ep1, ep2))
                                 edge_conn_value = max(merged_conn[ep1, ep2], merged_conn[ep2, ep1])
-                                if edge_conn_value == 3:
-                                    print(f"  [STEP 6.1]   Connecting V{ep1}-V{ep2} (conn={edge_conn_value})")
+                                is_split_edge = closing_edge in split_edges_from_high_conn
+                                
+                                if edge_conn_value == 3 or is_split_edge:
+                                    if is_split_edge and edge_conn_value != 3:
+                                        print(f"  [STEP 6.1]   Connecting V{ep1}-V{ep2} (conn={edge_conn_value}, split from high-conn edge)")
+                                    else:
+                                        print(f"  [STEP 6.1]   Connecting V{ep1}-V{ep2} (conn={edge_conn_value})")
                                     added_edges.append((ep1, ep2))
                                     remaining_edges_list.append((ep1, ep2))
                         
@@ -4104,7 +4525,7 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                                 print("  [STEP 6.1] No polygons formed after adding edges")
                                 break
                         else:
-                            print("  [STEP 6.1] No conn=3 edges found to connect endpoints")
+                            print("  [STEP 6.1] No conn=3 or split edges found to connect endpoints")
                             break
                     else:
                         print("  [STEP 6.1] WARNING: merged_conn not available")
@@ -4224,6 +4645,75 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             # Unique polygons first, then alternates
             polys_with_area = unique_polygons + alternate_polygons
             
+            # [STEP 6.2.6] Filter polygons with connected interiors using Shapely
+            # A polygon has a "connected interior" if no other polygon's edges cross through it
+            if DEBUG_STEPS:
+                print(f"  [STEP 6.2.6] Filtering {len(polys_with_area)} polygon(s) for connected interiors...")
+            
+            from shapely.geometry import LineString
+            valid_polygons = []
+            invalid_count = 0
+            
+            for idx, poly_data in enumerate(polys_with_area):
+                target_poly = poly_data['vertices']
+                target_shapely = poly_data['shapely']
+                
+                # Shrink polygon slightly to get interior
+                try:
+                    target_interior = target_shapely.buffer(-1e-6)
+                    if not target_interior.is_valid or target_interior.is_empty:
+                        invalid_count += 1
+                        continue
+                except:
+                    invalid_count += 1
+                    continue
+                
+                target_edges = set(get_polygon_edges(target_poly))
+                has_crossing_edges = False
+                
+                # Check if any other polygon's edges cross this interior
+                for other_idx, other_data in enumerate(polys_with_area):
+                    if other_idx == idx:
+                        continue
+                    
+                    other_poly = other_data['vertices']
+                    other_edges = set(get_polygon_edges(other_poly))
+                    shared_edges = target_edges & other_edges
+                    unique_other_edges = other_edges - shared_edges
+                    
+                    # Check if unique edges from other polygon cross target interior
+                    for edge in unique_other_edges:
+                        v1_coord = verts_2d[edge[0]]
+                        v2_coord = verts_2d[edge[1]]
+                        edge_line = LineString([v1_coord, v2_coord])
+                        
+                        if edge_line.intersects(target_interior):
+                            has_crossing_edges = True
+                            if DEBUG_STEPS and idx < 5:  # Debug first few
+                                print(f"  [STEP 6.2.6]   Polygon {idx} ({len(target_poly)} verts): "
+                                      f"REJECTED - edge {edge} from polygon {other_idx} crosses interior")
+                            break
+                    
+                    if has_crossing_edges:
+                        break
+                
+                if not has_crossing_edges:
+                    valid_polygons.append(poly_data)
+                    if DEBUG_STEPS and idx < 5:  # Debug first few
+                        print(f"  [STEP 6.2.6]   Polygon {idx} ({len(target_poly)} verts): "
+                              f"VALID - no edges cross interior")
+                else:
+                    invalid_count += 1
+            
+            print(f"  [STEP 6.2.6] Filtered to {len(valid_polygons)} polygon(s) with connected interiors")
+            print(f"  [STEP 6.2.6] Removed {invalid_count} polygon(s) with crossing edges")
+            
+            if not valid_polygons:
+                print("  [STEP 6.2.6] ERROR: No polygons with connected interiors found!")
+                break
+            
+            polys_with_area = valid_polygons
+            
             # [STEP 6.3] Sort by vertex count (most vertices first)
             polys_with_area.sort(
                 key=lambda p: (len(p['vertices']), p['area']),
@@ -4246,130 +4736,258 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             if DEBUG_STEPS:
                 print(f"  [STEP 6.3] Remaining polygons: {len(all_other_polygons)}")
             
-            # [STEP 6.4] Validate polygons and classify relationships
+            # [STEP 6.4] Identify polygons with connected interiors
+            # A polygon has a "connected interior" if no other polygon's edges cross through it
             if DEBUG_STEPS:
-                print(f"  [STEP 6.4] Validating and classifying polygon relationships...")
+                print(f"  [STEP 6.4] Identifying polygons with connected interiors...")
+            
+            # Normalize all polygons for consistent comparison
+            boundary_poly = normalize_polygon(boundary_poly)
+            all_other_polygons = [normalize_polygon(p) for p in all_other_polygons]
+            all_polygons_with_largest = [boundary_poly] + all_other_polygons
+            
+            # Helper function to check if polygon has connected interior
+            def has_connected_interior(poly_idx, all_polys):
+                """
+                Check if polygon at poly_idx has a connected interior
+                (no other polygon's edges cross through its interior)
+                """
+                target_poly = all_polys[poly_idx]
+                target_2d = [verts_2d[v] for v in target_poly]
+                
+                try:
+                    target_shapely = Polygon(target_2d)
+                    if not target_shapely.is_valid or target_shapely.area < 1e-6:
+                        return False
+                    
+                    # Shrink polygon slightly to get interior
+                    target_interior = target_shapely.buffer(-1e-6)
+                    if not target_interior.is_valid:
+                        return False
+                    
+                    target_edges = set(get_polygon_edges(target_poly))
+                    
+                    # Check if any other polygon's edges cross this interior
+                    from shapely.geometry import LineString
+                    for other_idx, other_poly in enumerate(all_polys):
+                        if other_idx == poly_idx:
+                            continue
+                        
+                        other_edges = set(get_polygon_edges(other_poly))
+                        shared_edges = target_edges & other_edges
+                        unique_other_edges = other_edges - shared_edges
+                        
+                        # Check if unique edges from other polygon cross target interior
+                        for edge in unique_other_edges:
+                            v1_coord = verts_2d[edge[0]]
+                            v2_coord = verts_2d[edge[1]]
+                            edge_line = LineString([v1_coord, v2_coord])
+                            
+                            if edge_line.intersects(target_interior):
+                                return False  # Another polygon's edge crosses interior
+                    
+                    return True  # No edges cross interior
+                    
+                except Exception as e:
+                    return False
+            
+            # Identify all polygons with connected interiors
+            connected_interior_indices = []
+            for idx in range(len(all_polygons_with_largest)):
+                if has_connected_interior(idx, all_polygons_with_largest):
+                    connected_interior_indices.append(idx)
+            
+            if DEBUG_STEPS:
+                print(f"  [STEP 6.4] Found {len(connected_interior_indices)} polygon(s) with connected interiors")
+                for idx in connected_interior_indices:
+                    poly = all_polygons_with_largest[idx]
+                    print(f"  [STEP 6.4]   Polygon {idx}: {len(poly)} vertices")
+            
+            # Now classify polygons based on containment relationships
+            # Polygons with connected interiors can be: BOUNDARY, HOLE, or SEPARATE FACE
+            # Other polygons are: ALTERNATES or ARTIFACTS
+            
             alternates_candidates = []
             invalid_polygons = []
             holes_list = []
             separate_faces = []
             
-            # Normalize all polygons for consistent comparison
-            if DEBUG_STEPS:
-                print(f"  [STEP 6.4] Normalizing {len(all_other_polygons) + 1} polygon(s)...")
-            boundary_poly = normalize_polygon(boundary_poly)
-            all_other_polygons = [normalize_polygon(p) for p in all_other_polygons]
+            # Process polygons with connected interiors first
+            boundary_candidates = []
+            for idx in connected_interior_indices:
+                poly = all_polygons_with_largest[idx]
+                poly_2d = [verts_2d[v] for v in poly]
+                
+                try:
+                    poly_shapely = Polygon(poly_2d)
+                    boundary_candidates.append((idx, poly, poly_shapely))
+                except:
+                    continue
             
-            # Create Shapely polygon for boundary
-            boundary_2d = [verts_2d[v] for v in boundary_poly]
-            try:
-                boundary_shapely = Polygon(boundary_2d)
-                if not boundary_shapely.is_valid:
-                    print(f"  [STEP 6.4] WARNING: Boundary polygon is invalid!")
-                    boundary_shapely = boundary_shapely.buffer(0)  # Attempt to fix
-            except Exception as e:
-                print(f"  [STEP 6.4] ERROR: Cannot create boundary polygon: {e}")
-                boundary_shapely = None
+            # Find the largest polygon as initial boundary
+            if boundary_candidates:
+                boundary_candidates.sort(key=lambda x: x[2].area, reverse=True)
+                boundary_idx, boundary_poly, boundary_shapely = boundary_candidates[0]
+                
+                print(f"  [STEP 6.4] Selected polygon {boundary_idx} as BOUNDARY ({len(boundary_poly)} verts, area={boundary_shapely.area:.2f})")
+                
+                # Classify remaining connected-interior polygons relative to boundary
+                for idx, poly, poly_shapely in boundary_candidates[1:]:
+                    # Validate geometries before containment check
+                    if not boundary_shapely.is_valid:
+                        boundary_shapely = boundary_shapely.buffer(0)
+                    if not poly_shapely.is_valid:
+                        poly_shapely = poly_shapely.buffer(0)
+                    
+                    try:
+                        is_contained = boundary_shapely.contains(poly_shapely)
+                    except:
+                        # If containment check fails, use centroid-based check
+                        try:
+                            is_contained = boundary_shapely.contains(poly_shapely.centroid)
+                        except:
+                            is_contained = False
+                    
+                    if is_contained:
+                        # Check if polygon shares edges with boundary
+                        poly_edges = set(get_polygon_edges(poly))
+                        boundary_edges = set(get_polygon_edges(boundary_poly))
+                        shared_edges = poly_edges & boundary_edges
+                        
+                        if len(shared_edges) > 0:
+                            # Polygon shares edges with boundary - merge vertices into boundary
+                            print(f"  [STEP 6.4] Polygon {idx} shares {len(shared_edges)} edge(s) with boundary")
+                            print(f"  [STEP 6.4]   Shared edges: {shared_edges}")
+                            
+                            # Insert poly vertices into boundary at the shared edge location
+                            for shared_edge in shared_edges:
+                                v1, v2 = shared_edge
+                                # Find where this edge appears in boundary
+                                for i in range(len(boundary_poly)):
+                                    b_v1 = boundary_poly[i]
+                                    b_v2 = boundary_poly[(i + 1) % len(boundary_poly)]
+                                    b_edge = (min(b_v1, b_v2), max(b_v1, b_v2))
+                                    
+                                    if b_edge == shared_edge:
+                                        # Find intermediate vertices in poly between v1 and v2
+                                        poly_v1_idx = poly.index(v1) if v1 in poly else (poly.index(v2) if v2 in poly else None)
+                                        if poly_v1_idx is not None:
+                                            # Get vertices between v1 and v2 in poly
+                                            intermediate_verts = []
+                                            curr_idx = poly_v1_idx
+                                            while True:
+                                                next_idx = (curr_idx + 1) % len(poly)
+                                                next_v = poly[next_idx]
+                                                if next_v == v1 or next_v == v2:
+                                                    if next_v == v2 or next_v == v1:
+                                                        break
+                                                else:
+                                                    intermediate_verts.append(next_v)
+                                                curr_idx = next_idx
+                                                if curr_idx == poly_v1_idx:  # Prevent infinite loop
+                                                    break
+                                            
+                                            # Insert intermediate vertices into boundary
+                                            if intermediate_verts:
+                                                print(f"  [STEP 6.4]   Inserting vertices {intermediate_verts} into boundary at edge {shared_edge}")
+                                                # Insert after position i
+                                                for j, v in enumerate(intermediate_verts):
+                                                    boundary_poly.insert(i + 1 + j, v)
+                                                break
+                                break
+                            
+                            # Update boundary_shapely after modification
+                            boundary_2d = [verts_2d[v] for v in boundary_poly]
+                            try:
+                                boundary_shapely = Polygon(boundary_2d)
+                                if not boundary_shapely.is_valid:
+                                    boundary_shapely = boundary_shapely.buffer(0)
+                            except:
+                                pass
+                            
+                            print(f"  [STEP 6.4]   Updated boundary: {len(boundary_poly)} vertices")
+                        
+                        # Check if it's contained by another hole (hole-within-hole = separate face)
+                        is_hole_within_hole = False
+                        for hole in holes_list:
+                            hole_2d = [verts_2d[v] for v in hole]
+                            try:
+                                hole_shapely = Polygon(hole_2d)
+                                if not hole_shapely.is_valid:
+                                    hole_shapely = hole_shapely.buffer(0)
+                                if hole_shapely.contains(poly_shapely):
+                                    is_hole_within_hole = True
+                                    break
+                            except:
+                                continue
+                        
+                        if is_hole_within_hole:
+                            print(f"  [STEP 6.4] Polygon {idx}: SEPARATE FACE (hole within hole)")
+                            print(f"  [STEP 6.4]   Vertices: {poly}")
+                            separate_faces.append(poly)
+                        else:
+                            print(f"  [STEP 6.4] Polygon {idx}: HOLE (contained within boundary)")
+                            print(f"  [STEP 6.4]   Vertices: {poly}")
+                            holes_list.append(poly)
+                    else:
+                        print(f"  [STEP 6.4] Polygon {idx}: SEPARATE FACE (not contained)")
+                        print(f"  [STEP 6.4]   Vertices: {poly}")
+                        separate_faces.append(poly)
             
-            # Process each remaining polygon
-            for idx, poly in enumerate(all_other_polygons[:]):
+            # Process polygons WITHOUT connected interiors
+            # These are alternates (share edges with boundary) or artifacts
+            for idx, poly in enumerate(all_polygons_with_largest):
+                if idx in connected_interior_indices:
+                    continue  # Already processed
+                
                 poly_2d = [verts_2d[v] for v in poly]
                 
                 try:
                     poly_shapely = Polygon(poly_2d)
                     if not poly_shapely.is_valid or poly_shapely.area < 1e-6:
-                        print(f"  [STEP 6.4] Polygon {idx+1}: INVALID (self-intersecting or zero area) - deleting")
+                        print(f"  [STEP 6.4] Polygon {idx}: INVALID (self-intersecting or zero area) - deleting")
                         invalid_polygons.append(poly)
                         continue
                 except Exception as e:
-                    print(f"  [STEP 6.4] Polygon {idx+1}: ERROR creating Shapely polygon - deleting: {e}")
+                    print(f"  [STEP 6.4] Polygon {idx}: ERROR creating Shapely polygon - deleting: {e}")
                     invalid_polygons.append(poly)
                     continue
                 
-                if boundary_shapely is None:
-                    continue
-                
-                # Calculate intersection
-                try:
-                    intersection = boundary_shapely.intersection(poly_shapely)
-                    intersection_area = intersection.area if hasattr(intersection, 'area') else 0
-                except Exception as e:
-                    print(f"  [STEP 6.4] Polygon {idx+1}: ERROR in intersection calculation: {e}")
-                    invalid_polygons.append(poly)
-                    continue
-                
-                # Check if polygons share boundary edges
+                # Check relationship with boundary
                 poly_edges = set(get_polygon_edges(poly))
                 boundary_edges = set(get_polygon_edges(boundary_poly))
                 shared_edges = poly_edges & boundary_edges
                 
-                # Check if polygon's edges cross through boundary interior
-                poly_edges_cross_boundary = False
-                unique_poly_edges = poly_edges - shared_edges
+                try:
+                    intersection = boundary_shapely.intersection(poly_shapely)
+                    intersection_area = intersection.area if hasattr(intersection, 'area') else 0
+                except:
+                    intersection_area = 0
                 
-                if unique_poly_edges and boundary_shapely is not None:
-                    from shapely.geometry import LineString
-                    boundary_interior = boundary_shapely.buffer(-1e-6)  # Slightly shrink to get interior
-                    
-                    for edge in unique_poly_edges:
-                        v1_coord = verts_2d[edge[0]]
-                        v2_coord = verts_2d[edge[1]]
-                        edge_line = LineString([v1_coord, v2_coord])
-                        
-                        # Check if edge crosses through boundary interior
-                        if boundary_interior.is_valid and edge_line.intersects(boundary_interior):
-                            poly_edges_cross_boundary = True
-                            break
-                
-                # Classify based on intersection area and boundary crossing
-                if intersection_area > 1e-6 and len(shared_edges) > 0:
-                    if poly_edges_cross_boundary:
-                        # Polygon edges cross boundary interior -> boundary is invalid, replace it
-                        print(f"  [STEP 6.4] Polygon {idx+1}: REPLACES BOUNDARY (edges cross boundary interior)")
-                        print(f"  [STEP 6.4]   Vertices: {poly}, intersection area={intersection_area:.6f}")
-                        print(f"  [STEP 6.4]   Replacing boundary with this polygon")
-                        # Replace boundary
-                        boundary_poly = poly
-                        try:
-                            boundary_shapely = Polygon([verts_2d[v] for v in poly])
-                        except:
-                            pass
+                if len(shared_edges) > 0:
+                    # Shares edges with boundary
+                    if intersection_area < 1e-6:
+                        # Touches along edges but doesn't overlap (alternate boundary definition)
+                        print(f"  [STEP 6.4] Polygon {idx}: ALTERNATE (shares {len(shared_edges)} edges, no interior overlap)")
+                        print(f"  [STEP 6.4]   Vertices: {poly}")
+                        alternates_candidates.append(poly)
                     else:
-                        # Non-zero intersection + shared boundary edges but doesn't cross interior = ARTIFACT
-                        print(f"  [STEP 6.4] Polygon {idx+1}: ARTIFACT (overlaps boundary + shares {len(shared_edges)} edges) - deleting")
+                        # Overlaps and shares edges (artifact)
+                        print(f"  [STEP 6.4] Polygon {idx}: ARTIFACT (overlaps boundary + shares {len(shared_edges)} edges) - deleting")
                         print(f"  [STEP 6.4]   Vertices: {poly}, intersection area={intersection_area:.6f}")
                         invalid_polygons.append(poly)
-                    
-                elif boundary_shapely.contains(poly_shapely) and len(shared_edges) == 0:
-                    # Contained without boundary touch = HOLE
-                    print(f"  [STEP 6.4] Polygon {idx+1}: HOLE (contained within boundary, no edge sharing)")
-                    print(f"  [STEP 6.4]   Vertices: {poly}")
-                    holes_list.append(poly)
-                    
-                elif intersection_area < 1e-6:
-                    # Zero intersection area = separate or touching only at vertices/edges
-                    if len(shared_edges) > 0:
-                        # Touches at edges but no overlap = ALTERNATE boundary
-                        print(f"  [STEP 6.4] Polygon {idx+1}: ALTERNATE (shares {len(shared_edges)} edges, zero intersection)")
-                        print(f"  [STEP 6.4]   Vertices: {poly}")
-                        alternates_candidates.append(poly)
-                    else:
-                        # Completely separate = SEPARATE FACE
-                        print(f"  [STEP 6.4] Polygon {idx+1}: SEPARATE FACE (no intersection, no shared edges)")
-                        print(f"  [STEP 6.4]   Vertices: {poly}")
-                        separate_faces.append(poly)
-                        
                 else:
-                    # Other cases: partial overlap without edge sharing, etc.
+                    # Doesn't share edges
                     if boundary_shapely.contains(poly_shapely):
-                        print(f"  [STEP 6.4] Polygon {idx+1}: HOLE (contained, intersection={intersection_area:.6f})")
-                        holes_list.append(poly)
+                        print(f"  [STEP 6.4] Polygon {idx}: ARTIFACT (contained but no connected interior) - deleting")
+                        invalid_polygons.append(poly)
                     else:
-                        print(f"  [STEP 6.4] Polygon {idx+1}: ALTERNATE or ARTIFACT (intersection={intersection_area:.6f}, shared_edges={len(shared_edges)})")
-                        alternates_candidates.append(poly)
+                        print(f"  [STEP 6.4] Polygon {idx}: ARTIFACT (disconnected, no shared edges) - deleting")
+                        invalid_polygons.append(poly)
             
-            # Update all_other_polygons to only include polygons needing further processing
-            all_other_polygons = separate_faces.copy()
+            # Update all_other_polygons to include separate faces AND alternates
+            # All connected-interior polygons should be kept for later classification
+            all_other_polygons = separate_faces.copy() + alternates_candidates.copy()
             
             if DEBUG_STEPS:
                 print(f"  [STEP 6.4] Classification complete:")
@@ -4378,13 +4996,18 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                 print(f"  [STEP 6.4]   - Alternates: {len(alternates_candidates)} polygon(s)")
                 print(f"  [STEP 6.4]   - Separate faces: {len(separate_faces)} polygon(s)")
                 print(f"  [STEP 6.4]   - Invalid/deleted: {len(invalid_polygons)} polygon(s)")
+                print(f"  [STEP 6.4]   - Total to process further: {len(all_other_polygons)} polygon(s)")
             
             # [STEP 6.5] Compare remaining polygons against each other
+            # NOTE: Since Step 6.2.6 filtered to connected interiors only,
+            # all remaining polygons are valid touching/separate faces
+            # Skip comparison logic to keep all of them
             if DEBUG_STEPS:
                 print(f"  [STEP 6.5] Checking {len(all_other_polygons)} "
                       f"remaining polygon(s) against each other")
+                print(f"  [STEP 6.5] All polygons have connected interiors - keeping all as separate touching faces")
             
-            if len(all_other_polygons) > 1:
+            if False and len(all_other_polygons) > 1:  # Disabled - keep all connected-interior polygons
                 # [STEP 6.5] Set max iterations based on deduplicated polygons
                 max_compare_iterations = 2 * len(unique_polygons)
                 compared_any = True
@@ -4560,9 +5183,10 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                                 print("  [STEP 6.6]   Subtraction failed")
                                 polygons_to_remove.append(poly)
                         else:
+                            # Touching polygons are alternates - keep them for later
                             print(f"  [STEP 6.6] Polygon {len(poly)} verts: "
-                                  f"TOUCHING (outside)")
-                            polygons_to_remove.append(poly)
+                                  f"TOUCHING (outside) - keeping as alternate")
+                            outside_polygons.append(poly)
                     else:
                         outside_polygons.append(poly)
                         print(f"  [STEP 6.6] Polygon {len(poly)} verts: OUTSIDE")
@@ -4947,7 +5571,7 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                 else:
                     valid_holes.append(hole)
             
-            # Validate alternates
+            # Validate alternates and add outside polygons as alternates
             valid_alternates = []
             if final_alternates:
                 for alt_idx, alt in enumerate(final_alternates):
@@ -4959,6 +5583,20 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                             print(f"    Vertex {v_idx} at [{v[0]:.1f}, {v[1]:.1f}, {v[2]:.1f}]: distance {dist:.3f}mm from plane")
                     else:
                         valid_alternates.append(alt)
+            
+            # Add outside polygons as alternates (they are touching/separate faces)
+            if outside_polygons:
+                print(f"  [STEP 6.8.3] Adding {len(outside_polygons)} outside polygons as alternates")
+                for poly_idx, poly in enumerate(outside_polygons):
+                    invalid_poly = validate_polygon_on_plane(poly, f"outside polygon {poly_idx+1}")
+                    if invalid_poly:
+                        print(f"  [STEP 6.8.3] WARNING: Outside polygon {poly_idx+1} has {len(invalid_poly)} vertices NOT on plane - skipping")
+                        for v_idx, dist in invalid_poly:
+                            v = selected_verts[v_idx]
+                            print(f"    Vertex {v_idx} at [{v[0]:.1f}, {v[1]:.1f}, {v[2]:.1f}]: distance {dist:.3f}mm from plane")
+                    else:
+                        valid_alternates.append(poly)
+                        print(f"  [STEP 6.8.3]   Added outside polygon {poly_idx+1} as alternate ({len(poly)} verts)")
             
             # [STEP 6.8] Store face with boundary and holes
             face_data = {
@@ -5006,16 +5644,17 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
         edges = face_eq['edges_on_face']
         
         if len(edges) == 0:
-            print(f"[POLY FORM]   Face {face_idx+1}: No edges, skipping")
+            print(f"[POLY FORM]   Face {face_idx}: No edges, skipping")
             continue
         
-        print(f"\n[POLY FORM]   Face {face_idx+1}: "
+        print(f"\n[POLY FORM]   Face {face_idx}: "
               f"Total edges available: {len(edges)}")
         
         # Build polygons using revised algorithm
         result = build_polygons_from_face_edges(
             edges, face_eq['vertices_on_face'],
-            selected_vertices, face_eq['normal'], merged_conn)
+            selected_vertices, face_eq['normal'], merged_conn,
+            split_edges_from_high_conn=split_edge_from_high_conn)
         
         # Store result for Step 7
         face_eq['face_results'] = result
@@ -5131,6 +5770,188 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                 except:
                     pass
         
+        # Deduplicate polygons before saving to face
+        if len(polygons) > 1:
+            def normalize_polygon_indices(vertices):
+                """Normalize polygon by vertex indices (handles rotation and reversal)"""
+                if len(vertices) < 3:
+                    return vertices
+                verts = list(vertices)
+                min_val = min(verts)
+                min_idx = verts.index(min_val)
+                # Forward rotation
+                forward = verts[min_idx:] + verts[:min_idx]
+                # Backward rotation
+                backward = [verts[min_idx]] + verts[min_idx-1::-1] + verts[:min_idx-1:-1]
+                # Return lexicographically smaller
+                return forward if forward <= backward else backward
+            
+            def polygons_equal_indices(verts1, verts2):
+                """Check if polygons have same vertices (accounting for rotation/reversal)"""
+                if len(verts1) != len(verts2) or set(verts1) != set(verts2):
+                    return False
+                return normalize_polygon_indices(verts1) == normalize_polygon_indices(verts2)
+            
+            original_count = len(polygons)
+            to_remove = []
+            for i in range(len(polygons)):
+                if i in to_remove:
+                    continue
+                for j in range(i + 1, len(polygons)):
+                    if j in to_remove:
+                        continue
+                    if polygons_equal_indices(polygons[i]['vertices'], polygons[j]['vertices']):
+                        to_remove.append(j)
+            
+            # Remove duplicates from both polygons and all_face_polygons
+            if to_remove:
+                to_remove_set = set(to_remove)
+                for idx in sorted(to_remove, reverse=True):
+                    polygons.pop(idx)
+                    if idx < len(all_face_polygons):
+                        all_face_polygons.pop(idx)
+                
+                print(f"[POLY FORM]   Removed {len(to_remove)} duplicate polygon(s): {original_count} → {len(polygons)}")
+        
+        # Check for overlapping polygons - process sequentially
+        # Each polygon is tested against all previously accepted polygons
+        # If overlap > 0.01%, split the NEW polygon (not the existing ones)
+        
+        # Skip overlap detection if there are no polygons or only one polygon
+        if len(polygons) <= 1:
+            # No overlap possible with 0 or 1 polygons
+            pass
+        else:
+            from shapely.geometry import Polygon as ShapelyPolygon
+            
+            # Get plane normal for this face
+            plane_normal = np.array(face_eq['normal'])
+            
+            # Create 2D coordinate system on the plane  
+            if abs(plane_normal[2]) > 0.9:  # Z-dominant
+                u_axis = np.array([1, 0, 0])
+            else:
+                u_axis = np.array([0, 0, 1])
+            u_axis = u_axis - np.dot(u_axis, plane_normal) * plane_normal
+            u_axis = u_axis / np.linalg.norm(u_axis)
+            v_axis = np.cross(plane_normal, u_axis)
+            
+            # Get 3D coordinates from selected_vertices for vertices used in this face
+            vertices_in_face = set()
+            for poly_data in polygons:
+                vertices_in_face.update(poly_data['vertices'])
+            
+            # Project vertices to 2D
+            verts_2d_check = {}
+            plane_origin = selected_vertices[min(vertices_in_face)]
+            for v_idx in vertices_in_face:
+                v_3d = selected_vertices[v_idx]
+                rel = v_3d - plane_origin
+                u = np.dot(rel, u_axis)
+                v_coord = np.dot(rel, v_axis)
+                verts_2d_check[v_idx] = (u, v_coord)
+            
+            # Process polygons sequentially - each new one is tested against accepted ones
+            accepted_polygons = []
+            accepted_shapely = []
+            
+            for idx, poly_data in enumerate(polygons):
+                poly_verts = poly_data['vertices']
+                poly_2d = [verts_2d_check[v] for v in poly_verts]
+                
+                try:
+                    poly_shapely = ShapelyPolygon(poly_2d)
+                    if not poly_shapely.is_valid:
+                        poly_shapely = poly_shapely.buffer(0)
+                except:
+                    # Invalid polygon, skip it
+                    print(f"[POLY FORM]   Polygon {idx+1} is invalid - skipping")
+                    continue
+                
+                # Test this polygon against all accepted polygons
+                current_poly = poly_shapely
+                overlaps_found = False
+                
+                for acc_idx, acc_shapely in enumerate(accepted_shapely):
+                    try:
+                        intersection = current_poly.intersection(acc_shapely)
+                        int_area = intersection.area if hasattr(intersection, 'area') else 0
+                        min_area = min(current_poly.area, acc_shapely.area)
+                        overlap_ratio = (int_area / min_area) if min_area > 0 else 0
+                        
+                        # If overlap > 0.01%, split the current (new) polygon
+                        if overlap_ratio > 0.0001:  # 0.01%
+                            overlaps_found = True
+                            print(f"[POLY FORM]   Polygon {idx+1} overlaps with accepted polygon {acc_idx+1} ({overlap_ratio*100:.4f}%)")
+                            
+                            # Split current polygon - remove intersection with accepted polygon
+                            new_poly = current_poly.difference(acc_shapely)
+                            if not new_poly.is_empty and new_poly.area > 1e-6:
+                                current_poly = new_poly
+                                print(f"[POLY FORM]     Split polygon {idx+1}: area now {current_poly.area:.2f}")
+                            else:
+                                # Current polygon completely contained in accepted polygon - discard it
+                                current_poly = None
+                                print(f"[POLY FORM]     Polygon {idx+1} completely contained - removing")
+                                break
+                    except Exception as e:
+                        print(f"[POLY FORM]     WARNING: Failed to check overlap: {e}")
+                
+                # If anything is left of current polygon, accept it
+                if current_poly is not None and current_poly.area > 1e-6:
+                    if overlaps_found:
+                        # Update area since polygon was split
+                        poly_data['area'] = current_poly.area
+                        
+                        # Reconstruct vertex list from split polygon
+                        # Map 2D coordinates back to nearest 3D vertex indices
+                        split_coords = list(current_poly.exterior.coords[:-1])  # Exclude duplicate closing point
+                        new_vertex_list = []
+                        
+                        for coord_2d in split_coords:
+                            # Find closest vertex in original face vertices
+                            min_dist = float('inf')
+                            closest_v = None
+                            for v_idx in vertices_in_face:
+                                v_2d = verts_2d_check[v_idx]
+                                dist = np.sqrt((v_2d[0] - coord_2d[0])**2 + (v_2d[1] - coord_2d[1])**2)
+                                if dist < min_dist:
+                                    min_dist = dist
+                                    closest_v = v_idx
+                            
+                            # Accept if distance is small (existing vertex) or add as new vertex
+                            if min_dist < 0.1:  # Existing vertex
+                                new_vertex_list.append(closest_v)
+                            else:
+                                # New vertex created by intersection - keep the 2D point
+                                # For now, just skip new vertices (only keep existing ones)
+                                # This may result in approximate polygons
+                                pass
+                        
+                        # Remove consecutive duplicates
+                        cleaned_list = []
+                        for v in new_vertex_list:
+                            if not cleaned_list or v != cleaned_list[-1]:
+                                cleaned_list.append(v)
+                        # Check wrap-around duplicate
+                        if len(cleaned_list) > 1 and cleaned_list[0] == cleaned_list[-1]:
+                            cleaned_list = cleaned_list[:-1]
+                        
+                        if len(cleaned_list) >= 3:
+                            poly_data['vertices'] = cleaned_list
+                            print(f"[POLY FORM]   Polygon {idx+1} accepted after splitting (area={current_poly.area:.2f}, new verts={cleaned_list})")
+                        else:
+                            print(f"[POLY FORM]   Polygon {idx+1} rejected (insufficient vertices after reconstruction)")
+                            continue
+                    accepted_polygons.append(poly_data)
+                    accepted_shapely.append(current_poly)
+                elif overlaps_found:
+                    print(f"[POLY FORM]   Polygon {idx+1} rejected (nothing left after splits)")
+            
+            polygons = accepted_polygons
+            if len(accepted_polygons) < len(polygons):
+                print(f"[POLY FORM]   After overlap filtering: {len(accepted_polygons)} polygons remain (from {original_count})")
+        
         face_eq['polygons'] = polygons
         print(f"[POLY FORM]   Face {face_idx+1}: "
               f"Found {len(polygons)} polygon(s)")
@@ -5174,27 +5995,7 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
     #
     # For now, using geometric containment as implemented below.
     # -------------------------------------------------------------------------
-    print(f"\n[POLY FORM]   Classifying polygons as BOUNDARY, HOLES, or ALT...")
     
-    # Try visibility-based classification first (if view connectivity is available)
-    # This will be implemented when top_conn, front_conn, side_conn are passed through
-    # For now, falls back to geometric method
-    for face_idx, face_eq in enumerate(unique_faces):
-        polygons = face_eq.get('polygons', [])
-        if len(polygons) == 0:
-            continue
-        
-        # Call the new polygon classifier module
-        # Pass the view-specific connectivity matrices for visibility-based classification
-        polygons = classify_polygons_by_visibility(
-            face_eq, polygons, selected_vertices,
-            top_conn=top_conn, front_conn=front_conn, side_conn=side_conn,
-            face_num=face_idx + 1  # Pass face number (1-indexed)
-        )
-        
-        # Update face_eq with classified polygons
-        face_eq['polygons'] = polygons
-        
     # =========================================================================
     # NEW POLYGON CLASSIFICATION ALGORITHM USING RELATIONSHIP MATRIX
     # =========================================================================
@@ -5344,50 +6145,59 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
         print(f"[POLY FORM]     Preprocessing: Normalizing and deduplicating polygons...")
         
         def normalize_polygon(vertices):
-            """Normalize polygon: smallest vertex first, second vertex is smaller neighbor"""
+            """Normalize polygon by comparing vertex indices directly.
+            Returns normalized form with smallest vertex first and choosing
+            forward/backward direction based on second vertex."""
             if len(vertices) < 3:
                 return vertices
             
-            # Find minimum vertex
-            min_idx = vertices.index(min(vertices))
+            # Convert to tuple for comparison
+            verts = list(vertices)
             
-            # Rotate so minimum is first
-            rotated = vertices[min_idx:] + vertices[:min_idx]
+            # Find minimum vertex index
+            min_val = min(verts)
+            min_idx = verts.index(min_val)
             
-            # Check if we should reverse (compare second vertex with last)
-            # Second vertex should be the smaller of the two neighbors
-            forward = rotated
-            backward = [rotated[0]] + rotated[1:][::-1]
+            # Create forward rotation (start from min vertex, go forward)
+            forward = verts[min_idx:] + verts[:min_idx]
             
-            if forward[1] < backward[1]:
+            # Create backward rotation (start from min vertex, go backward)
+            backward = [verts[min_idx]] + verts[min_idx-1::-1] + verts[:min_idx-1:-1]
+            
+            # Choose the lexicographically smaller one
+            # (compares element by element: first by second vertex, then third, etc.)
+            if forward <= backward:
                 return forward
             else:
                 return backward
         
-        def polygons_equal(verts1, verts2):
-            """Check if two vertex lists represent the same polygon"""
+        def polygons_equal_by_vertices(verts1, verts2):
+            """Check if two polygons have the same vertices (accounting for rotation and reversal)"""
+            if len(verts1) != len(verts2):
+                return False
+            
+            # Convert to sets for quick check
+            if set(verts1) != set(verts2):
+                return False
+            
+            # Normalize both and compare
             norm1 = normalize_polygon(verts1)
             norm2 = normalize_polygon(verts2)
             return norm1 == norm2
         
-        # Normalize all polygons
+        # Find and remove duplicates BEFORE normalization
+        # This preserves the original polygon but removes duplicates
         original_count = len(polygons)
-        for i, poly in enumerate(polygons):
-            original_verts = poly['vertices'].copy()
-            poly['vertices'] = normalize_polygon(poly['vertices'])
-            if poly['vertices'] != original_verts:
-                print(f"[POLY FORM]       Polygon {i} normalized: {original_verts} → {poly['vertices']}")
-        
-        # Find and remove duplicates
         to_remove = []
+        
         for i in range(len(polygons)):
             if i in to_remove:
                 continue
             for j in range(i + 1, len(polygons)):
                 if j in to_remove:
                     continue
-                if polygons_equal(polygons[i]['vertices'], polygons[j]['vertices']):
-                    print(f"[POLY FORM]       Duplicate found: Polygon {j} == Polygon {i}, removing {j}")
+                if polygons_equal_by_vertices(polygons[i]['vertices'], polygons[j]['vertices']):
+                    print(f"[POLY FORM]       Duplicate found: Polygon {j} ({polygons[j]['vertices']}) == Polygon {i} ({polygons[i]['vertices']}), removing {j}")
                     to_remove.append(j)
         
         # Remove duplicates (in reverse order to maintain indices)
@@ -5440,60 +6250,35 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                 print(f"[POLY FORM]       Polygon {i} is a separate face (all S)")
         
         # Find boundary polygon
-        # The boundary is the polygon that all other polygons see as O (meaning boundary contains them)
+        # Use largest polygon by area as boundary (most conservative choice)
         boundary_candidate = None
-        max_contains_count = -1  # Initialize for potential use in print statements
+        max_score = -1
         
-        # Check each polygon's column (how others see it)
-        for j in range(n):
-            if j in separate_faces:
+        for i in range(n):
+            if i in separate_faces:
                 continue
+            row = matrix[i]
+            # Count I/IT (contains) relationships
+            contains_count = sum(1 for cell in row if cell in ['I', 'IT'])
+            # Count ST (shares edges) relationships
+            shares_count = sum(1 for cell in row if cell == 'ST')
+            # Boundary should have mix of I and S relationships
+            score = contains_count * 2 + shares_count  # Weight contains higher
             
-            # Count how many other polygons see this polygon as O (they are inside it)
-            o_count = sum(1 for i in range(n) if i != j and matrix[i][j] == 'O')
-            non_separate_count = n - len(separate_faces) - 1  # Exclude self and separate faces
-            
-            # If almost all other polygons see it as O, it's the boundary
-            if o_count >= non_separate_count * 0.8:  # 80% threshold
-                boundary_candidate = j
-                max_contains_count = o_count  # Store for print statement
-                print(f"[POLY FORM]       Polygon {j} identified as BOUNDARY ({o_count} polygons see it as O)")
-                break
+            if score > max_score:
+                max_score = score
+                boundary_candidate = i
         
-        # Fallback: use old logic if no boundary found
         if boundary_candidate is None:
-            max_contains_count = -1
-            
-            for i in range(n):
-                if i in separate_faces:
-                    continue
-                row = matrix[i]
-                # Count I (contains) relationships
-                contains_count = sum(1 for cell in row if cell in ['I', 'IT'])
-                # Count S/ST (shares edges) relationships
-                shares_count = sum(1 for cell in row if cell in ['S', 'ST'])
-                # Boundary should have mix of I and S relationships
-                score = contains_count * 2 + shares_count  # Weight contains higher
-                
-                if score > max_contains_count:
-                    max_contains_count = score
-                    boundary_candidate = i
-            
-            if boundary_candidate is not None:
-                print(f"[POLY FORM]       Polygon {boundary_candidate} identified as BOUNDARY (fallback, score: {max_contains_count})")
-        
-        if boundary_candidate is not None:
-            print(f"[POLY FORM]       Polygon {boundary_candidate} identified as BOUNDARY (score: {max_contains_count})")
-            polygons[boundary_candidate]['polygon_type'] = 'BOUNDARY'
-            polygons[boundary_candidate]['is_alternate'] = False
-            polygons[boundary_candidate]['is_hole'] = False
-        else:
             # Fallback: largest polygon by area
             boundary_candidate = max(range(n), key=lambda i: polygons[i].get('area', 0))
             print(f"[POLY FORM]       No clear boundary from matrix, using largest polygon {boundary_candidate}")
-            polygons[boundary_candidate]['polygon_type'] = 'BOUNDARY'
-            polygons[boundary_candidate]['is_alternate'] = False
-            polygons[boundary_candidate]['is_hole'] = False
+        else:
+            print(f"[POLY FORM]       Polygon {boundary_candidate} identified as BOUNDARY (score: {max_score})")
+        
+        polygons[boundary_candidate]['polygon_type'] = 'BOUNDARY'
+        polygons[boundary_candidate]['is_alternate'] = False
+        polygons[boundary_candidate]['is_hole'] = False
         
         # =====================================================================
         # STEP 2: Tag IT polygons for later processing
@@ -5577,6 +6362,91 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             
             row = matrix[i]
             
+            # Check if this polygon has ST with the boundary
+            # ST with boundary means they share edges - this indicates overlapping regions
+            # In solid modeling, polygons that share edges are typically alternate definitions
+            # of the same region. We should NOT keep both as separate polygons.
+            has_st_with_boundary = (matrix[i][boundary_candidate] == 'ST')
+            
+            # Check if this polygon has OT with the boundary
+            # OT means polygon i is INSIDE boundary and shares edges with it
+            # This is also an overlapping region that should be discarded
+            has_ot_with_boundary = (matrix[i][boundary_candidate] == 'OT')
+            
+            if has_ot_with_boundary:
+                # OT with boundary means this polygon is inside boundary and shares edges
+                # Check for area overlap - if significant, discard it
+                poly_i_shapely = shapely_polygons[i]
+                boundary_shapely = shapely_polygons[boundary_candidate]
+                
+                if poly_i_shapely and boundary_shapely:
+                    try:
+                        intersection = poly_i_shapely.intersection(boundary_shapely)
+                        intersection_area = intersection.area if hasattr(intersection, 'area') else 0
+                        poly_i_area = poly_i_shapely.area
+                        boundary_area = boundary_shapely.area
+                        
+                        min_area = min(poly_i_area, boundary_area)
+                        overlap_ratio = intersection_area / min_area if min_area > 0 else 0
+                        
+                        print(f"[POLY FORM]       Polygon {i} has OT with boundary: inter_area={intersection_area:.2f}, poly_area={poly_i_area:.2f}, overlap={overlap_ratio*100:.1f}%")
+                        
+                        if overlap_ratio > 0.5:  # More than 50% overlap (inside and touching)
+                            print(f"[POLY FORM]         → DISCARD (overlapping region inside boundary, {overlap_ratio*100:.1f}% overlap)")
+                            used_polygons.add(i)
+                            continue
+                    except Exception as e:
+                        print(f"[POLY FORM]       WARNING: Failed to check overlap for polygon {i}: {e}")
+                
+                # If low overlap, might be a valid alternate
+                print(f"[POLY FORM]       Polygon {i} has OT with boundary (low overlap) → ALT")
+                polygons[i]['polygon_type'] = 'ALT'
+                polygons[i]['is_alternate'] = True
+                polygons[i]['is_hole'] = False
+                polygons[i]['parent_polygon'] = None
+                used_polygons.add(i)
+                continue
+            
+            if has_st_with_boundary:
+                # Check the containment relationship
+                # If boundary contains this polygon (matrix[i][boundary_candidate] could also show as I/IT),
+                # then this is truly an alternate definition
+                # But if they just touch without containment, one is likely wrong
+                
+                # Check if this polygon has area overlap with boundary
+                poly_i_shapely = shapely_polygons[i]
+                boundary_shapely = shapely_polygons[boundary_candidate]
+                
+                if poly_i_shapely and boundary_shapely:
+                    try:
+                        intersection = poly_i_shapely.intersection(boundary_shapely)
+                        intersection_area = intersection.area if hasattr(intersection, 'area') else 0
+                        poly_i_area = poly_i_shapely.area
+                        boundary_area = boundary_shapely.area
+                        
+                        # If they have significant area overlap (> 10% of smaller polygon),
+                        # they represent overlapping regions - discard the smaller one
+                        min_area = min(poly_i_area, boundary_area)
+                        overlap_ratio = intersection_area / min_area if min_area > 0 else 0
+                        
+                        print(f"[POLY FORM]       Polygon {i}: inter_area={intersection_area:.2f}, poly_area={poly_i_area:.2f}, boundary_area={boundary_area:.2f}, overlap={overlap_ratio*100:.1f}%")
+                        
+                        if overlap_ratio > 0.1:  # More than 10% overlap
+                            print(f"[POLY FORM]         → DISCARD (overlapping region, {overlap_ratio*100:.1f}% of smaller polygon)")
+                            used_polygons.add(i)  # Mark as used but don't assign type
+                            continue
+                    except Exception as e:
+                        print(f"[POLY FORM]       WARNING: Failed to check overlap for polygon {i}: {e}")
+                
+                # If no significant overlap, treat as alternate (touching boundary)
+                print(f"[POLY FORM]       Polygon {i} has ST with boundary (touching, no overlap) → ALT")
+                polygons[i]['polygon_type'] = 'ALT'
+                polygons[i]['is_alternate'] = True
+                polygons[i]['is_hole'] = False
+                polygons[i]['parent_polygon'] = None
+                used_polygons.add(i)  # Mark as used so it won't be merged
+                continue
+            
             # Check for OT/O relationships with OTHER polygons (excluding boundary)
             # Having O/OT with boundary is normal (means inside boundary)
             has_ot_o = any(cell in ['OT', 'O'] for j, cell in enumerate(row) 
@@ -5597,14 +6467,7 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                              if j not in used_polygons and j not in ot_o_tagged]
             all_s = all(cell in ['S', '-'] for j, cell in non_used_cells)
             
-            # Check if this polygon has ST with the boundary (means ALT, not HOLE)
-            has_st_with_boundary = (matrix[i][boundary_candidate] == 'ST')
-            
-            if has_st_with_boundary:
-                # ST with boundary means this is an alternative boundary, not a hole
-                print(f"[POLY FORM]       Polygon {i} has ST with boundary → will be ALT")
-                # Don't mark as independent hole, will be classified as ALT later
-            elif all_s:
+            if all_s:
                 independent_holes.add(i)
                 print(f"[POLY FORM]       Polygon {i} has all S → independent hole")
             elif st_neighbors:
@@ -5633,6 +6496,41 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     merge_candidates[i] = st_neighbors
                     print(f"[POLY FORM]       Polygon {i} with ST neighbors {st_neighbors} → merge candidates (no closed loop)")
 
+        # =====================================================================
+        # STEP 3.5: Cascade ALT classification BEFORE merging
+        # =====================================================================
+        print(f"[POLY FORM]     Step 3.5: Cascading ALT classification (before merging)...")
+        changed = True
+        iteration = 0
+        while changed and iteration < 10:  # Limit iterations to prevent infinite loops
+            changed = False
+            iteration += 1
+            for i in range(n):
+                if polygons[i].get('polygon_type') or i in used_polygons:
+                    continue
+                # Check if this polygon has ST with any ALT
+                has_st_with_alt = any(
+                    matrix[i][j] == 'ST' and polygons[j].get('polygon_type') == 'ALT'
+                    for j in range(n) if j != i
+                )
+                if has_st_with_alt:
+                    alt_neighbors = [j for j in range(n) if j != i and matrix[i][j] == 'ST' and polygons[j].get('polygon_type') == 'ALT']
+                    print(f"[POLY FORM]       Polygon {i} shares edge with ALT {alt_neighbors} → ALT (cascade)")
+                    polygons[i]['polygon_type'] = 'ALT'
+                    polygons[i]['is_alternate'] = True
+                    polygons[i]['is_hole'] = False
+                    polygons[i]['parent_polygon'] = None
+                    used_polygons.add(i)
+                    # Remove from merge candidates if present
+                    if i in merge_candidates:
+                        del merge_candidates[i]
+                    # Remove from others' merge candidate lists
+                    for key in list(merge_candidates.keys()):
+                        if i in merge_candidates[key]:
+                            merge_candidates[key].remove(i)
+                            if not merge_candidates[key]:  # Empty list after removal
+                                del merge_candidates[key]
+                    changed = True
 
         
         # =====================================================================
@@ -5764,14 +6662,50 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             if best_row not in merged_polygons:
                 merged_polygons[best_row] = [best_row]
             
+            # Check if any polygon to be merged is already part of another group
+            groups_to_merge = set([best_row])
+            for j in polygons_to_merge:
+                # Find which group j belongs to (if any)
+                found_group = None
+                if j in merged_polygons:
+                    # j is a master of its own group
+                    found_group = j
+                else:
+                    # Check if j is a slave in any existing group
+                    for master, slaves in merged_polygons.items():
+                        if j in slaves:
+                            found_group = master
+                            break
+                
+                if found_group is not None and found_group != best_row:
+                    groups_to_merge.add(found_group)
+            
+            # If multiple groups need to be merged, consolidate them
+            if len(groups_to_merge) > 1:
+                print(f"[POLY FORM]       Detected shared polygons - merging groups {list(groups_to_merge)}")
+                all_polygons = []
+                for group_master in groups_to_merge:
+                    if group_master in merged_polygons:
+                        all_polygons.extend(merged_polygons[group_master])
+                        if group_master != best_row:
+                            del merged_polygons[group_master]
+                # Remove duplicates while preserving order
+                seen = set()
+                merged_polygons[best_row] = []
+                for p in all_polygons:
+                    if p not in seen:
+                        seen.add(p)
+                        merged_polygons[best_row].append(p)
+            
             # Merge all polygons into best_row
             for j in polygons_to_merge:
-                if j in merged_polygons:
-                    # j was already merged, add all its components
-                    merged_polygons[best_row].extend(merged_polygons[j])
-                    del merged_polygons[j]
-                else:
-                    merged_polygons[best_row].append(j)
+                if j not in merged_polygons[best_row]:
+                    if j in merged_polygons:
+                        # j was already merged, add all its components
+                        merged_polygons[best_row].extend(merged_polygons[j])
+                        del merged_polygons[j]
+                    else:
+                        merged_polygons[best_row].append(j)
                 
                 # Mark as merged in matrix
                 matrix[best_row][j] = 'DST'
@@ -5871,12 +6805,33 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                         merged_vertices.append(v)
                 polygons[best_row]['vertices'] = merged_vertices
             
-            # Mark best_row as a hole
-            polygons[best_row]['polygon_type'] = 'HOLE'
-            polygons[best_row]['is_hole'] = True
-            polygons[best_row]['is_alternate'] = False
-            polygons[best_row]['parent_polygon'] = 'BOUNDARY'
-            polygons[best_row]['merged_from'] = merged_polygons[best_row]
+            # Check if merged polygon is inside boundary before marking as hole
+            # If boundary contains this polygon (I or IT relationship), it's a hole
+            # Otherwise, it's an alternate (separate touching face)
+            if boundary_candidate is not None:
+                boundary_to_merged = matrix[boundary_candidate][best_row]
+                if boundary_to_merged in ['I', 'IT']:
+                    # Polygon is inside boundary - it's a hole
+                    polygons[best_row]['polygon_type'] = 'HOLE'
+                    polygons[best_row]['is_hole'] = True
+                    polygons[best_row]['is_alternate'] = False
+                    polygons[best_row]['parent_polygon'] = 'BOUNDARY'
+                    polygons[best_row]['merged_from'] = merged_polygons[best_row]
+                else:
+                    # Polygon is outside boundary - it's an alternate
+                    print(f"[POLY FORM]         Merged polygon is OUTSIDE boundary (relationship: {boundary_to_merged}) → ALT not HOLE")
+                    polygons[best_row]['polygon_type'] = 'ALT'
+                    polygons[best_row]['is_hole'] = False
+                    polygons[best_row]['is_alternate'] = True
+                    polygons[best_row]['parent_polygon'] = None
+                    polygons[best_row]['merged_from'] = merged_polygons[best_row]
+            else:
+                # No boundary defined, mark as hole (fallback)
+                polygons[best_row]['polygon_type'] = 'HOLE'
+                polygons[best_row]['is_hole'] = True
+                polygons[best_row]['is_alternate'] = False
+                polygons[best_row]['parent_polygon'] = 'BOUNDARY'
+                polygons[best_row]['merged_from'] = merged_polygons[best_row]
             
             # Hide the merged slave polygons from final output
             for slave in merged_polygons[best_row]:
@@ -5889,11 +6844,28 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
         
         # Process independent holes
         for i in independent_holes:
-            print(f"[POLY FORM]       Polygon {i} → independent hole (all S)")
-            polygons[i]['polygon_type'] = 'HOLE'
-            polygons[i]['is_hole'] = True
-            polygons[i]['is_alternate'] = False
-            polygons[i]['parent_polygon'] = 'BOUNDARY'
+            # Verify the polygon is actually inside the boundary
+            if boundary_candidate is not None:
+                boundary_to_poly = matrix[boundary_candidate][i]
+                if boundary_to_poly in ['I', 'IT']:
+                    print(f"[POLY FORM]       Polygon {i} → independent hole (inside boundary)")
+                    polygons[i]['polygon_type'] = 'HOLE'
+                    polygons[i]['is_hole'] = True
+                    polygons[i]['is_alternate'] = False
+                    polygons[i]['parent_polygon'] = 'BOUNDARY'
+                else:
+                    print(f"[POLY FORM]       Polygon {i} → marked as independent hole but OUTSIDE boundary (relationship: {boundary_to_poly}) → ALT")
+                    polygons[i]['polygon_type'] = 'ALT'
+                    polygons[i]['is_hole'] = False
+                    polygons[i]['is_alternate'] = True
+                    polygons[i]['parent_polygon'] = None
+            else:
+                # No boundary, mark as hole (fallback)
+                print(f"[POLY FORM]       Polygon {i} → independent hole (all S)")
+                polygons[i]['polygon_type'] = 'HOLE'
+                polygons[i]['is_hole'] = True
+                polygons[i]['is_alternate'] = False
+                polygons[i]['parent_polygon'] = 'BOUNDARY'
         
         # Process closed loop polygons (hole within hole - separate faces)
         for i in ot_o_tagged:
@@ -5904,8 +6876,19 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             polygons[i]['is_alternate'] = True
             polygons[i]['parent_polygon'] = None
         
+        # Process separate faces (all S relationships) - mark as ALT
+        # These are completely separate polygons that could be alternate boundaries
+        for i in separate_faces:
+            if polygons[i].get('polygon_type'):
+                continue  # Already classified
+            print(f"[POLY FORM]       Polygon {i} → separate face (all S) → ALT")
+            polygons[i]['polygon_type'] = 'ALT'
+            polygons[i]['is_hole'] = False
+            polygons[i]['is_alternate'] = True
+            polygons[i]['parent_polygon'] = None
+        
         # Process remaining unclassified polygons
-        all_processed = used_polygons | it_tagged | processed | independent_holes | ot_o_tagged
+        all_processed = used_polygons | it_tagged | processed | independent_holes | ot_o_tagged | set(separate_faces)
         for i in range(n):
             if i in all_processed:
                 continue
@@ -5992,11 +6975,55 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                                  for v in poly['vertices']]
                 poly_shapely = ShapelyPolygon(poly_verts_2d)
                 
-                # Check if this ALT polygon touches the boundary
-                # If they don't intersect and ALT is not contained,
-                # it's an independent boundary
-                if (not boundary_shapely.intersects(poly_shapely) and
-                    not boundary_shapely.contains(poly_shapely)):
+                # Check if this ALT polygon shares edges with boundary OR other ALT/HOLE polygons
+                # If it shares edges with any of them, it's NOT independent
+                shares_edge_with_others = False
+                
+                # Get edges of current polygon
+                poly_edges = set()
+                for i in range(len(poly['vertices'])):
+                    v1 = poly['vertices'][i]
+                    v2 = poly['vertices'][(i + 1) % len(poly['vertices'])]
+                    edge = tuple(sorted([v1, v2]))
+                    poly_edges.add(edge)
+                
+                # Check if boundary intersects or contains this polygon (geometric check)
+                geometric_connection = (boundary_shapely.intersects(poly_shapely) or
+                                       boundary_shapely.contains(poly_shapely))
+                
+                # Check for shared edges with boundary
+                if boundary_poly and not shares_edge_with_others:
+                    boundary_edges = set()
+                    for i in range(len(boundary_poly['vertices'])):
+                        v1 = boundary_poly['vertices'][i]
+                        v2 = boundary_poly['vertices'][(i + 1) % len(boundary_poly['vertices'])]
+                        edge = tuple(sorted([v1, v2]))
+                        boundary_edges.add(edge)
+                    
+                    if poly_edges & boundary_edges:  # Intersection - shared edges exist
+                        shares_edge_with_others = True
+                
+                # Check for shared edges with other ALT and HOLE polygons
+                if not shares_edge_with_others:
+                    for other_poly in polygons:
+                        if other_poly is poly:
+                            continue
+                        if other_poly.get('polygon_type') not in ['ALT', 'HOLE']:
+                            continue
+                        
+                        other_edges = set()
+                        for i in range(len(other_poly['vertices'])):
+                            v1 = other_poly['vertices'][i]
+                            v2 = other_poly['vertices'][(i + 1) % len(other_poly['vertices'])]
+                            edge = tuple(sorted([v1, v2]))
+                            other_edges.add(edge)
+                        
+                        if poly_edges & other_edges:  # Shared edges found
+                            shares_edge_with_others = True
+                            break
+                
+                # Polygon is independent if it has NO shared edges and NO geometric connection
+                if not shares_edge_with_others and not geometric_connection:
                     # This is an independent boundary polygon
                     independent_boundaries.append(poly)
                     poly['is_independent_boundary'] = True
@@ -6188,7 +7215,8 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     print(f"[POLY FORM]     Face {face_idx+1}: Keeping {remaining_count} polygon(s) "
                           f"(BOUNDARY and attached HOLES/ALTs)")
                     for p in face_eq['polygons']:
-                        print(f"[POLY FORM]       Kept: {p['polygon_type']} {p['vertices']}")
+                        poly_type = p.get('polygon_type', 'UNKNOWN')
+                        print(f"[POLY FORM]       Kept: {poly_type} {p['vertices']}")
             else:
                 print(f"[POLY FORM]     WARNING: Face {face_idx+1} has no 'polygons' key")
     
@@ -6579,34 +7607,1969 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
     
     initial_boundary, initial_manifold, initial_invalid = compute_edge_stats(edge_face_map_all)
     
-    print(f"\n[POLY FORM]   Initial edge distribution (ALL polygons included):")
+    print(f"\n[POLY FORM]   ========== BASE SET STATISTICS ==========")
+    print(f"[POLY FORM]   Base set: {len(all_polygons_list)} polygons (before any pruning)")
+    print(f"[POLY FORM]   Initial edge distribution (ALL polygons included):")
     print(f"[POLY FORM]     - Boundary edges (1 face): {initial_boundary}")
     print(f"[POLY FORM]     - Manifold edges (2 faces): {initial_manifold}")
     print(f"[POLY FORM]     - Invalid edges (3+ faces): {initial_invalid}")
+    print(f"[POLY FORM]   ==========================================")
     
-    # Print face summary after initial edge distribution
-    print_face_summary_debug(unique_faces, "Face Summary (After Initial Edge Analysis)")
+    # ==========================================================================
+    # ==========================================================================
+    # COMBINATORIAL SEARCH: Greedy Removal Strategy
+    # ==========================================================================
+    print(f"\n[POLY FORM]   ========== COMBINATORIAL SEARCH (GREEDY REMOVAL) ==========")
+    print(f"[POLY FORM]   Strategy: Start with ALL polygons, remove alternates one at a time")
+    print(f"[POLY FORM]   Target: ≤10 invalid edges AND ≤10 boundary edges, then exhaustive search")
     
-    # DEBUG PLOT: Show current state
-    print(f"\n[POLY FORM]   Creating debug plot...")
-    plot_extraction_debug(selected_vertices, unique_faces, edge_face_map_all, [], 
-                         pruned_set=set(), title="Initial State - All Polygons")
+    # Build face structure with boundary, holes, and alternates
+    face_polygon_groups = []
+    for face_idx, face_eq in enumerate(unique_faces):
+        polygons = face_eq.get('polygons', [])
+        if len(polygons) == 0:
+            continue
+        
+        boundary_poly = None
+        holes = []
+        alternates = []
+        
+        for poly_idx, poly_data in enumerate(polygons):
+            if poly_data.get('removed', False):
+                continue
+            poly_type = poly_data.get('polygon_type', 'BOUNDARY')
+            
+            if poly_type == 'BOUNDARY':
+                boundary_poly = {'idx': poly_idx, 'data': poly_data, 'verts': poly_data.get('vertices', [])}
+            elif poly_type == 'HOLE':
+                holes.append({'idx': poly_idx, 'data': poly_data, 'verts': poly_data.get('vertices', [])})
+            elif poly_type == 'ALT':
+                alternates.append({'idx': poly_idx, 'data': poly_data, 'verts': poly_data.get('vertices', [])})
+        
+        # Only include faces that have at least a boundary or alternates
+        if boundary_poly or alternates:
+            face_polygon_groups.append({
+                'face_idx': face_idx,
+                'boundary': boundary_poly,
+                'holes': holes,
+                'alternates': alternates
+            })
+    
+    print(f"[POLY FORM]   Found {len(face_polygon_groups)} faces with polygons")
+    
+    # Identify removable alternates (boundaries with holes must be kept together)
+    removable_alts = []
+    mandatory_polys = []
+    
+    for group in face_polygon_groups:
+        face_idx = group['face_idx']
+        
+        # Boundaries with holes are MANDATORY (must always be together)
+        if group['boundary']:
+            mandatory_polys.append((face_idx, group['boundary']['idx'], 'BOUNDARY', group['boundary']['verts']))
+            for hole in group['holes']:
+                mandatory_polys.append((face_idx, hole['idx'], 'HOLE', hole['verts']))
+        
+        # Alternates with holes are ALSO mandatory (holes must stay with their boundary)
+        for alt in group['alternates']:
+            # For now, treat all alternates as removable
+            # (If an alternate has holes, we'd need to modify the data structure to track that)
+            removable_alts.append((face_idx, alt['idx'], 'ALT', alt['verts']))
+    
+    print(f"[POLY FORM]   Mandatory polygons (boundaries + holes): {len(mandatory_polys)}")
+    print(f"[POLY FORM]   Removable alternates: {len(removable_alts)}")
+    
+    def compute_edge_stats_for_selection(poly_list):
+        """Compute edge statistics for a given polygon selection"""
+        edge_map = {}
+        for item in poly_list:
+            if len(item) == 4:
+                face_idx, poly_idx, poly_type, poly_verts = item
+            else:
+                continue
+            
+            for i in range(len(poly_verts)):
+                v1 = poly_verts[i] - 1
+                v2 = poly_verts[(i + 1) % len(poly_verts)] - 1
+                edge = (min(v1, v2), max(v1, v2))
+                if edge not in edge_map:
+                    edge_map[edge] = []
+                edge_map[edge].append((face_idx, poly_idx, poly_type))
+        
+        boundary_edges = sum(1 for fl in edge_map.values() if len(fl) == 1)
+        manifold_edges = sum(1 for fl in edge_map.values() if len(fl) == 2)
+        invalid_edges = sum(1 for fl in edge_map.values() if len(fl) >= 3)
+        return boundary_edges, manifold_edges, invalid_edges
+    
+    # ==========================================================================
+    # PRE-PHASE 0: Edge-based polygon cleanup (iterative)
+    # ==========================================================================
+    print(f"\n[POLY FORM]   PRE-PHASE 0: Analyzing edge connectivity for polygon cleanup...")
+    
+    # Build initial current_selection from face_polygon_groups (all polygons)
+    current_selection = []
+    for group in face_polygon_groups:
+        face_idx = group['face_idx']
+        if group['boundary']:
+            current_selection.append((face_idx, group['boundary']['idx'], 'BOUNDARY', group['boundary']['verts']))
+        for hole in group['holes']:
+            current_selection.append((face_idx, hole['idx'], 'HOLE', hole['verts']))
+        for alt in group['alternates']:
+            current_selection.append((face_idx, alt['idx'], 'ALT', alt['verts']))
+    
+    print(f"[POLY FORM]     Initial selection: {len(current_selection)} polygons")
+    
+    # Iterate up to 5 times or until no more polygons can be removed
+    max_iterations = 5
+    total_removed = 0
+    
+    for iteration in range(max_iterations):
+        print(f"\n[POLY FORM]     === Cleanup Iteration {iteration + 1}/{max_iterations} ===")
+        
+        # Build edge-to-face mapping for all polygons in current selection
+        edge_to_faces = {}  # edge -> [(face_idx, poly_idx, poly_type), ...]
+        
+        for item in current_selection:
+            if len(item) != 4:
+                continue
+            face_idx, poly_idx, poly_type, poly_verts = item
+            
+            # Get edges for this polygon
+            for i in range(len(poly_verts)):
+                v1 = poly_verts[i] - 1
+                v2 = poly_verts[(i + 1) % len(poly_verts)] - 1
+                edge = (min(v1, v2), max(v1, v2))
+                
+                if edge not in edge_to_faces:
+                    edge_to_faces[edge] = []
+                edge_to_faces[edge].append((face_idx, poly_idx, poly_type))
+        
+        # Classify edges by face count
+        boundary_edge_set = set(edge for edge, faces in edge_to_faces.items() if len(faces) == 1)
+        manifold_edge_set = set(edge for edge, faces in edge_to_faces.items() if len(faces) == 2)
+        invalid_edge_set = set(edge for edge, faces in edge_to_faces.items() if len(faces) >= 3)
+        
+        print(f"[POLY FORM]       Edge classification: {len(boundary_edge_set)} boundary, "
+              f"{len(manifold_edge_set)} manifold, {len(invalid_edge_set)} invalid")
+        
+        # Annotate each polygon with its edge types
+        polygon_edge_info = {}  # (face_idx, poly_idx) -> {'boundary': n, 'manifold': n, 'invalid': n, 'edges': [...]}
+        
+        for item in current_selection:
+            if len(item) != 4:
+                continue
+            face_idx, poly_idx, poly_type, poly_verts = item
+            
+            poly_key = (face_idx, poly_idx)
+            edge_counts = {'boundary': 0, 'manifold': 0, 'invalid': 0}
+            edge_list = []
+            
+            for i in range(len(poly_verts)):
+                v1 = poly_verts[i] - 1
+                v2 = poly_verts[(i + 1) % len(poly_verts)] - 1
+                edge = (min(v1, v2), max(v1, v2))
+                
+                # Classify this edge
+                if edge in boundary_edge_set:
+                    edge_type = 'boundary'
+                    edge_counts['boundary'] += 1
+                elif edge in manifold_edge_set:
+                    edge_type = 'manifold'
+                    edge_counts['manifold'] += 1
+                else:  # invalid
+                    edge_type = 'invalid'
+                    edge_counts['invalid'] += 1
+                
+                edge_list.append({'edge': edge, 'type': edge_type, 'faces': edge_to_faces[edge]})
+            
+            polygon_edge_info[poly_key] = {
+                **edge_counts,
+                'edges': edge_list,
+                'total_edges': len(poly_verts),
+                'poly_type': poly_type,
+                'poly_verts': poly_verts
+            }
+        
+        # Only print detailed table on first iteration
+        if iteration == 0:
+            print(f"\n[POLY FORM]       ========== POLYGON EDGE ANALYSIS ==========")
+            print(f"[POLY FORM]       {'Face':>4} {'Poly':>4} {'Type':>8} {'Verts':>5} {'B':>3} {'M':>3} {'I':>3} Vertices")
+            print(f"[POLY FORM]       {'-'*4} {'-'*4} {'-'*8} {'-'*5} {'-'*3} {'-'*3} {'-'*3} {'-'*50}")
+            
+            for item in sorted(current_selection, key=lambda x: (x[0], x[1])):
+                if len(item) != 4:
+                    continue
+                face_idx, poly_idx, poly_type, poly_verts = item
+                poly_key = (face_idx, poly_idx)
+                
+                if poly_key not in polygon_edge_info:
+                    continue
+                
+                info = polygon_edge_info[poly_key]
+                verts_str = str(poly_verts[:10]) + ('...' if len(poly_verts) > 10 else '')
+                
+                # Use 1-based face indexing for display (face_idx+1) to match Phase 0 output
+                print(f"[POLY FORM]       {face_idx+1:>4} {poly_idx:>4} {poly_type:>8} {len(poly_verts):>5} "
+                      f"{info['boundary']:>3} {info['manifold']:>3} {info['invalid']:>3} {verts_str}")
+            
+            print(f"[POLY FORM]       {'='*86}")
+        
+        # Find polygons to remove: those with NO manifold edges (only boundary/invalid)
+        polygons_to_remove = set()
+        
+        for item in current_selection:
+            if len(item) != 4:
+                continue
+            face_idx, poly_idx, poly_type, poly_verts = item
+            poly_key = (face_idx, poly_idx)
+            
+            if poly_key not in polygon_edge_info:
+                continue
+            
+            info = polygon_edge_info[poly_key]
+            
+            # Check if polygon has NO manifold edges
+            if info['manifold'] == 0:
+                polygons_to_remove.add(poly_key)
+                print(f"[POLY FORM]       Marking Face {face_idx+1} poly {poly_idx} ({poly_type}) for removal: "
+                      f"{info['boundary']} boundary, {info['invalid']} invalid, 0 manifold edges")
+        
+        # Check polygons with manifold edges: if all connected faces are also problematic, remove all
+        def get_connected_problematic_faces(start_poly_key, visited=None):
+            """Recursively find all polygons connected via manifold edges that have no other manifold connections."""
+            if visited is None:
+                visited = set()
+            
+            if start_poly_key in visited or start_poly_key not in polygon_edge_info:
+                return set()
+            
+            visited.add(start_poly_key)
+            face_idx, poly_idx = start_poly_key
+            info = polygon_edge_info[start_poly_key]
+            
+            # Get manifold edges
+            manifold_edges = [e for e in info['edges'] if e['type'] == 'manifold']
+            
+            if len(manifold_edges) == 0:
+                # No manifold edges, this is isolated
+                return {start_poly_key}
+            
+            # Check all faces connected via manifold edges
+            connected_group = {start_poly_key}
+            
+            for edge_info in manifold_edges:
+                # Find the other face sharing this edge
+                for other_face_idx, other_poly_idx, other_type in edge_info['faces']:
+                    other_key = (other_face_idx, other_poly_idx)
+                    if other_key == start_poly_key or other_key in visited:
+                        continue
+                    
+                    # Check if other polygon also has only boundary/invalid edges OR only manifold edges to this group
+                    if other_key in polygon_edge_info:
+                        # Recursively check connected faces
+                        sub_group = get_connected_problematic_faces(other_key, visited)
+                        connected_group.update(sub_group)
+            
+            # Check if entire connected group is isolated (no external manifold connections)
+            has_external_manifold = False
+            for check_key in connected_group:
+                check_info = polygon_edge_info[check_key]
+                for edge_info in check_info['edges']:
+                    if edge_info['type'] == 'manifold':
+                        # Check if this manifold edge connects to something outside the group
+                        for other_face_idx, other_poly_idx, other_type in edge_info['faces']:
+                            other_key = (other_face_idx, other_poly_idx)
+                            if other_key not in connected_group:
+                                has_external_manifold = True
+                                break
+                    if has_external_manifold:
+                        break
+                if has_external_manifold:
+                    break
+            
+            if not has_external_manifold:
+                return connected_group
+            return set()
+        
+        # Find isolated groups
+        already_checked = set()
+        for item in current_selection:
+            if len(item) != 4:
+                continue
+            face_idx, poly_idx, poly_type, poly_verts = item
+            poly_key = (face_idx, poly_idx)
+            
+            if poly_key in already_checked or poly_key in polygons_to_remove:
+                continue
+            
+            isolated_group = get_connected_problematic_faces(poly_key)
+            if isolated_group:
+                for isolated_key in isolated_group:
+                    if isolated_key not in polygons_to_remove:
+                        iso_face_idx, iso_poly_idx = isolated_key
+                        print(f"[POLY FORM]       Marking Face {iso_face_idx+1} poly {iso_poly_idx} for removal: "
+                              f"part of isolated group (no external manifold connections)")
+                        polygons_to_remove.add(isolated_key)
+                already_checked.update(isolated_group)
+        
+        # Remove marked polygons from current_selection AND from unique_faces
+        if polygons_to_remove:
+            original_count = len(current_selection)
+            current_selection = [
+                item for item in current_selection
+                if len(item) == 4 and (item[0], item[1]) not in polygons_to_remove
+            ]
+            removed_count = original_count - len(current_selection)
+            total_removed += removed_count
+            
+            # Also mark polygons as removed in unique_faces
+            for face_idx, poly_idx in polygons_to_remove:
+                if face_idx < len(unique_faces):
+                    face_eq = unique_faces[face_idx]
+                    polygons = face_eq.get('polygons', [])
+                    if poly_idx < len(polygons):
+                        polygons[poly_idx]['removed'] = True
+                        polygons[poly_idx]['removal_reason'] = f'pre_phase0_cleanup_iter{iteration+1}'
+            
+            print(f"[POLY FORM]       Removed {removed_count} polygon(s) this iteration")
+            print(f"[POLY FORM]       Remaining: {len(current_selection)} polygons")
+            
+            # Recompute edge statistics after removal
+            curr_b, curr_m, curr_i = compute_edge_stats_for_selection(current_selection)
+            print(f"[POLY FORM]       After iteration {iteration+1}: B={curr_b}, M={curr_m}, I={curr_i}")
+        else:
+            print(f"[POLY FORM]       No problematic polygons found this iteration")
+            break  # Exit early if no more removals
+    
+    print(f"\n[POLY FORM]     PRE-PHASE 0 Complete: Removed {total_removed} polygon(s) total across {iteration+1} iteration(s)")
+    print(f"[POLY FORM]     Final: {len(current_selection)} polygons remaining")
+    
+    # Rebuild face_polygon_groups to respect polygons removed in Pre-Phase 0
+    print(f"[POLY FORM]     Rebuilding face_polygon_groups to exclude removed polygons...")
+    face_polygon_groups = []
+    for face_idx, face_eq in enumerate(unique_faces):
+        polygons = face_eq.get('polygons', [])
+        if len(polygons) == 0:
+            continue
+        
+        boundary_poly = None
+        holes = []
+        alternates = []
+        
+        for poly_idx, poly_data in enumerate(polygons):
+            if poly_data.get('removed', False):
+                continue  # Skip polygons marked for removal in Pre-Phase 0
+            poly_type = poly_data.get('polygon_type', 'BOUNDARY')
+            
+            if poly_type == 'BOUNDARY':
+                boundary_poly = {'idx': poly_idx, 'data': poly_data, 'verts': poly_data.get('vertices', [])}
+            elif poly_type == 'HOLE':
+                holes.append({'idx': poly_idx, 'data': poly_data, 'verts': poly_data.get('vertices', [])})
+            elif poly_type == 'ALT':
+                alternates.append({'idx': poly_idx, 'data': poly_data, 'verts': poly_data.get('vertices', [])})
+        
+        # Only include faces that have at least a boundary or alternates
+        if boundary_poly or alternates:
+            face_polygon_groups.append({
+                'face_idx': face_idx,
+                'boundary': boundary_poly,
+                'holes': holes,
+                'alternates': alternates
+            })
+    
+    print(f"[POLY FORM]     Rebuilt: {len(face_polygon_groups)} faces with non-removed polygons")
+    
+    # ==========================================================================
+    # PHASE 0, 1, 2: Phase 0 skipped, Phase 1 enabled
+    # ==========================================================================
+    SKIP_PHASE_0 = True  # Phase 0 skipped
+    SKIP_PHASES_1_2 = False  # Phase 1 enabled
+    
+    if SKIP_PHASE_0:
+        print(f"\n[POLY FORM]   ⏭️  SKIPPING Phase 0, 1, and 2 optimization")
+        print(f"[POLY FORM]   Using all remaining polygons after Pre-Phase 0 cleanup")
+        
+        # Build current_selection from all non-removed polygons
+        current_selection = []
+        for group in face_polygon_groups:
+            face_idx = group['face_idx']
+            if group['boundary']:
+                current_selection.append((face_idx, group['boundary']['idx'], 'BOUNDARY', group['boundary']['verts']))
+            for hole in group['holes']:
+                current_selection.append((face_idx, hole['idx'], 'HOLE', hole['verts']))
+            for alt in group['alternates']:
+                current_selection.append((face_idx, alt['idx'], 'ALT', alt['verts']))
+        
+        curr_b, curr_m, curr_i = compute_edge_stats_for_selection(current_selection)
+        print(f"[POLY FORM]   Current state: {len(current_selection)} polygons, B={curr_b}, M={curr_m}, I={curr_i}")
+        
+        # Jump directly to final selection output (skip all phase 0, 1, 2 code)
+        # The code will continue after the "FINAL SELECTION" print statements
+    
+    if not SKIP_PHASE_0:
+        # Original Phase 0, 1, 2 code follows...
+    
+        # ==========================================================================
+        # PHASE 0: Per-Face Optimization (Early Stopping)
+        # ==========================================================================
+        print(f"\n[POLY FORM]   PHASE 0: Per-face optimization (boundary always kept, minimize invalid edges)...")
+    
+        from itertools import combinations as iter_combinations
+        
+        optimized_face_selections = {}
+        faces_with_alts = [g for g in face_polygon_groups if len(g['alternates']) > 0]
+        
+        # Sort by number of alternates (ascending - simplest faces first)
+        faces_with_alts_sorted = sorted(faces_with_alts, key=lambda g: len(g['alternates']))
+        
+        print(f"[POLY FORM]   Found {len(faces_with_alts_sorted)} faces with alternates to optimize")
+    
+        # Build initial selection with all faces using boundary+holes or all alternates+holes
+        for group in face_polygon_groups:
+            face_idx = group['face_idx']
+            if len(group['alternates']) == 0:
+                # No alternates: mark as optimized with boundary+holes (if they exist)
+                combo = []
+                if group['boundary']:
+                    combo.append((face_idx, group['boundary']['idx'], 'BOUNDARY', group['boundary']['verts']))
+                for hole in group['holes']:
+                    combo.append((face_idx, hole['idx'], 'HOLE', hole['verts']))
+                if combo:  # Only add if face has some polygons
+                    optimized_face_selections[face_idx] = combo
+            else:
+                # Has alternates: start with all alternates+holes (will optimize later)
+                combo = []
+                for alt in group['alternates']:
+                    combo.append((face_idx, alt['idx'], 'ALT', alt['verts']))
+                # Always include holes in base set
+                for hole in group['holes']:
+                    combo.append((face_idx, hole['idx'], 'HOLE', hole['verts']))
+                optimized_face_selections[face_idx] = combo
+    
+        # Optimize faces one at a time (smallest alt count first)
+        for group in faces_with_alts_sorted:
+            face_idx = group['face_idx']
+            boundary = group['boundary']
+            holes = group['holes']
+            alternates = group['alternates']
+        
+            # Build current global selection (all optimized faces so far)
+            other_faces_polys = []
+            for other_group in face_polygon_groups:
+                if other_group['face_idx'] == face_idx:
+                    continue  # Skip current face
+            
+                # Add optimized selection from other faces
+                if other_group['face_idx'] in optimized_face_selections:
+                    other_faces_polys.extend(optimized_face_selections[other_group['face_idx']])
+            
+            if len(other_faces_polys) == 0:
+                print(f"[POLY FORM]     WARNING: Face {face_idx+1} has no other faces in selection (processed first?)")
+        
+            # Holes are always included (mandatory base polygons)
+            holes_combo = []
+            for hole in holes:
+                holes_combo.append((face_idx, hole['idx'], 'HOLE', hole['verts']))
+        
+            # IMPORTANT: Boundaries are ALWAYS mandatory when they exist
+            # Test combinations of alternates WITH the boundary
+            best_face_combo = None
+            best_face_stats = None
+            best_face_score = None
+        
+            if boundary:
+                # Boundary exists: it's MANDATORY, test combinations of alternates WITH boundary
+                boundary_combo = [(face_idx, boundary['idx'], 'BOUNDARY', boundary['verts'])] + holes_combo
+            
+                # Option 1: Boundary + holes only (baseline)
+                test_selection = other_faces_polys + boundary_combo
+                test_b, test_m, test_i = compute_edge_stats_for_selection(test_selection)
+                score = (test_i, test_b, -test_m)
+            
+                best_face_combo = boundary_combo.copy()
+                best_face_stats = (test_b, test_m, test_i)
+                best_face_score = score
+            
+                # Options 2-N: Boundary + holes + various combinations of alternates
+                n_alts = len(alternates)
+                for r in range(1, n_alts + 1):
+                    for alt_subset in iter_combinations(range(n_alts), r):
+                        test_combo = boundary_combo.copy()  # Start with boundary + holes
+                        for alt_idx in alt_subset:
+                            alt = alternates[alt_idx]
+                            test_combo.append((face_idx, alt['idx'], 'ALT', alt['verts']))
+                    
+                        test_selection = other_faces_polys + test_combo
+                        test_b, test_m, test_i = compute_edge_stats_for_selection(test_selection)
+                        score = (test_i, test_b, -test_m)
+                    
+                        if score < best_face_score:
+                            best_face_combo = test_combo
+                            best_face_stats = (test_b, test_m, test_i)
+                            best_face_score = score
+            else:
+                # No boundary: test combinations of alternates + holes only
+                n_alts = len(alternates)
+                for r in range(n_alts, 0, -1):
+                    for alt_subset in iter_combinations(range(n_alts), r):
+                        test_combo = holes_combo.copy()  # Always include holes
+                        for alt_idx in alt_subset:
+                            alt = alternates[alt_idx]
+                            test_combo.append((face_idx, alt['idx'], 'ALT', alt['verts']))
+                    
+                        test_selection = other_faces_polys + test_combo
+                        test_b, test_m, test_i = compute_edge_stats_for_selection(test_selection)
+                        score = (test_i, test_b, -test_m)
+                    
+                        if best_face_score is None or score < best_face_score:
+                            best_face_combo = test_combo
+                            best_face_stats = (test_b, test_m, test_i)
+                            best_face_score = score
+        
+            # Print result
+            if best_face_combo:
+                # Print result
+                poly_types = ', '.join([p[2] for p in best_face_combo])
+                print(f"[POLY FORM]     Face {face_idx+1} ({len(alternates)} alts): Best = {len(best_face_combo)} polys ({poly_types}), Score=(B={best_face_stats[0]}, I={best_face_stats[2]})")
+            
+                # For faces with many alternates, show which specific polygons were selected
+                if len(alternates) >= 4:
+                    for item in best_face_combo:
+                        poly_verts = item[3] if len(item) > 3 else []
+                        poly_type = item[2] if len(item) > 2 else 'UNKNOWN'
+                        verts_str = str(poly_verts[:12]) + ('...' if len(poly_verts) > 12 else '')
+                        print(f"[POLY FORM]       Selected {poly_type}: {verts_str}")
+        
+            # Store the best combination for this face
+            optimized_face_selections[face_idx] = best_face_combo
+        
+            # Early stopping: if invalid edges < 10, stop Phase 0
+            if best_face_stats[2] < 10:
+                remaining_faces = len(faces_with_alts_sorted) - len([f for f in faces_with_alts_sorted if f['face_idx'] in optimized_face_selections or f['face_idx'] == face_idx])
+                if remaining_faces > 0:
+                    print(f"[POLY FORM]   ✓ Invalid edges < 10 (I={best_face_stats[2]}), stopping Phase 0 early")
+                    print(f"[POLY FORM]   Skipping {remaining_faces} remaining faces with alternates")
+                    # Fill in remaining faces with their current selection (all alternates)
+                    break
+    
+        # Build the initial selection from optimized faces
+        current_selection = []
+        removed_alts = []
+    
+        # Track which polygons were selected by Phase 0 (these are mandatory)
+        phase0_selected_polys = set()
+    
+        for group in face_polygon_groups:
+            face_idx = group['face_idx']
+        
+            if face_idx in optimized_face_selections:
+                # Use the optimized selection for this face
+                for item in optimized_face_selections[face_idx]:
+                    current_selection.append(item)
+                    # Mark as Phase 0 selected (mandatory)
+                    phase0_selected_polys.add((item[0], item[1]))  # (face_idx, poly_idx)
+            else:
+                # Not in optimized_face_selections: add boundary + holes if they exist
+                if group['boundary']:
+                    item = (face_idx, group['boundary']['idx'], 'BOUNDARY', group['boundary']['verts'])
+                    current_selection.append(item)
+                    phase0_selected_polys.add((face_idx, group['boundary']['idx']))
+                for hole in group['holes']:
+                    item = (face_idx, hole['idx'], 'HOLE', hole['verts'])
+                    current_selection.append(item)
+                    phase0_selected_polys.add((face_idx, hole['idx']))
+    
+        # Rebuild removable_alts and mandatory_polys from the optimized selection
+        # Phase 1 can now try to improve the solution by replacing boundaries with alternates
+        # Only HOLEs are truly mandatory (cannot be removed)
+        removable_alts = []
+        removable_boundaries = []
+        mandatory_polys = []
+    
+        for item in current_selection:
+            face_idx, poly_idx, poly_type, poly_verts = item
+            poly_key = (face_idx, poly_idx)
+        
+            if poly_type == 'HOLE':
+                # HOLEs are always mandatory
+                mandatory_polys.append(item)
+            elif poly_type == 'BOUNDARY':
+                # BUONDARYs can be removed/replaced in Phase 1
+                removable_boundaries.append(item)
+            elif poly_type == 'ALT':
+                # ALTs can be removed in Phase 1
+                removable_alts.append(item)
+            else:
+                # Unknown type, treat as mandatory
+                mandatory_polys.append(item)
+    
+        # Combine removable polygons for Phase 1 testing
+        removable_polys = removable_boundaries + removable_alts
+    
+        # Compute initial statistics
+        curr_b, curr_m, curr_i = compute_edge_stats_for_selection(current_selection)
+        print(f"[POLY FORM]   Initial state after Phase 0: {len(current_selection)} polygons, B={curr_b}, M={curr_m}, I={curr_i}")
+        print(f"[POLY FORM]   Removable: {len(removable_boundaries)} boundaries, {len(removable_alts)} alternates")
+        
+        # Display polygon edge analysis after Phase 0
+        print(f"\n[POLY FORM]       ========== POLYGON EDGE ANALYSIS (AFTER PHASE 0) ==========")
+        print(f"[POLY FORM]       Face Poly     Type Verts   B   M   I Vertices")
+        print(f"[POLY FORM]       ---- ---- -------- ----- --- --- --- " + "-" * 50)
+        
+        # Rebuild the analysis for selected polygons
+        for face_idx, poly_idx, poly_type, poly_verts in current_selection:
+            # Count B, M, I edges for this polygon
+            poly_edges = []
+            for i in range(len(poly_verts)):
+                v1 = poly_verts[i]
+                v2 = poly_verts[(i + 1) % len(poly_verts)]
+                edge = (min(v1, v2), max(v1, v2))
+                poly_edges.append(edge)
+            
+            # Get edge counts from the selection
+            edge_counts = {}
+            for other_face_idx, other_poly_idx, other_poly_type, other_poly_verts in current_selection:
+                for i in range(len(other_poly_verts)):
+                    v1 = other_poly_verts[i]
+                    v2 = other_poly_verts[(i + 1) % len(other_poly_verts)]
+                    edge = (min(v1, v2), max(v1, v2))
+                    edge_counts[edge] = edge_counts.get(edge, 0) + 1
+            
+            b_count = sum(1 for e in poly_edges if edge_counts.get(e, 0) == 1)
+            m_count = sum(1 for e in poly_edges if edge_counts.get(e, 0) == 2)
+            i_count = sum(1 for e in poly_edges if edge_counts.get(e, 0) >= 3)
+            
+            verts_str = str(poly_verts[:10]) + ('...' if len(poly_verts) > 10 else '')
+            print(f"[POLY FORM]       {face_idx+1:4d} {poly_idx:4d} {poly_type:>8s} {len(poly_verts):5d} {b_count:3d} {m_count:3d} {i_count:3d} {verts_str}")
+        
+        print(f"[POLY FORM]       " + "=" * 86)
+    
+        # ==========================================================================
+        # PHASE 1: Greedy Removal (SKIPPED)
+        # ==========================================================================
+        if not SKIP_PHASES_1_2:
+            print(f"\n[POLY FORM]   PHASE 1: Greedy removal to reach target (B≤10, I≤10)...")
+        else:
+            print(f"\n[POLY FORM]   ⏭️  SKIPPING Phase 1 and 2")
+            # Skip to end of Phase 0, 1, 2 block
+            pass
+        
+        if not SKIP_PHASES_1_2:
+            # Original Phase 1 code
+            iteration = 0
+    
+        while removable_polys and (curr_i > 10 or curr_b > 10):
+            iteration += 1
+            if iteration > len(removable_polys) + 100:  # Allow more iterations
+                print(f"[POLY FORM]   WARNING: Exceeded max iterations, stopping")
+                break
+        
+            print(f"[POLY FORM]   Iteration {iteration}: Testing removal of {len(removable_polys)} polygons...")
+        
+            best_removal = None
+            best_stats = None
+            best_score = None
+        
+            # Try removing each removable polygon
+            for poly in removable_polys:
+                # Create selection without this polygon
+                test_selection = [p for p in current_selection if p != poly]
+            
+                # Compute statistics
+                test_b, test_m, test_i = compute_edge_stats_for_selection(test_selection)
+            
+                # Score: prioritize reducing invalid edges, then boundary edges
+                score = (test_i, test_b, -test_m)  # Lower is better
+            
+                if best_score is None or score < best_score:
+                    best_removal = poly
+                    best_stats = (test_b, test_m, test_i)
+                    best_score = score
+        
+            # Apply best removal if it improves (not just maintains)
+            curr_score = (curr_i, curr_b, -curr_m)
+            if best_removal and best_score < curr_score:  # Must improve the score
+                current_selection = [p for p in current_selection if p != best_removal]
+                removable_polys.remove(best_removal)
+                removed_alts.append(best_removal)
+                curr_b, curr_m, curr_i = best_stats
+            
+                face_idx, poly_idx, poly_type, _ = best_removal
+                print(f"[POLY FORM]     Removed Face {face_idx+1} poly {poly_idx} ({poly_type}) → B={curr_b}, M={curr_m}, I={curr_i}")
+            else:
+                print(f"[POLY FORM]     No improving removal found, stopping greedy phase")
+                break
+        
+            # Check if we've reached target
+            if curr_i <= 10 and curr_b <= 10:
+                print(f"[POLY FORM]   ✓ Reached target: B={curr_b}, I={curr_i}")
+                break
+    
+            print(f"[POLY FORM]   After greedy removal: {len(current_selection)} polygons, B={curr_b}, M={curr_m}, I={curr_i}")
+            print(f"[POLY FORM]   Removed {len(removed_alts)} polygons, {len(removable_polys)} removable remaining")
+    
+        # ==========================================================================
+        # PHASE 2: Per-Face Optimization (SKIPPED)
+        # ==========================================================================
+        if not SKIP_PHASES_1_2 and len(removable_polys) > 0 and (curr_i > 0 or curr_b > 0):
+            print(f"\n[POLY FORM]   PHASE 2: Per-face optimization on faces with alternates...")
+        
+            from itertools import combinations as iter_combinations
+        
+            # Build set of faces that have alternates
+            faces_with_alternates = set(g['face_idx'] for g in faces_with_alts_sorted)
+        
+        if not SKIP_PHASES_1_2 and len(removable_polys) > 0 and (curr_i > 0 or curr_b > 0):
+            # Group current selection by face
+            current_selection_by_face = {}
+            for poly in current_selection:
+                face_idx = poly[0]
+                if face_idx not in current_selection_by_face:
+                    current_selection_by_face[face_idx] = []
+                current_selection_by_face[face_idx].append(poly)
+        
+            # Build the base selection (all faces without alternates)
+            base_selection = []
+            for face_idx, polys in current_selection_by_face.items():
+                if face_idx not in faces_with_alternates:
+                    base_selection.extend(polys)
+        
+            print(f"[POLY FORM]   Base selection: {len(base_selection)} polygons from {len(current_selection_by_face) - len(faces_with_alternates)} faces without alternates")
+            print(f"[POLY FORM]   Optimizing: {len(faces_with_alternates)} faces with alternates")
+        
+            # For each face with alternates, find the best combination of its polygons
+            optimized_selection = base_selection.copy()
+        
+            for group in faces_with_alts_sorted:
+                face_idx = group['face_idx']
+            
+                # Get all polygons for this face from current selection
+                face_polys = current_selection_by_face.get(face_idx, [])
+            
+                if len(face_polys) == 0:
+                    print(f"[POLY FORM]   WARNING: Face {face_idx+1} has no polygons in current selection!")
+                    continue
+            
+                # Separate by type
+                boundaries = [p for p in face_polys if p[2] == 'BOUNDARY']
+                holes = [p for p in face_polys if p[2] == 'HOLE']
+                alts = [p for p in face_polys if p[2] == 'ALT']
+            
+                # Build the selection for all OTHER faces
+                other_faces_polys = [p for p in optimized_selection if p[0] != face_idx]
+            
+                # Always include holes (mandatory)
+                face_mandatory = holes.copy()
+            
+                # Test combinations: at least one polygon per face
+                best_face_combo = None
+                best_face_stats = None
+                best_face_score = None
+            
+                # Option 1: Boundary + holes (if boundary exists)
+                if boundaries:
+                    for boundary in boundaries:
+                        test_combo = [boundary] + face_mandatory
+                        test_selection = other_faces_polys + test_combo
+                        test_b, test_m, test_i = compute_edge_stats_for_selection(test_selection)
+                        score = (test_i, test_b, -test_m)
+                    
+                        if best_face_score is None or score < best_face_score:
+                            best_face_combo = test_combo
+                            best_face_stats = (test_b, test_m, test_i)
+                            best_face_score = score
+            
+                # Options 2-N: Test combinations of alternates + holes
+                if alts:
+                    for r in range(1, len(alts) + 1):
+                        for alt_subset in iter_combinations(alts, r):
+                            test_combo = list(alt_subset) + face_mandatory
+                            test_selection = other_faces_polys + test_combo
+                            test_b, test_m, test_i = compute_edge_stats_for_selection(test_selection)
+                            score = (test_i, test_b, -test_m)
+                        
+                            if best_face_score is None or score < best_face_score:
+                                best_face_combo = test_combo
+                                best_face_stats = (test_b, test_m, test_i)
+                                best_face_score = score
+            
+                # Options 3-N: Test combinations of boundary + alternates + holes
+                if boundaries and alts:
+                    for boundary in boundaries:
+                        for r in range(1, len(alts) + 1):
+                            for alt_subset in iter_combinations(alts, r):
+                                test_combo = [boundary] + list(alt_subset) + face_mandatory
+                                test_selection = other_faces_polys + test_combo
+                                test_b, test_m, test_i = compute_edge_stats_for_selection(test_selection)
+                                score = (test_i, test_b, -test_m)
+                            
+                                if best_face_score is None or score < best_face_score:
+                                    best_face_combo = test_combo
+                                    best_face_stats = (test_b, test_m, test_i)
+                                    best_face_score = score
+            
+                # If no better combination found, use current selection for this face
+                if best_face_combo is None:
+                    best_face_combo = face_polys
+                    test_selection = other_faces_polys + best_face_combo
+                    test_b, test_m, test_i = compute_edge_stats_for_selection(test_selection)
+                    best_face_stats = (test_b, test_m, test_i)
+            
+                # Update optimized selection with best for this face
+                optimized_selection = other_faces_polys + best_face_combo
+            
+                poly_types = ', '.join([p[2] for p in best_face_combo])
+                print(f"[POLY FORM]   Face {face_idx+1}: Best = {len(best_face_combo)} polys ({poly_types}), Score=(I={best_face_stats[2]}, B={best_face_stats[0]})")
+        
+            # Final statistics
+            final_b, final_m, final_i = compute_edge_stats_for_selection(optimized_selection)
+            print(f"[POLY FORM]   Phase 2 result: {len(optimized_selection)} polygons, B={final_b}, M={final_m}, I={final_i}")
+        
+            current_selection = optimized_selection
+            curr_b, curr_m, curr_i = final_b, final_m, final_i
+    
+    # End of Phase 0 block (Phases 1 & 2 may be skipped)
+    
+    print(f"\n[POLY FORM]   ==========================================")
+    print(f"[POLY FORM]   FINAL SELECTION: {len(current_selection)} polygons")
+    print(f"[POLY FORM]     Boundary edges: {curr_b}, Manifold: {curr_m}, Invalid: {curr_i}")
+    print(f"[POLY FORM]   ==========================================")
+
+    
+    print(f"[POLY FORM]   ")
+    print(f"[POLY FORM]   NOTE: Base set edge statistics:")
+    print(f"[POLY FORM]   - These are the initial edges BEFORE any pruning")
+    print(f"[POLY FORM]   - {initial_invalid} invalid edges need to be resolved")
+    print(f"[POLY FORM]   - Loop-based pruning will extract polygons to eliminate invalid edges")
+    print(f"[POLY FORM]   ==========================================")
+    
+    # Print face summary after initial edge distribution (SUPPRESSED)
+    # print_face_summary_debug(unique_faces, "Face Summary (After Initial Edge Analysis)")
+    
+    # DEBUG PLOT: Show current state (SUPPRESSED)
+    # print(f"\n[POLY FORM]   Creating debug plot...")
+    # plot_extraction_debug(selected_vertices, unique_faces, edge_face_map_all, [], 
+    #                      pruned_set=set(), title="Initial State - All Polygons")
     
     # Initialize variables that may be used later
     invalid_edge_polygons = []
     pruned_polygons = []
+    boundary_removed_polygons = []
     
     # ==========================================================================
-    # NEW APPROACH: Combinatorial search for optimal polygon set
+    # NEW APPROACH: Loop-based pruning, then combinatorial search
     # ==========================================================================
+    from itertools import combinations
+    
+    # =======================================================================
+    # Rebuild edge map from optimized selection
+    # =======================================================================
+    print(f"\n[POLY FORM]   Rebuilding edge map from optimized polygon selection...")
+    
+    # Build edge map from current_selection
+    edge_face_map_optimized = {}
+    for item in current_selection:
+        if len(item) == 4:
+            face_idx, poly_idx, poly_type, poly_verts = item
+        else:
+            continue
+        
+        for i in range(len(poly_verts)):
+            v1 = poly_verts[i] - 1
+            v2 = poly_verts[(i + 1) % len(poly_verts)] - 1
+            edge = (min(v1, v2), max(v1, v2))
+            if edge not in edge_face_map_optimized:
+                edge_face_map_optimized[edge] = []
+            edge_face_map_optimized[edge].append((face_idx, poly_idx, poly_type))
+    
+    # Compute statistics from optimized selection
+    optimized_boundary = sum(1 for fl in edge_face_map_optimized.values() if len(fl) == 1)
+    optimized_manifold = sum(1 for fl in edge_face_map_optimized.values() if len(fl) == 2)
+    optimized_invalid = sum(1 for fl in edge_face_map_optimized.values() if len(fl) >= 3)
+    
+    print(f"[POLY FORM]   Optimized selection edge stats:")
+    print(f"[POLY FORM]     - Boundary edges (1 face): {optimized_boundary}")
+    print(f"[POLY FORM]     - Manifold edges (2 faces): {optimized_manifold}")
+    print(f"[POLY FORM]     - Invalid edges (3+ faces): {optimized_invalid}")
+    
+    # Use optimized edge map for subsequent phases
+    edge_face_map_all = edge_face_map_optimized
+    initial_invalid = optimized_invalid
+    
+    # =======================================================================
+    # Update unique_faces structure to reflect Phase 0-2 selections
+    # =======================================================================
+    print(f"\n[POLY FORM]   Updating unique_faces structure with Phase 0-2 selections...")
+    
+    # Build set of selected polygons
+    selected_poly_set = set()
+    for item in current_selection:
+        if len(item) == 4:
+            face_idx, poly_idx, poly_type, poly_verts = item
+            selected_poly_set.add((face_idx, poly_idx))
+    
+    # Mark all non-selected polygons as removed in unique_faces
+    for face_idx, face_data in enumerate(unique_faces):
+        # Skip faces that don't have polygons yet (shouldn't happen but defensive)
+        if 'polygons' not in face_data:
+            print(f"[POLY FORM]   WARNING: Face {face_idx} has no 'polygons' key, skipping")
+            continue
+            
+        for poly_idx, poly_data in enumerate(face_data['polygons']):
+            poly_key = (face_idx, poly_idx)
+            if poly_key not in selected_poly_set:
+                poly_data['removed'] = True
+                poly_data['removal_reason'] = 'phase_0_2_optimization'
+            else:
+                # Ensure selected polygons are marked as NOT removed
+                poly_data['removed'] = False
+    
+    # Rebuild all_polygons_list to reflect Phase 0-2 selections
+    print(f"[POLY FORM]   Rebuilding all_polygons_list with only selected polygons...")
+    all_polygons_list = []
+    alt_polygons = []
+    for face_idx, face_eq in enumerate(unique_faces):
+        polygons = face_eq.get('polygons', [])
+        for poly_idx, poly_data in enumerate(polygons):
+            if poly_data.get('removed', False):
+                continue  # Skip removed polygons
+            
+            poly_type = poly_data.get('polygon_type', 'BOUNDARY')
+            poly_verts = poly_data.get('vertices', [])
+            
+            all_polygons_list.append({
+                'face_idx': face_idx,
+                'polygon_idx': poly_idx,
+                'data': poly_data,
+                'face_eq': face_eq,
+                'poly_type': poly_type
+            })
+            
+            if poly_type == 'ALT':
+                alt_polygons.append({
+                    'face_idx': face_idx,
+                    'polygon_idx': poly_idx,
+                    'data': poly_data,
+                    'face_eq': face_eq
+                })
+    
+    print(f"[POLY FORM]   Rebuilt with {len(all_polygons_list)} polygons (including {len(alt_polygons)} ALTs)")
+    
+    # =======================================================================
+    # Iterative Refinement: Try to include excluded polygons made from boundary edges
+    # =======================================================================
+    if optimized_invalid == 0 and optimized_boundary > 0:
+        print(f"\n[POLY FORM]   ========== ITERATIVE REFINEMENT ==========")
+        print(f"[POLY FORM]   Attempting to reduce boundary edges by including excluded polygons...")
+        
+        # Build selected_polygon_set from current_selection
+        selected_polygon_set = set()
+        for item in current_selection:
+            if len(item) == 4:
+                face_idx, poly_idx, poly_type, poly_verts = item
+                selected_polygon_set.add((face_idx, poly_idx))
+        
+        # Track candidates that have been tried (added but then removed by optimization)
+        tried_candidates = set()
+        
+        # Track best state across iterations
+        best_boundary_count = optimized_boundary
+        best_selection = current_selection.copy()
+        best_edge_map = edge_face_map_optimized.copy()
+        best_mandatory = mandatory_polys.copy()
+        best_removable = removable_alts.copy()
+        
+        prev_boundary_count = optimized_boundary
+        max_iterations = 10
+        for iter_num in range(1, max_iterations + 1):
+            print(f"\n[POLY FORM]   Iteration {iter_num}/{max_iterations}:")
+            
+            # Get boundary edges from current selection
+            boundary_edges = set()
+            for edge, face_list in edge_face_map_optimized.items():
+                if len(face_list) == 1:
+                    boundary_edges.add(edge)
+            
+            print(f"[POLY FORM]     Current boundary edges: {len(boundary_edges)}")
+            
+            if len(boundary_edges) == 0:
+                print(f"[POLY FORM]     ✓ No boundary edges remaining, refinement complete!")
+                break
+            
+            # Find excluded polygons (from all face_polygon_groups)
+            excluded_polygons = []
+            for group in face_polygon_groups:
+                face_idx = group['face_idx']
+                
+                # Check boundary
+                if group['boundary']:
+                    poly_key = (face_idx, group['boundary']['idx'])
+                    if poly_key not in selected_polygon_set and poly_key not in tried_candidates:
+                        excluded_polygons.append((face_idx, group['boundary']['idx'], 'BOUNDARY', group['boundary']['verts']))
+                
+                # Check alternates
+                for alt in group['alternates']:
+                    poly_key = (face_idx, alt['idx'])
+                    if poly_key not in selected_polygon_set and poly_key not in tried_candidates:
+                        excluded_polygons.append((face_idx, alt['idx'], 'ALT', alt['verts']))
+            
+            print(f"[POLY FORM]     Excluded polygons: {len(excluded_polygons)}")
+            
+            # For each excluded polygon that shares boundary edges, calculate boundary reduction
+            polygon_boundary_reductions = []
+            for face_idx, poly_idx, poly_type, poly_verts in excluded_polygons:
+                # Get edges of this polygon
+                poly_edges = []
+                shares_boundary = False
+                for i in range(len(poly_verts)):
+                    v1 = poly_verts[i] - 1
+                    v2 = poly_verts[(i + 1) % len(poly_verts)] - 1
+                    edge = (min(v1, v2), max(v1, v2))
+                    poly_edges.append(edge)
+                    if edge in boundary_edges:
+                        shares_boundary = True
+                
+                # Only consider polygons that share at least one boundary edge
+                if not shares_boundary:
+                    continue
+                
+                # Simulate adding this polygon to current selection
+                test_selection = current_selection + [(face_idx, poly_idx, poly_type, poly_verts)]
+                test_b, test_m, test_i = compute_edge_stats_for_selection(test_selection)
+                
+                # Calculate reduction in boundary edges
+                boundary_reduction = len(boundary_edges) - test_b
+                
+                polygon_boundary_reductions.append((face_idx, poly_idx, poly_type, poly_verts, poly_edges, boundary_reduction, test_b, test_i))
+            
+            # Sort by boundary reduction (descending), then by resulting invalid edges (ascending)
+            polygon_boundary_reductions.sort(key=lambda x: (-x[5], x[7]))
+            
+            # Select the polygon with maximum boundary reduction
+            candidates = []
+            if len(polygon_boundary_reductions) > 0:
+                face_idx, poly_idx, poly_type, poly_verts, poly_edges, reduction, test_b, test_i = polygon_boundary_reductions[0]
+                if reduction > 0:  # Only include if it reduces boundary edges
+                    candidates.append((face_idx, poly_idx, poly_type, poly_verts, poly_edges))
+                    print(f"[POLY FORM]       Best candidate: Face {face_idx}, Poly {poly_idx} ({poly_type}): reduction={reduction} (B: {len(boundary_edges)}→{test_b}, I={test_i})")
+                else:
+                    print(f"[POLY FORM]       Best candidate has no reduction: Face {face_idx}, Poly {poly_idx} ({poly_type}): reduction={reduction}")
+            
+            print(f"[POLY FORM]     Selected {len(candidates)} candidate polygon(s) with best boundary reduction")
+            
+            if len(candidates) == 0:
+                print(f"[POLY FORM]     No candidates found, stopping refinement")
+                break
+            
+            # Add candidates to current selection as mandatory base polygons
+            print(f"[POLY FORM]     Adding {len(candidates)} candidates as base polygons...")
+            
+            # Add candidates - boundaries are mandatory, ALTs go to current_selection only
+            candidate_items = []
+            for face_idx, poly_idx, poly_type, poly_verts, poly_edges in candidates:
+                item = (face_idx, poly_idx, poly_type, poly_verts)
+                current_selection.append(item)
+                candidate_items.append(item)
+                selected_polygon_set.add((face_idx, poly_idx))
+                # BoundARY candidates are treated as mandatory
+                if poly_type == 'BOUNDARY':
+                    mandatory_polys.append(item)
+            
+            # Check edge stats before optimization
+            curr_b, curr_m, curr_i = compute_edge_stats_for_selection(current_selection)
+            print(f"[POLY FORM]     After adding candidates: B={curr_b}, M={curr_m}, I={curr_i}")
+            
+            # Only run optimization if there are invalid edges
+            if curr_i == 0:
+                print(f"[POLY FORM]     No invalid edges, keeping all candidates as mandatory")
+                # Mark all candidates as mandatory since they don't create conflicts
+                for item in candidate_items:
+                    if item not in mandatory_polys:
+                        mandatory_polys.append(item)
+            else:
+                print(f"[POLY FORM]     Invalid edges detected, running optimization...")
+            
+            # Greedy removal
+            iteration = 0
+            while removable_alts and (curr_i > 10 or curr_b > 10):
+                iteration += 1
+                if iteration > 20:
+                    break
+                
+                best_removal = None
+                best_stats = None
+                best_score = None
+                
+                for alt in removable_alts:
+                    test_selection = [p for p in current_selection if p != alt]
+                    test_b, test_m, test_i = compute_edge_stats_for_selection(test_selection)
+                    score = (test_i, test_b, -test_m)
+                    
+                    if best_score is None or score < best_score:
+                        best_removal = alt
+                        best_stats = (test_b, test_m, test_i)
+                        best_score = score
+                
+                curr_score = (curr_i, curr_b, -curr_m)
+                if best_removal and best_score < curr_score:
+                    current_selection = [p for p in current_selection if p != best_removal]
+                    removable_alts.remove(best_removal)
+                    removed_alts.append(best_removal)
+                    curr_b, curr_m, curr_i = best_stats
+                    selected_polygon_set.discard((best_removal[0], best_removal[1]))
+                else:
+                    break
+            
+            # Exhaustive search on remaining alternates
+            if len(removable_alts) > 0 and len(removable_alts) <= 10:
+                total_combos = 2 ** len(removable_alts)
+                if total_combos <= 10000:
+                    best_combo = current_selection.copy()
+                    best_stats = (curr_b, curr_m, curr_i)
+                    
+                    for r in range(len(removable_alts), -1, -1):
+                        for alt_subset in iter_combinations(removable_alts, r):
+                            test_selection = mandatory_polys + list(alt_subset)
+                            test_b, test_m, test_i = compute_edge_stats_for_selection(test_selection)
+                            
+                            if test_i == 0 and test_b == 0:
+                                best_combo = test_selection
+                                best_stats = (test_b, test_m, test_i)
+                                break
+                            
+                            if (test_i, test_b) < (best_stats[2], best_stats[0]):
+                                best_combo = test_selection
+                                best_stats = (test_b, test_m, test_i)
+                        
+                        if best_stats[2] == 0 and best_stats[0] == 0:
+                            break
+                    
+                    current_selection = best_combo
+                    curr_b, curr_m, curr_i = best_stats
+                    
+                    # Update selected_polygon_set
+                    selected_polygon_set = set()
+                    for item in current_selection:
+                        if len(item) == 4:
+                            selected_polygon_set.add((item[0], item[1]))
+            
+            print(f"[POLY FORM]     After optimization: {len(current_selection)} polygons, B={curr_b}, M={curr_m}, I={curr_i}")
+            
+            # Rebuild selected_polygon_set from final current_selection
+            selected_polygon_set = set()
+            for item in current_selection:
+                if len(item) == 4:
+                    selected_polygon_set.add((item[0], item[1]))
+            
+            # Track which candidates were removed by optimization
+            for face_idx, poly_idx, poly_type, poly_verts, poly_edges in candidates:
+                poly_key = (face_idx, poly_idx)
+                if poly_key not in selected_polygon_set:
+                    # This candidate was added but then removed by optimization
+                    tried_candidates.add(poly_key)
+            
+            # Rebuild edge map
+            edge_face_map_optimized = {}
+            for item in current_selection:
+                if len(item) == 4:
+                    face_idx, poly_idx, poly_type, poly_verts = item
+                else:
+                    continue
+                
+                for i in range(len(poly_verts)):
+                    v1 = poly_verts[i] - 1
+                    v2 = poly_verts[(i + 1) % len(poly_verts)] - 1
+                    edge = (min(v1, v2), max(v1, v2))
+                    if edge not in edge_face_map_optimized:
+                        edge_face_map_optimized[edge] = []
+                    edge_face_map_optimized[edge].append((face_idx, poly_idx, poly_type))
+            
+            optimized_boundary = sum(1 for fl in edge_face_map_optimized.values() if len(fl) == 1)
+            optimized_manifold = sum(1 for fl in edge_face_map_optimized.values() if len(fl) == 2)
+            optimized_invalid = sum(1 for fl in edge_face_map_optimized.values() if len(fl) >= 3)
+            
+            print(f"[POLY FORM]     Boundary edges: {prev_boundary_count} → {optimized_boundary}")
+            
+            if optimized_boundary < best_boundary_count:
+                # This iteration improved! Save the best state
+                print(f"[POLY FORM]     ✓ Improvement found, saving best state")
+                best_boundary_count = optimized_boundary
+                best_selection = current_selection.copy()
+                best_edge_map = edge_face_map_optimized.copy()
+                best_mandatory = mandatory_polys.copy()
+                best_removable = removable_alts.copy()
+                prev_boundary_count = optimized_boundary
+            elif optimized_boundary >= prev_boundary_count:
+                print(f"[POLY FORM]     No improvement, restoring best state and stopping refinement")
+                # Restore best state
+                current_selection = best_selection
+                edge_face_map_optimized = best_edge_map
+                mandatory_polys = best_mandatory
+                removable_alts = best_removable
+                optimized_boundary = best_boundary_count
+                optimized_manifold = sum(1 for fl in edge_face_map_optimized.values() if len(fl) == 2)
+                optimized_invalid = sum(1 for fl in edge_face_map_optimized.values() if len(fl) >= 3)
+                break
+            else:
+                # Update for next iteration
+                prev_boundary_count = optimized_boundary
+        
+        print(f"\n[POLY FORM]   Refinement complete after {iter_num} iteration(s)")
+        print(f"[POLY FORM]   Final: {len(current_selection)} polygons, B={optimized_boundary}, M={optimized_manifold}, I={optimized_invalid}")
+        
+        # =======================================================================
+        # Analyze boundary edges to find missing adjacent faces
+        # =======================================================================
+        if optimized_boundary > 0:
+            print(f"\n[POLY FORM]   ========== BOUNDARY EDGE ANALYSIS ==========")
+            print(f"[POLY FORM]   Analyzing {optimized_boundary} boundary edges to find missing adjacent faces...")
+            
+            # Get all boundary edges
+            boundary_edges_analysis = []
+            for edge, face_list in edge_face_map_optimized.items():
+                if len(face_list) == 1:
+                    face_idx, poly_idx, poly_type = face_list[0]
+                    boundary_edges_analysis.append((edge, face_idx, poly_idx))
+            
+            print(f"[POLY FORM]   Found {len(boundary_edges_analysis)} boundary edges")
+            
+            # Build polygon edge sequences for navigation
+            polygon_edge_sequences = {}
+            for item in current_selection:
+                if len(item) == 4:
+                    face_idx, poly_idx, poly_type, poly_verts = item
+                    edges = []
+                    for i in range(len(poly_verts)):
+                        v1 = poly_verts[i] - 1
+                        v2 = poly_verts[(i + 1) % len(poly_verts)] - 1
+                        edge = (min(v1, v2), max(v1, v2))
+                        edges.append((edge, v1, v2))  # Store edge with direction
+                    polygon_edge_sequences[(face_idx, poly_idx)] = edges
+            
+            # For each boundary edge, find adjacent missing faces
+            missing_face_candidates = set()
+            
+            for boundary_edge, face_idx, poly_idx in boundary_edges_analysis:
+                bs, be = boundary_edge  # boundary start, boundary end
+                
+                # Find this edge in the polygon sequence
+                if (face_idx, poly_idx) not in polygon_edge_sequences:
+                    continue
+                
+                edges = polygon_edge_sequences[(face_idx, poly_idx)]
+                edge_index = None
+                for i, (edge, v1, v2) in enumerate(edges):
+                    if edge == boundary_edge:
+                        edge_index = i
+                        break
+                
+                if edge_index is None:
+                    continue
+                
+                # Get previous and next edges in this face
+                prev_edge_idx = (edge_index - 1) % len(edges)
+                next_edge_idx = (edge_index + 1) % len(edges)
+                
+                prev_edge, _, bpe = edges[prev_edge_idx]  # (be, bpe)
+                next_edge, bne, _ = edges[next_edge_idx]  # (bs, bne)
+                
+                # Check if previous edge is shared with another face
+                if prev_edge in edge_face_map_optimized and len(edge_face_map_optimized[prev_edge]) == 2:
+                    # Find the other face (fb1)
+                    for f_idx, p_idx, p_type in edge_face_map_optimized[prev_edge]:
+                        if f_idx != face_idx or p_idx != poly_idx:
+                            # In face fb1, find the next edge after prev_edge (be, bpne)
+                            if (f_idx, p_idx) in polygon_edge_sequences:
+                                fb1_edges = polygon_edge_sequences[(f_idx, p_idx)]
+                                for j, (e, ev1, ev2) in enumerate(fb1_edges):
+                                    if e == prev_edge:
+                                        next_fb1_idx = (j + 1) % len(fb1_edges)
+                                        next_fb1_edge, _, bpne = fb1_edges[next_fb1_idx]  # (be, bpne)
+                                        
+                                        # This edge might separate fb1 and missing face fb2
+                                        if next_fb1_edge in edge_face_map_optimized:
+                                            for fb2_idx, fb2_poly_idx, fb2_type in edge_face_map_optimized[next_fb1_edge]:
+                                                if fb2_idx != f_idx:
+                                                    missing_face_candidates.add(fb2_idx)
+                                        break
+                            break
+                
+                # Check if next edge is shared with another face
+                if next_edge in edge_face_map_optimized and len(edge_face_map_optimized[next_edge]) == 2:
+                    # Find the other face
+                    for f_idx, p_idx, p_type in edge_face_map_optimized[next_edge]:
+                        if f_idx != face_idx or p_idx != poly_idx:
+                            # In this face, find the next edge
+                            if (f_idx, p_idx) in polygon_edge_sequences:
+                                fb1_edges = polygon_edge_sequences[(f_idx, p_idx)]
+                                for j, (e, ev1, ev2) in enumerate(fb1_edges):
+                                    if e == next_edge:
+                                        next_fb1_idx = (j + 1) % len(fb1_edges)
+                                        next_fb1_edge, _, _ = fb1_edges[next_fb1_idx]
+                                        
+                                        # This edge might separate and missing face
+                                        if next_fb1_edge in edge_face_map_optimized:
+                                            for fb2_idx, fb2_poly_idx, fb2_type in edge_face_map_optimized[next_fb1_edge]:
+                                                if fb2_idx != f_idx:
+                                                    missing_face_candidates.add(fb2_idx)
+                                        break
+                            break
+            
+            print(f"[POLY FORM]   Found {len(missing_face_candidates)} potential missing faces")
+            
+            # Check if any excluded polygons belong to these missing faces
+            excluded_in_missing_faces = []
+            for missing_face_idx in missing_face_candidates:
+                if missing_face_idx < len(face_polygon_groups):
+                    group = face_polygon_groups[missing_face_idx]
+                    
+                    # Check boundary
+                    if group['boundary']:
+                        poly_key = (missing_face_idx, group['boundary']['idx'])
+                        if poly_key not in selected_polygon_set:
+                            excluded_in_missing_faces.append((missing_face_idx, group['boundary']['idx'], 'BOUNDARY', group['boundary']['verts']))
+                    
+                    # Check alternates
+                    for alt in group['alternates']:
+                        poly_key = (missing_face_idx, alt['idx'])
+                        if poly_key not in selected_polygon_set:
+                            excluded_in_missing_faces.append((missing_face_idx, alt['idx'], 'ALT', alt['verts']))
+            
+            print(f"[POLY FORM]   Found {len(excluded_in_missing_faces)} excluded polygons in missing faces")
+            
+            if len(excluded_in_missing_faces) > 0:
+                print(f"[POLY FORM]   Adding {len(excluded_in_missing_faces)} missing face polygons and re-optimizing...")
+                
+                # Add excluded polygons from missing faces
+                for face_idx, poly_idx, poly_type, poly_verts in excluded_in_missing_faces:
+                    item = (face_idx, poly_idx, poly_type, poly_verts)
+                    current_selection.append(item)
+                    mandatory_polys.append(item)
+                    selected_polygon_set.add((face_idx, poly_idx))
+                
+                # Re-run optimization
+                curr_b, curr_m, curr_i = compute_edge_stats_for_selection(current_selection)
+                print(f"[POLY FORM]   After adding missing faces: B={curr_b}, M={curr_m}, I={curr_i}")
+                
+                if curr_i > 0:
+                    print(f"[POLY FORM]   Invalid edges detected, running optimization...")
+                    # Run optimization (greedy removal only)
+                    for missing_item in excluded_in_missing_faces:
+                        item = (missing_item[0], missing_item[1], missing_item[2], missing_item[3])
+                        if item in mandatory_polys:
+                            mandatory_polys.remove(item)
+                        if missing_item[2] == 'ALT':
+                            removable_alts.append(item)
+                    
+                    # Greedy removal
+                    iteration = 0
+                    while removable_alts and curr_i > 0 and iteration < 20:
+                        iteration += 1
+                        best_removal = None
+                        best_stats = None
+                        best_score = None
+                        
+                        for alt in removable_alts:
+                            test_selection = [p for p in current_selection if p != alt]
+                            test_b, test_m, test_i = compute_edge_stats_for_selection(test_selection)
+                            score = (test_i, test_b, -test_m)
+                            
+                            if best_score is None or score < best_score:
+                                best_removal = alt
+                                best_stats = (test_b, test_m, test_i)
+                                best_score = score
+                        
+                        curr_score = (curr_i, curr_b, -curr_m)
+                        if best_removal and best_score < curr_score:
+                            current_selection = [p for p in current_selection if p != best_removal]
+                            removable_alts.remove(best_removal)
+                            curr_b, curr_m, curr_i = best_stats
+                            selected_polygon_set.discard((best_removal[0], best_removal[1]))
+                        else:
+                            break
+                    
+                    print(f"[POLY FORM]   After optimization: {len(current_selection)} polygons, B={curr_b}, M={curr_m}, I={curr_i}")
+                
+                # Rebuild edge map
+                edge_face_map_optimized = {}
+                for item in current_selection:
+                    if len(item) == 4:
+                        face_idx, poly_idx, poly_type, poly_verts = item
+                        for i in range(len(poly_verts)):
+                            v1 = poly_verts[i] - 1
+                            v2 = poly_verts[(i + 1) % len(poly_verts)] - 1
+                            edge = (min(v1, v2), max(v1, v2))
+                            if edge not in edge_face_map_optimized:
+                                edge_face_map_optimized[edge] = []
+                            edge_face_map_optimized[edge].append((face_idx, poly_idx, poly_type))
+                
+                optimized_boundary = sum(1 for fl in edge_face_map_optimized.values() if len(fl) == 1)
+                optimized_manifold = sum(1 for fl in edge_face_map_optimized.values() if len(fl) == 2)
+                optimized_invalid = sum(1 for fl in edge_face_map_optimized.values() if len(fl) >= 3)
+                
+                print(f"[POLY FORM]   Final after missing face analysis: B={optimized_boundary}, M={optimized_manifold}, I={optimized_invalid}")
+        
+        # Update edge map and stats
+        edge_face_map_all = edge_face_map_optimized
+        initial_invalid = optimized_invalid
+    
+    # =======================================================================
+    # NOTE: Do NOT mark polygons as removed here
+    # =======================================================================
+    # This function (extract_polygon_faces_from_connectivity) should return ALL
+    # extracted polygon faces for visualization purposes. The caller (main workflow)
+    # will handle polygon selection/optimization separately.
+    # 
+    # The current_selection from optimization is for internal statistics only
+    # and should not affect the output faces returned by this function.
+    
+    # =======================================================================
+    # PHASE 1: Group-Based Pruning Strategy
+    # =======================================================================
     if initial_invalid > 0:
+        print(f"\n[POLY FORM]   ========== PHASE 1: Group-Based Pruning ==========")
+        
+        # Step 1: Extract all invalid edges
+        print(f"[POLY FORM]   Step 1: Extracting invalid edges...")
+        invalid_edges = []
+        for edge, face_list in edge_face_map_all.items():
+            if len(face_list) >= 3:  # Invalid edge
+                invalid_edges.append(edge)
+        
+        print(f"[POLY FORM]     Found {len(invalid_edges)} invalid edges")
+        
+        # Step 2: Group invalid edges into connected components
+        print(f"[POLY FORM]   Step 2: Grouping invalid edges by most frequent faces...")
+        
+        def find_edge_groups_by_frequent_faces(edges, edge_face_map):
+            """
+            Group edges using greedy algorithm based on most frequent faces:
+            1. Count how many edges each face appears in
+            2. Select face that appears in most edges
+            3. Group all edges containing that face
+            4. Remove those edges and repeat
+            Each edge belongs to only one group.
+            Returns list of groups and face for each group.
+            """
+            if not edges:
+                return [], []
+            
+            # Map each edge to its set of faces
+            edge_to_faces = {}
+            for edge in edges:
+                if edge in edge_face_map:
+                    # Extract just the face indices from (face_idx, poly_idx, poly_type) tuples
+                    face_indices = set(face_info[0] for face_info in edge_face_map[edge])
+                    edge_to_faces[edge] = face_indices
+                else:
+                    edge_to_faces[edge] = set()
+            
+            groups = []
+            group_faces = []  # The primary face for each group
+            remaining_edges = set(edges)
+            
+            while remaining_edges:
+                # Count how many remaining edges each face appears in
+                face_edge_count = {}
+                for edge in remaining_edges:
+                    for face_idx in edge_to_faces[edge]:
+                        if face_idx not in face_edge_count:
+                            face_edge_count[face_idx] = 0
+                        face_edge_count[face_idx] += 1
+                
+                if not face_edge_count:
+                    # No faces found, group remaining edges together
+                    groups.append(list(remaining_edges))
+                    group_faces.append(None)
+                    break
+                
+                # Find face that appears in most edges
+                most_common_face = max(face_edge_count.keys(), key=lambda f: face_edge_count[f])
+                
+                # Group all edges containing this face
+                current_group = []
+                edges_to_remove = set()
+                for edge in remaining_edges:
+                    if most_common_face in edge_to_faces[edge]:
+                        current_group.append(edge)
+                        edges_to_remove.add(edge)
+                
+                groups.append(current_group)
+                group_faces.append(most_common_face)
+                
+                # Remove these edges from remaining
+                remaining_edges -= edges_to_remove
+            
+            return groups, group_faces
+        
+        edge_loops, group_primary_faces = find_edge_groups_by_frequent_faces(invalid_edges, edge_face_map_all)
+        print(f"[POLY FORM]     Found {len(edge_loops)} edge groups (by most frequent faces)")
+        
+        # Print group details with face information
+        for i, (loop, primary_face) in enumerate(zip(edge_loops, group_primary_faces)):
+            # Collect unique vertices in this group
+            vertices_in_group = set()
+            # Collect all faces in this group
+            all_faces_in_group = set()
+            for edge in loop:
+                vertices_in_group.add(edge[0])
+                vertices_in_group.add(edge[1])
+                if edge in edge_face_map_all:
+                    for face_info in edge_face_map_all[edge]:
+                        all_faces_in_group.add(face_info[0])
+            
+            # Convert to sorted list for display
+            face_list = sorted(list(all_faces_in_group))
+            faces_str = ", ".join([f"F{f+1}" for f in face_list]) if face_list else "no faces"
+            primary_str = f"F{primary_face+1}" if primary_face is not None else "none"
+            
+            print(f"[POLY FORM]       Group {i+1}: {len(loop)} edges, "
+                  f"{len(vertices_in_group)} vertices, primary face: {primary_str}, "
+                  f"all faces: [{faces_str}]")
+        
+        # Step 3: For each group, find associated polygons
+        print(f"[POLY FORM]   Step 3: Finding polygons for each group...")
+        
+        loop_polygon_sets = []  # Each entry: {'loop_idx': i, 'edges': [...], 'polygons': [...]}
+        
+        for loop_idx, loop in enumerate(edge_loops):
+            # Find all polygons that contain at least one edge from this group
+            loop_polygons = []
+            loop_polygon_ids = set()  # Track (face_idx, poly_idx) to avoid duplicates
+            
+            for edge in loop:
+                # Get all polygons associated with this edge
+                face_list = edge_face_map_all.get(edge, [])
+                for face_idx, poly_idx, poly_type in face_list:
+                    poly_id = (face_idx, poly_idx)
+                    if poly_id not in loop_polygon_ids:
+                        loop_polygon_ids.add(poly_id)
+                        # Find the polygon data
+                        for poly_info in all_polygons_list:
+                            if (poly_info['face_idx'] == face_idx and 
+                                poly_info['polygon_idx'] == poly_idx):
+                                loop_polygons.append(poly_info)
+                                break
+            
+            loop_polygon_sets.append({
+                'loop_idx': loop_idx,
+                'edges': loop,
+                'polygons': loop_polygons
+            })
+            
+            print(f"[POLY FORM]       Loop {loop_idx+1}: {len(loop_polygons)} polygons")
+        
+        # Step 4: For each group, find best polygon combination to extract
+        print(f"[POLY FORM]   Step 4: Finding optimal combinations for each group...")
+        
         from itertools import combinations
+        
+        best_to_extract = []  # Accumulate best polygons to extract across all groups
+        processed_edges = set()  # Track which edges have been resolved
+        current_invalid_count = initial_invalid  # Track cumulative invalid count
+        
+        for loop_data in loop_polygon_sets:
+            loop_idx = loop_data['loop_idx']
+            loop_edges = loop_data['edges']
+            loop_polygons = loop_data['polygons']
+            
+            print(f"\n[POLY FORM]     Processing Group {loop_idx+1}:")
+            print(f"[POLY FORM]       Edges in group: {len(loop_edges)}")
+            print(f"[POLY FORM]       Candidate polygons: {len(loop_polygons)}")
+            print(f"[POLY FORM]       Starting invalid edges: {current_invalid_count}")
+            
+            # Skip if no polygons
+            if not loop_polygons:
+                continue
+            
+            # Filter out polygons from same face sharing edges in loop
+            # For each edge in loop, ensure at most one polygon per face
+            print(f"[POLY FORM]       Filtering polygons by face constraints...")
+            filtered_polygons = []
+            face_edge_polys = {}  # Track which faces have polygons for each edge
+            
+            for edge in loop_edges:
+                edge_polys_by_face = {}
+                # Find all polygons containing this edge
+                for poly in loop_polygons:
+                    poly_verts = poly['data'].get('vertices', [])
+                    face_idx = poly['face_idx']
+                    
+                    # Check if polygon contains this edge
+                    contains_edge = False
+                    for i in range(len(poly_verts)):
+                        v1 = poly_verts[i] - 1
+                        v2 = poly_verts[(i + 1) % len(poly_verts)] - 1
+                        poly_edge = (min(v1, v2), max(v1, v2))
+                        if poly_edge == edge:
+                            contains_edge = True
+                            break
+                    
+                    if contains_edge:
+                        if face_idx not in edge_polys_by_face:
+                            edge_polys_by_face[face_idx] = []
+                        edge_polys_by_face[face_idx].append(poly)
+                
+                face_edge_polys[edge] = edge_polys_by_face
+            
+            # Create filtered list with constraint that same face can contribute only one polygon per edge
+            # Keep all polygons but note the mutual exclusivity
+            filtered_polygons = loop_polygons  # Use all for now, constraint will be in combination logic
+            
+            # Pre-processing: Try single polygon removals to convert invalid to manifold
+            print(f"[POLY FORM]       Pre-processing: Testing single polygon removals...")
+            single_best = None
+            single_best_reduction = 0
+            single_best_manifold_conversions = 0
+            
+            # Build current edge map based on polygons already extracted
+            cumulative_excluded = set((p['face_idx'], p['polygon_idx']) for p in best_to_extract)
+            
+            for poly in filtered_polygons:
+                # Test removing just this one polygon (in addition to already extracted)
+                temp_edge_map = {}
+                test_id = (poly['face_idx'], poly['polygon_idx'])
+                excluded_ids = cumulative_excluded | {test_id}
+                
+                # Rebuild edge map excluding already extracted + this polygon
+                for poly_info in all_polygons_list:
+                    if (poly_info['face_idx'], poly_info['polygon_idx']) in excluded_ids:
+                        continue  # Skip this polygon
+                    
+                    poly_verts = poly_info['data'].get('vertices', [])
+                    face_idx = poly_info['face_idx']
+                    poly_idx = poly_info['polygon_idx']
+                    poly_type = poly_info['poly_type']
+                    
+                    for i in range(len(poly_verts)):
+                        v1 = poly_verts[i] - 1
+                        v2 = poly_verts[(i + 1) % len(poly_verts)] - 1
+                        edge = (min(v1, v2), max(v1, v2))
+                        if edge not in temp_edge_map:
+                            temp_edge_map[edge] = []
+                        temp_edge_map[edge].append((face_idx, poly_idx, poly_type))
+                
+                # Count how many invalid edges are converted to manifold (2 faces)
+                manifold_conversions = 0
+                invalid_remaining = 0
+                for edge, face_list in temp_edge_map.items():
+                    if edge in loop_edges:
+                        if len(face_list) == 2:
+                            manifold_conversions += 1
+                        elif len(face_list) >= 3:
+                            invalid_remaining += 1
+                
+                # Calculate total invalid count and boundary count
+                temp_invalid_count = sum(1 for e, fl in temp_edge_map.items() if len(fl) >= 3)
+                temp_boundary_count = sum(1 for e, fl in temp_edge_map.items() if len(fl) == 1)
+                
+                reduction = current_invalid_count - temp_invalid_count
+                
+                if manifold_conversions > single_best_manifold_conversions or \
+                   (manifold_conversions == single_best_manifold_conversions and reduction > single_best_reduction):
+                    single_best = poly
+                    single_best_reduction = reduction
+                    single_best_manifold_conversions = manifold_conversions
+            
+            if single_best and single_best_manifold_conversions > 0:
+                print(f"[POLY FORM]         Found single polygon removal: Face {single_best['face_idx']+1}, "
+                      f"Polygon {single_best['polygon_idx']} converts {single_best_manifold_conversions} "
+                      f"edge(s) to manifold, reduction: {single_best_reduction}")
+            
+            # Limit combination testing to avoid exponential blowup
+            from itertools import combinations
+            max_test_size = min(len(filtered_polygons), 15)
+            
+            # Get initial boundary count before any extraction
+            initial_boundary_count = sum(1 for e, fl in edge_face_map_all.items() if len(fl) == 1)
+            
+            best_combination = None
+            best_score = float('inf')  # Minimize (B_increase - I_reduction)
+            best_reduction = -1
+            best_remaining_invalid = float('inf')
+            best_boundary_increase = float('inf')
+            
+            # Test combinations of different sizes
+            for combo_size in range(1, max_test_size + 1):
+                # Limit number of combinations to test
+                max_combos_per_size = 1000
+                combo_count = 0
+                
+                for combo in combinations(filtered_polygons, combo_size):
+                    combo_count += 1
+                    if combo_count > max_combos_per_size:
+                        break
+                    
+                    # Create temporary edge map without these polygons + already extracted
+                    temp_edge_map = {}
+                    combo_ids = set((p['face_idx'], p['polygon_idx']) for p in combo)
+                    excluded_ids = cumulative_excluded | combo_ids
+                    
+                    # Rebuild edge map excluding already extracted + combo polygons
+                    for poly_info in all_polygons_list:
+                        if (poly_info['face_idx'], poly_info['polygon_idx']) in excluded_ids:
+                            continue  # Skip this polygon
+                        
+                        poly_verts = poly_info['data'].get('vertices', [])
+                        face_idx = poly_info['face_idx']
+                        poly_idx = poly_info['polygon_idx']
+                        poly_type = poly_info['poly_type']
+                        
+                        for i in range(len(poly_verts)):
+                            v1 = poly_verts[i] - 1
+                            v2 = poly_verts[(i + 1) % len(poly_verts)] - 1
+                            edge = (min(v1, v2), max(v1, v2))
+                            if edge not in temp_edge_map:
+                                temp_edge_map[edge] = []
+                            temp_edge_map[edge].append((face_idx, poly_idx, poly_type))
+                    
+                    # Count invalid and boundary edges in this configuration
+                    temp_invalid_count = 0
+                    temp_boundary_count = 0
+                    for edge, face_list in temp_edge_map.items():
+                        if len(face_list) >= 3:
+                            temp_invalid_count += 1
+                        elif len(face_list) == 1:
+                            temp_boundary_count += 1
+                    
+                    # Calculate reduction in invalid edges and increase in boundary edges
+                    invalid_reduction = current_invalid_count - temp_invalid_count
+                    boundary_increase = temp_boundary_count - initial_boundary_count
+                    
+                    # New optimization goal: minimize (B_increase - I_reduction)
+                    score = boundary_increase - invalid_reduction
+                    
+                    # Keep track of best combination
+                    # Priority: 1) Lowest score (B_increase - I_reduction), 2) Tiebreaker: fewest polygons
+                    is_better = False
+                    if score < best_score:
+                        is_better = True
+                    elif score == best_score:
+                        # Tiebreaker: prefer fewer polygons
+                        if best_combination is None or len(combo) < len(best_combination):
+                            is_better = True
+                    
+                    if is_better:
+                        best_score = score
+                        best_reduction = invalid_reduction
+                        best_remaining_invalid = temp_invalid_count
+                        best_boundary_increase = boundary_increase
+                        best_combination = combo
+            
+            # Report best combination for this loop
+            if best_combination:
+                print(f"[POLY FORM]       Best combination: {len(best_combination)} polygons")
+                print(f"[POLY FORM]       Optimization score (B_increase - I_reduction): {best_score}")
+                print(f"[POLY FORM]       Boundary increase: {best_boundary_increase}")
+                print(f"[POLY FORM]       Invalid edge reduction: {best_reduction}")
+                print(f"[POLY FORM]       Remaining invalid edges: {best_remaining_invalid}")
+                
+                # Update current invalid count for next group
+                current_invalid_count = best_remaining_invalid
+                
+                # Add to extraction list (avoid duplicates)
+                for poly in best_combination:
+                    poly_id = (poly['face_idx'], poly['polygon_idx'])
+                    # Check if not already in extraction list
+                    existing_ids = [(p['face_idx'], p['polygon_idx']) for p in best_to_extract]
+                    if poly_id not in existing_ids:
+                        best_to_extract.append(poly)
+                
+                # Mark edges as processed
+                for edge in loop_edges:
+                    processed_edges.add(edge)
+            else:
+                print(f"[POLY FORM]       No improvement found for this loop")
+        
+        # =======================================================================
+        # PHASE 1 RESULTS: Detailed reporting
+        # =======================================================================
+        print(f"\n[POLY FORM]   ========== GROUP-BASED PRUNING RESULTS ==========")
+        print(f"[POLY FORM]   Total polygons extracted: {len(best_to_extract)}")
+        print(f"[POLY FORM]   Edges processed: {len(processed_edges)} of {len(invalid_edges)} invalid edges")
+        
+        # Report extracted polygons by group
+        if best_to_extract:
+            print(f"\n[POLY FORM]   Extracted polygons by group:")
+            loop_extraction_map = {}  # loop_idx -> list of unique polygons
+            
+            # Map each extracted polygon back to its groups (a polygon can appear in multiple groups)
+            for poly_info in best_to_extract:
+                poly_id = (poly_info['face_idx'], poly_info['polygon_idx'])
+                # Find ALL groups this polygon belongs to
+                poly_loops = []
+                for loop_data in loop_polygon_sets:
+                    loop_idx = loop_data['loop_idx']
+                    loop_poly_ids = [(p['face_idx'], p['polygon_idx']) for p in loop_data['polygons']]
+                    if poly_id in loop_poly_ids:
+                        poly_loops.append(loop_idx)
+                
+                # Add to first group found (primary association)
+                if poly_loops:
+                    primary_loop = poly_loops[0]
+                    if primary_loop not in loop_extraction_map:
+                        loop_extraction_map[primary_loop] = []
+                    loop_extraction_map[primary_loop].append((poly_info, poly_loops))
+            
+            # Print by group
+            for loop_idx in sorted(loop_extraction_map.keys()):
+                polys_with_loops = loop_extraction_map[loop_idx]
+                print(f"[POLY FORM]     Group {loop_idx+1}: {len(polys_with_loops)} polygon(s) extracted")
+                for poly_info, poly_loops in polys_with_loops:
+                    face_idx = poly_info['face_idx']
+                    poly_idx = poly_info['polygon_idx']
+                    poly_type = poly_info['poly_type']
+                    poly_verts = poly_info['data'].get('vertices', [])
+                    groups_str = f" (also in groups {[l+1 for l in poly_loops[1:]]}" if len(poly_loops) > 1 else ""
+                    print(f"[POLY FORM]       - Face {face_idx+1}, Polygon {poly_idx}, "
+                          f"Type: {poly_type}, {len(poly_verts)} vertices{groups_str}")
+                    print(f"[POLY FORM]         Vertices: {poly_verts}")
+        
+        # Compute remaining invalid edges after group-based extraction
+        remaining_edge_map = {}
+        extracted_ids = set((p['face_idx'], p['polygon_idx']) for p in best_to_extract)
+        
+        for poly_info in all_polygons_list:
+            if (poly_info['face_idx'], poly_info['polygon_idx']) in extracted_ids:
+                continue  # Skip extracted polygons
+            
+            poly_verts = poly_info['data'].get('vertices', [])
+            face_idx = poly_info['face_idx']
+            poly_idx = poly_info['polygon_idx']
+            poly_type = poly_info['poly_type']
+            
+            for i in range(len(poly_verts)):
+                v1 = poly_verts[i] - 1
+                v2 = poly_verts[(i + 1) % len(poly_verts)] - 1
+                edge = (min(v1, v2), max(v1, v2))
+                if edge not in remaining_edge_map:
+                    remaining_edge_map[edge] = []
+                remaining_edge_map[edge].append((face_idx, poly_idx, poly_type))
+        
+        # Compute edge statistics for extracted set
+        extracted_edge_map = {}
+        for poly_info in best_to_extract:
+            poly_verts = poly_info['data'].get('vertices', [])
+            face_idx = poly_info['face_idx']
+            poly_idx = poly_info['polygon_idx']
+            poly_type = poly_info['poly_type']
+            
+            for i in range(len(poly_verts)):
+                v1 = poly_verts[i] - 1
+                v2 = poly_verts[(i + 1) % len(poly_verts)] - 1
+                edge = (min(v1, v2), max(v1, v2))
+                if edge not in extracted_edge_map:
+                    extracted_edge_map[edge] = []
+                extracted_edge_map[edge].append((face_idx, poly_idx, poly_type))
+        
+        b_extracted, m_extracted, inv_extracted = compute_edge_stats(extracted_edge_map)
+        b_remaining, m_remaining, inv_remaining = compute_edge_stats(remaining_edge_map)
+        
+        print(f"\n[POLY FORM]   Edge statistics after group-based pruning:")
+        print(f"[POLY FORM]     Extracted set ({len(best_to_extract)} polygons):")
+        print(f"[POLY FORM]       - Boundary edges (1 face): {b_extracted}")
+        print(f"[POLY FORM]       - Manifold edges (2 faces): {m_extracted}")
+        print(f"[POLY FORM]       - Invalid edges (3+ faces): {inv_extracted}")
+        print(f"[POLY FORM]     Remaining set ({len(all_polygons_list) - len(best_to_extract)} polygons):")
+        print(f"[POLY FORM]       - Boundary edges (1 face): {b_remaining}")
+        print(f"[POLY FORM]       - Manifold edges (2 faces): {m_remaining}")
+        print(f"[POLY FORM]       - Invalid edges (3+ faces): {inv_remaining}")
+        
+        remaining_invalid_edges = [e for e, fl in remaining_edge_map.items() if len(fl) >= 3]
+        
+        if remaining_invalid_edges:
+            print(f"\n[POLY FORM]   WARNING: {len(remaining_invalid_edges)} invalid edges remain after group-based pruning")
+            print(f"[POLY FORM]   Remaining invalid edges:")
+            for edge in remaining_invalid_edges[:10]:  # Show first 10
+                face_list = remaining_edge_map[edge]
+                print(f"[POLY FORM]     Edge {edge}: {len(face_list)} faces")
+            if len(remaining_invalid_edges) > 10:
+                print(f"[POLY FORM]     ... and {len(remaining_invalid_edges) - 10} more")
+        else:
+            print(f"\n[POLY FORM]   ✓ All invalid edges resolved by group-based pruning!")
+        
+        print(f"[POLY FORM]   " + "=" * 50)
+        
+        # Display polygon edge analysis after Phase 1 (remaining polygons only)
+        print(f"\n[POLY FORM]       ========== POLYGON EDGE ANALYSIS (AFTER PHASE 1) ==========")
+        print(f"[POLY FORM]       Face Poly     Type Verts   B   M   I Vertices")
+        print(f"[POLY FORM]       ---- ---- -------- ----- --- --- --- " + "-" * 50)
+        
+        # Build list of remaining polygons (not extracted)
+        extracted_ids = set((p['face_idx'], p['polygon_idx']) for p in best_to_extract)
+        remaining_polygons = []
+        for poly_info in all_polygons_list:
+            poly_id = (poly_info['face_idx'], poly_info['polygon_idx'])
+            if poly_id not in extracted_ids:
+                remaining_polygons.append(poly_info)
+        
+        # Analyze each remaining polygon
+        for poly_info in remaining_polygons:
+            face_idx = poly_info['face_idx']
+            poly_idx = poly_info['polygon_idx']
+            poly_type = poly_info['poly_type']
+            poly_verts = poly_info['data'].get('vertices', [])
+            
+            # Count B, M, I edges for this polygon
+            poly_edges = []
+            for i in range(len(poly_verts)):
+                v1 = poly_verts[i] - 1
+                v2 = poly_verts[(i + 1) % len(poly_verts)] - 1
+                edge = (min(v1, v2), max(v1, v2))
+                poly_edges.append(edge)
+            
+            # Get edge counts from remaining edge map
+            b_count = sum(1 for e in poly_edges if e in remaining_edge_map and len(remaining_edge_map[e]) == 1)
+            m_count = sum(1 for e in poly_edges if e in remaining_edge_map and len(remaining_edge_map[e]) == 2)
+            i_count = sum(1 for e in poly_edges if e in remaining_edge_map and len(remaining_edge_map[e]) >= 3)
+            
+            verts_str = str(poly_verts[:10]) + ('...' if len(poly_verts) > 10 else '')
+            print(f"[POLY FORM]       {face_idx+1:4d} {poly_idx:4d} {poly_type:>8s} {len(poly_verts):5d} {b_count:3d} {m_count:3d} {i_count:3d} {verts_str}")
+        
+        print(f"[POLY FORM]       " + "=" * 86)
+        
+        # Mark extracted polygons as removed in unique_faces
+        # If removing a BOUNDARY, promote an ALT to BOUNDARY
+        print(f"\n[POLY FORM]   Marking {len(best_to_extract)} extracted polygons as removed...")
+        for poly_info in best_to_extract:
+            face_idx = poly_info['face_idx']
+            poly_idx = poly_info['polygon_idx']
+            poly_type = poly_info['poly_type']
+            
+            if face_idx < len(unique_faces):
+                polygons = unique_faces[face_idx].get('polygons', [])
+                if poly_idx < len(polygons):
+                    polygons[poly_idx]['removed'] = True
+                    print(f"[POLY FORM]     Marked Face {face_idx+1}, Polygon {poly_idx} ({poly_type}) as removed")
+                    
+                    # If we removed a BOUNDARY, promote an ALT to BOUNDARY
+                    if poly_type == 'BOUNDARY':
+                        # Find an ALT polygon in this face to promote
+                        alt_to_promote = None
+                        for p_idx, p in enumerate(polygons):
+                            if p.get('polygon_type') == 'ALT' and not p.get('removed', False):
+                                alt_to_promote = (p_idx, p)
+                                break
+                        
+                        if alt_to_promote:
+                            alt_idx, alt_poly = alt_to_promote
+                            alt_poly['polygon_type'] = 'BOUNDARY'
+                            alt_verts = alt_poly.get('vertices', [])
+                            print(f"[POLY FORM]       → Promoted ALT Polygon {alt_idx} {alt_verts} to BOUNDARY")
+                        else:
+                            print(f"[POLY FORM]       → WARNING: No ALT available to promote to BOUNDARY")
+        
+        # =======================================================================
+        # PHASE 2: Continue with existing pruning strategy if needed
+        # =======================================================================
+        if remaining_invalid_edges:
+            print(f"\n[POLY FORM]   ========== PHASE 2: Standard Pruning ==========")
         
         print(f"\n[POLY FORM]   Extracting polygons with invalid edges...")
         
-        # Find all polygons that contribute to invalid edges
+        # Find all polygons that contribute to remaining invalid edges
         polygons_with_invalid_edges = set()
-        for edge, face_list in edge_face_map_all.items():
+        for edge, face_list in remaining_edge_map.items():
             if len(face_list) >= 3:  # Invalid edge
                 for face_idx, poly_idx, poly_type in face_list:
                     polygons_with_invalid_edges.add((face_idx, poly_idx))
@@ -6900,7 +9863,40 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
                     for idx in poly_indices:
                         polygons_to_keep_in_extraction.add(idx)
             
-            # Remove polygons from return list if they're in keep list
+            # Check for conflicts: polygons marked both to keep AND to return
+            conflicting_polygons = polygons_to_return_to_base & polygons_to_keep_in_extraction
+            
+            if conflicting_polygons:
+                print(f"\n[POLY FORM]   WARNING: Found {len(conflicting_polygons)} polygon(s) with conflicting decisions:")
+                for idx in sorted(conflicting_polygons):
+                    poly_info = invalid_edge_polygons[idx]
+                    print(f"[POLY FORM]     [{chr(65+idx)}] F{poly_info['face_idx']+1}:{poly_info['poly_type']} - marked BOTH to keep AND to return")
+                    # Show which edges led to each decision
+                    for edge in invalid_edges:
+                        if idx in edge_to_poly_indices[edge]:
+                            edge_1based = (edge[0]+1, edge[1]+1)
+                            poly_indices = edge_to_poly_indices[edge]
+                            if idx in polygons_to_keep_in_extraction:
+                                # Check if this edge led to keep decision
+                                face_groups = {}
+                                for pi in poly_indices:
+                                    pi_info = invalid_edge_polygons[pi]
+                                    fi = pi_info['face_idx']
+                                    if fi not in face_groups:
+                                        face_groups[fi] = []
+                                    face_groups[fi].append((pi, pi_info))
+                                # Check if idx is in a face group with 2+ polygons
+                                for fi, polys in face_groups.items():
+                                    if len(polys) >= 2 and any(p[0] == idx for p in polys):
+                                        print(f"[POLY FORM]       Edge {edge_1based}: KEEP (same face group with {len(polys)} polygons)")
+                                        break
+                            if idx in polygons_to_return_to_base:
+                                # Check if this edge led to return decision
+                                print(f"[POLY FORM]       Edge {edge_1based}: RETURN (single polygon from different face)")
+                print(f"[POLY FORM]   Resolution: Keeping conflicting polygons in extraction (prioritizing KEEP over RETURN)")
+            
+            # Remove polygons from return list if they're in keep list (prioritize KEEP)
+            # For conflicting polygons, keeping them in extraction preserves the face structure
             polygons_to_return_to_base -= polygons_to_keep_in_extraction
             
             print(f"\n[POLY FORM]   Pruning decision:")
@@ -7899,6 +10895,11 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
         if 'polygons' not in face_eq or len(face_eq['polygons']) == 0:
             continue
         
+        # Check if all polygons in this face are removed
+        all_removed = all(poly.get('removed', False) for poly in face_eq['polygons'])
+        if all_removed:
+            continue  # Skip this face entirely
+        
         # Separate current polygons by type
         boundaries = []
         alts = []
@@ -8022,6 +11023,13 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             faces_skipped += 1
             continue
         
+        # Check if all polygons in this face are removed
+        all_removed = all(poly.get('removed', False) for poly in face_eq['polygons'])
+        if all_removed:
+            faces_skipped += 1
+            print(f"[POLY FORM]   Face {face_idx+1}: Skipped (all polygons removed)")
+            continue
+        
         # Get validated polygons (skip those marked for removal)
         polygons = face_eq['polygons']
         
@@ -8069,6 +11077,7 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
         
         # Create one face with the primary boundary
         face_data = {
+            'original_face_idx': face_idx,  # Track original face index
             'normal': face_eq['normal'],
             'd': face_eq['d'],
             'vertices': primary_boundary['vertices'],
@@ -8097,28 +11106,74 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
     faces_with_alternates = [idx for idx, f in enumerate(faces) if f.get('alternates')]
     print(f"[POLY FORM] Found {len(faces_with_alternates)} face(s) with alternates")
     
+    new_faces_from_alternates = []  # Store non-touching alternates as new faces
+    
     if len(faces_with_alternates) > 0:
-        for face_idx in faces_with_alternates:
-            face = faces[face_idx]
+        for face_list_idx in faces_with_alternates:
+            face = faces[face_list_idx]
             alternates = face.get('alternates', [])
+            original_face_idx = face.get('original_face_idx', face_list_idx)
             
             if len(alternates) == 0:
                 continue
             
-            print(f"\n[POLY FORM] Face {face_idx+1}: {len(alternates)} alternate(s)")
+            print(f"\n[POLY FORM] Face {original_face_idx+1}: {len(alternates)} alternate(s)")
             print(f"[POLY FORM]   Primary boundary: {len(face['vertices'])} vertices")
             
-            # Merge all alternates with the primary boundary by removing shared edges
-            # Since non-touching alternates were moved to separate faces earlier,
-            # all remaining alternates must be touching
-            print(f"[POLY FORM]   Merging {len(alternates)} touching alternate(s) into primary boundary...")
+            # Separate touching and non-touching alternates
+            touching_alternates = []
+            non_touching_alternates = []
+            
+            for alt in alternates:
+                poly_to_check = alt['vertices']
+                
+                # Check if alternate shares any edge with primary boundary
+                primary_edges = set()
+                for k in range(len(face['vertices'])):
+                    v1, v2 = face['vertices'][k], face['vertices'][(k+1) % len(face['vertices'])]
+                    primary_edges.add((min(v1, v2), max(v1, v2)))
+                
+                alt_edges = set()
+                for k in range(len(poly_to_check)):
+                    v1, v2 = poly_to_check[k], poly_to_check[(k+1) % len(poly_to_check)]
+                    alt_edges.add((min(v1, v2), max(v1, v2)))
+                
+                if primary_edges & alt_edges:  # Has shared edges
+                    touching_alternates.append(alt)
+                else:
+                    non_touching_alternates.append(alt)
+            
+            # Move non-touching alternates to new faces
+            if non_touching_alternates:
+                print(f"[POLY FORM]   Found {len(non_touching_alternates)} non-touching alternate(s), moving to new faces...")
+                for alt_idx, alt in enumerate(non_touching_alternates):
+                    new_face = {
+                        'original_face_idx': original_face_idx,  # Keep same original index for tracking
+                        'normal': face['normal'],
+                        'd': face['d'],
+                        'vertices': alt['vertices'],
+                        'holes': [],
+                        'all_vertices_on_face': face.get('all_vertices_on_face', []),
+                        'edges': face.get('edges', [])
+                    }
+                    new_faces_from_alternates.append(new_face)
+                    print(f"[POLY FORM]     Moved alternate {alt_idx+1} ({len(alt['vertices'])} vertices) to new face")
+            
+            # Clear alternates list and only keep touching ones for merging
+            face['alternates'] = touching_alternates
+            
+            if not touching_alternates:
+                print(f"[POLY FORM]   No touching alternates to merge")
+                continue
+            
+            print(f"[POLY FORM]   Merging {len(touching_alternates)} touching alternate(s) into primary boundary...")
             
             try:
                 # Start with primary boundary
                 merged_vertices = face['vertices'][:]
                 
-                # Merge each alternate one by one
-                for alt_idx, alt in enumerate(alternates):
+                # Merge each touching alternate one by one
+                for alt_idx, alt in enumerate(touching_alternates):
                     poly_to_merge = alt['vertices']
                     print(f"[POLY FORM]     Merging alternate {alt_idx+1}: {len(poly_to_merge)} vertices")
                     
@@ -8197,6 +11252,15 @@ def extract_polygon_faces_from_connectivity(selected_vertices, merged_conn,
             except Exception as e:
                 print(f"[POLY FORM]     ERROR merging alternates: {e}")
                 print(f"[POLY FORM]     Keeping original boundary")
+            
+            # Clear alternates from face since they've been processed
+            if 'alternates' in face:
+                del face['alternates']
+    
+    # Add new faces created from non-touching alternates
+    if new_faces_from_alternates:
+        print(f"\n[POLY FORM] Adding {len(new_faces_from_alternates)} new face(s) from non-touching alternates")
+        faces.extend(new_faces_from_alternates)
     
     # Remove duplicates caused by hole-in-hole extraction
     print("\n" + "="*70)
@@ -8770,26 +11834,30 @@ def plot_extracted_polygon_faces(extracted_faces, selected_vertices,
                 original_face_collections.append(poly)
     
     # Plot extracted faces (more prominent)
-    colors_ext = plt.cm.viridis(np.linspace(0, 1, len(extracted_faces)))
     extracted_face_collections = []
     
-    for idx, face in enumerate(extracted_faces):
-        vertices_idx = face['vertices']
-        face_verts = selected_vertices[vertices_idx]
+    if len(extracted_faces) > 0:
+        colors_ext = plt.cm.viridis(np.linspace(0, 1, len(extracted_faces)))
         
-        poly = Poly3DCollection([face_verts], alpha=0.7,
-                               facecolor=colors_ext[idx],
-                               edgecolor='black', linewidth=2.0)
-        ax.add_collection3d(poly)
-        extracted_face_collections.append(poly)
-        
-        # Plot holes if any
-        for hole_idx in face.get('holes', []):
-            hole_verts = selected_vertices[hole_idx]
-            hole_poly = Poly3DCollection([hole_verts], alpha=0.5,
-                                        facecolor='white',
-                                        edgecolor='red', linewidth=2.0)
-            ax.add_collection3d(hole_poly)
+        for idx, face in enumerate(extracted_faces):
+            vertices_idx = face['vertices']
+            face_verts = selected_vertices[vertices_idx]
+            
+            poly = Poly3DCollection([face_verts], alpha=0.7,
+                                   facecolor=colors_ext[idx],
+                                   edgecolor='black', linewidth=2.0)
+            ax.add_collection3d(poly)
+            extracted_face_collections.append(poly)
+            
+            # Plot holes if any
+            for hole_idx in face.get('holes', []):
+                hole_verts = selected_vertices[hole_idx]
+                hole_poly = Poly3DCollection([hole_verts], alpha=0.5,
+                                            facecolor='white',
+                                            edgecolor='red', linewidth=2.0)
+                ax.add_collection3d(hole_poly)
+    else:
+        print("[WARNING] No extracted faces to plot")
     
     # Plot vertices
     vertex_scatter = ax.scatter(selected_vertices[:, 0], selected_vertices[:, 1], 
