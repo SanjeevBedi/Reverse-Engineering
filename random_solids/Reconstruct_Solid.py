@@ -1659,7 +1659,7 @@ def main():
     print(f"[DEBUG] Sample connectivity (first 5x5):")
     print(merged_conn[:5, :5])
     
-    extracted_faces = extract_polygon_faces_from_connectivity(
+    extracted_faces, two_edge_vertices = extract_polygon_faces_from_connectivity(
         selected_vertices, merged_conn,
         top_conn=top_conn, front_conn=front_conn, side_conn=side_conn,
         tolerance=args.tolerance)
@@ -2464,16 +2464,17 @@ def main():
                             vertex_edge_count[v2] += 1
                     
                     # Find under-connected vertices (< 3 edges)
+                    # EXCLUDE collinear vertices (two-edge vertices) - they're supposed to have only 2 edges
                     under_connected = []
                     for v_idx in unique_verts:
-                        if vertex_edge_count[v_idx] < 3:
+                        if vertex_edge_count[v_idx] < 3 and v_idx not in two_edge_vertices:
                             under_connected.append({
                                 'vertex': v_idx,
                                 'edge_count': vertex_edge_count[v_idx],
                                 'edges': vertex_edges[v_idx]
                             })
                     
-                    print(f"   Found {len(under_connected)} under-connected vertices (< 3 edges):")
+                    print(f"   Found {len(under_connected)} under-connected vertices (< 3 edges, excluding {len(two_edge_vertices)} collinear vertices):")
                     for vc in under_connected:
                         v_idx = vc['vertex']
                         # Find all faces containing this vertex
