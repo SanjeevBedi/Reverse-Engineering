@@ -6,8 +6,10 @@ Visualizes connectivity matrices from top, front, side views and merged matrix
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import argparse
 from pathlib import Path
+import os
 
 
 def project_vertex_to_view(vertex, view_normal):
@@ -91,10 +93,22 @@ def build_connectivity_matrices(vertices, top_matrix, front_matrix,
 
 def load_connectivity_matrices(seed):
     """Load connectivity matrices for a given seed."""
-    npz_path = Path(f"Output/connectivity_matrices_seed_{seed}.npz")
+    # Try multiple possible locations for the Output directory
+    possible_paths = [
+        Path(f"Output/connectivity_matrices_seed_{seed}.npz"),  # Current directory
+        Path(f"../Output/connectivity_matrices_seed_{seed}.npz"),  # Parent directory
+    ]
     
-    if not npz_path.exists():
-        raise FileNotFoundError(f"Connectivity matrices not found: {npz_path}")
+    npz_path = None
+    for path in possible_paths:
+        if path.exists():
+            npz_path = path
+            break
+    
+    if npz_path is None:
+        raise FileNotFoundError(
+            f"Connectivity matrices not found in any of: {[str(p) for p in possible_paths]}"
+        )
     
     data = np.load(npz_path)
     
@@ -126,24 +140,62 @@ def load_connectivity_matrices(seed):
     }
 
 
-def visualize_connectivity_matrix(ax, matrix, title, vertices=None):
-    """Visualize a single connectivity matrix."""
+def visualize_connectivity_matrix(ax, matrix, title, is_merged=False):
+    """Visualize a single connectivity matrix.
+    
+    Args:
+        ax: matplotlib axis
+        matrix: connectivity matrix
+        title: plot title
+        is_merged: if True, use grayscale colormap; if False, use text markers
+    """
     N = matrix.shape[0]
     
-    # Create visualization matrix
-    vis_matrix = np.zeros((N, N))
-    
-    # Fill with connectivity values
-    for i in range(N):
-        for j in range(N):
-            if i == j:
-                vis_matrix[i, j] = -1  # Diagonal
-            else:
-                vis_matrix[i, j] = matrix[i, j]
-    
-    # Plot
-    im = ax.imshow(vis_matrix, cmap='RdYlGn', vmin=-1, vmax=3, 
-                   interpolation='nearest', aspect='auto')
+    if is_merged:
+        # For merged matrix: use grayscale from white (0) to black (3)
+        vis_matrix = np.zeros((N, N))
+        
+        for i in range(N):
+            for j in range(N):
+                if i == j:
+                    vis_matrix[i, j] = -1  # Diagonal - will be handled separately
+                else:
+                    vis_matrix[i, j] = matrix[i, j]
+        
+        # Plot with grayscale
+        im = ax.imshow(vis_matrix, cmap='gray_r', vmin=-1, vmax=3, 
+                       interpolation='nearest', aspect='auto')
+        
+        # Color the diagonal differently
+        for i in range(N):
+            ax.add_patch(mpatches.Rectangle((i-0.5, i-0.5), 1, 1, 
+                                       fill=True, facecolor='lightgray', 
+                                       edgecolor='black', linewidth=0.5))
+    else:
+        # For view matrices: show white background with text markers
+        vis_matrix = np.ones((N, N))  # White background
+        
+        # Plot white background
+        im = ax.imshow(vis_matrix, cmap='gray', vmin=0, vmax=1, 
+                       interpolation='nearest', aspect='auto')
+        
+        # Add text markers
+        for i in range(N):
+            for j in range(N):
+                if i == j:
+                    # Diagonal - shade it
+                    ax.add_patch(mpatches.Rectangle((j-0.5, i-0.5), 1, 1, 
+                                               fill=True, facecolor='lightgray', 
+                                               edgecolor='black', linewidth=0.5))
+                elif matrix[i, j] == 1:
+                    # Edge exists - show "X"
+                    ax.text(j, i, 'X', ha='center', va='center', 
+                           fontsize=6, color='black', fontweight='bold')
+                elif matrix[i, j] == 2:
+                    # Show "+"
+                    ax.text(j, i, '+', ha='center', va='center', 
+                           fontsize=8, color='black', fontweight='bold')
+                # matrix[i, j] == 0: blank (no text)
     
     ax.set_title(title, fontsize=12, fontweight='bold')
     ax.set_xlabel('Vertex Index')
@@ -278,42 +330,57 @@ def main():
                  fontsize=16, fontweight='bold')
     
     # Plot each matrix
+    # View matrices use text markers (X, +)
     im1 = visualize_connectivity_matrix(axes[0, 0], matrices['top_view'], 
-                                        'Top View')
+                                        'Top View', is_merged=False)
     im2 = visualize_connectivity_matrix(axes[0, 1], matrices['front_view'], 
-                                        'Front View')
+                                        'Front View', is_merged=False)
     im3 = visualize_connectivity_matrix(axes[1, 0], matrices['side_view'], 
-                                        'Side View')
+                                        'Side View', is_merged=False)
+    # Merged matrix uses grayscale
     im4 = visualize_connectivity_matrix(axes[1, 1], matrices['merged'], 
-                                        'Merged (conn=0,1,2,3)')
+                                        'Merged (conn=0,1,2,3)', is_merged=True)
     
-    # Add colorbars
-    cbar1 = plt.colorbar(im1, ax=axes[0, 0], fraction=0.046, pad=0.04)
-    cbar1.set_label('Connectivity')
-    cbar1.set_ticks([-1, 0, 1])
-    cbar1.set_ticklabels(['Diagonal', 'No Edge', 'Edge'])
     
-    cbar2 = plt.colorbar(im2, ax=axes[0, 1], fraction=0.046, pad=0.04)
-    cbar2.set_label('Connectivity')
-    cbar2.set_ticks([-1, 0, 1])
-    cbar2.set_ticklabels(['Diagonal', 'No Edge', 'Edge'])
+    # For view matrices, no colorbar needed (text markers are self-explanatory)
+    # Add legends instead
+    for ax in [axes[0, 0], axes[0, 1], axes[1, 0]]:
+        ax.text(0.02, 0.98, 'X = Edge exists\n+ = Hidden edge\n(blank) = No edge', 
+                transform=ax.transAxes, fontsize=8, verticalalignment='top',
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     
-    cbar3 = plt.colorbar(im3, ax=axes[1, 0], fraction=0.046, pad=0.04)
-    cbar3.set_label('Connectivity')
-    cbar3.set_ticks([-1, 0, 1])
-    cbar3.set_ticklabels(['Diagonal', 'No Edge', 'Edge'])
-    
+    # For merged matrix, add colorbar with grayscale labels
     cbar4 = plt.colorbar(im4, ax=axes[1, 1], fraction=0.046, pad=0.04)
-    cbar4.set_label('Merged Connectivity')
-    cbar4.set_ticks([-1, 0, 1, 2, 3])
-    cbar4.set_ticklabels(['Diagonal', 'No Edge', '1 View', '2 Views', '3 Views'])
+    cbar4.set_label('Views Confirming Edge')
+    cbar4.set_ticks([0, 1, 2, 3])
+    cbar4.set_ticklabels(['0 Views', '1 View', '2 Views', '3 Views'])
     
     plt.tight_layout()
     
     if args.save:
-        output_path = f'connectivity_matrices_seed_{args.seed}.png'
-        plt.savefig(output_path, dpi=150, bbox_inches='tight')
-        print(f"\nPlot saved to: {output_path}")
+        # Create Output/Figures directory if it doesn't exist
+        output_dir = Path('Output/Figures')
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Save as PDF for LaTeX (vector format, high quality)
+        pdf_path = output_dir / f'connectivity_matrices_seed_{args.seed}.pdf'
+        plt.savefig(pdf_path, format='pdf', bbox_inches='tight')
+        print(f"\nPlot saved to: {pdf_path}")
+        print(f"  Format: PDF (vector graphics, ideal for LaTeX)")
+        
+        # Also save as PNG for quick viewing
+        png_path = output_dir / f'connectivity_matrices_seed_{args.seed}.png'
+        plt.savefig(png_path, dpi=300, bbox_inches='tight')
+        print(f"  Also saved PNG: {png_path}")
+        
+        # Print LaTeX inclusion code
+        print(f"\n[LaTeX] Include in your document with:")
+        print(f"\\begin{{figure}}[htbp]")
+        print(f"    \\centering")
+        print(f"    \\includegraphics[width=\\textwidth]{{Output/Figures/connectivity_matrices_seed_{args.seed}.pdf}}")
+        print(f"    \\caption{{Connectivity matrices for seed {args.seed} showing top, front, side, and merged views.}}")
+        print(f"    \\label{{fig:connectivity_seed_{args.seed}}}")
+        print(f"\\end{{figure}}")
     else:
         plt.show()
 

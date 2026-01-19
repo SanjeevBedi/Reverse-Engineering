@@ -28,7 +28,7 @@ from OCC.Core.BRepBndLib import brepbndlib_Add
 # ============================================================================
 # COORDINATE ROUNDING FOR BUILD PROCESS
 # ============================================================================
-# Build tolerance: 0.5mm for dimensional precision
+# Build tolerance: 0.1mm for dimensional precision
 # Reconstruction tolerance: 0.05mm (tighter for accurate recovery)
 # Normal/rotation tolerance: 1e-6 (high precision for angles)
 #
@@ -36,15 +36,15 @@ from OCC.Core.BRepBndLib import brepbndlib_Add
 # created with consistent precision from the start.
 
 # Global tolerance for building geometry (dimensions)
-BUILD_TOLERANCE = 0.5  # mm
+BUILD_TOLERANCE = 0.1  # mm
 
 def round_to_precision(value, precision=BUILD_TOLERANCE):
-    """Round a single coordinate value to specified precision (default 0.5mm)"""
+    """Round a single coordinate value to specified precision (default 0.1mm)"""
     return round(value / precision) * precision
 
 
 def make_rounded_pnt(x, y, z, precision=BUILD_TOLERANCE):
-    """Create a gp_Pnt with coordinates rounded to specified precision (default 0.5mm)"""
+    """Create a gp_Pnt with coordinates rounded to specified precision (default 0.1mm)"""
     return gp_Pnt(
         round_to_precision(x, precision),
         round_to_precision(y, precision),
@@ -53,7 +53,7 @@ def make_rounded_pnt(x, y, z, precision=BUILD_TOLERANCE):
 
 
 def make_rounded_vec(x, y, z, precision=BUILD_TOLERANCE):
-    """Create a gp_Vec with coordinates rounded to specified precision (default 0.5mm)"""
+    """Create a gp_Vec with coordinates rounded to specified precision (default 0.1mm)"""
     return gp_Vec(
         round_to_precision(x, precision),
         round_to_precision(y, precision),
@@ -325,9 +325,9 @@ def build_oriented_solid(location, u_dir, v_dir, width, length, depth, config_or
                 used_positions.add(pos)
                 break
         # Vertical cuboid: parameterized size calculation
-        v_w = np.random.uniform(cell_w * v_width_min_factor, v_width_max_factor * width)
-        v_l = np.random.uniform(cell_l * v_length_min_factor, v_length_max_factor * length / v_length_divisor)
-        v_d = random.uniform(depth * v_depth_min_factor, depth * v_depth_max_factor)
+        v_w = round_to_precision(np.random.uniform(cell_w * v_width_min_factor, v_width_max_factor * width))
+        v_l = round_to_precision(np.random.uniform(cell_l * v_length_min_factor, v_length_max_factor * length / v_length_divisor))
+        v_d = round_to_precision(random.uniform(depth * v_depth_min_factor, depth * v_depth_max_factor))
         v_x = col * cell_w + (cell_w - v_w) / 2
         v_y = row * cell_l + (cell_l - v_l) / 2
         # Clamp so cuboid stays within base
@@ -370,9 +370,9 @@ def build_oriented_solid(location, u_dir, v_dir, width, length, depth, config_or
                 used_positions.add(pos)
                 break
         # Horizontal cuboid: parameterized size calculation
-        h_w = np.random.uniform(cell_w * h_width_min_factor, h_width_max_factor * width / h_width_divisor)
-        h_l = np.random.uniform(cell_l * h_length_min_factor, h_length_max_factor * length)
-        h_d = random.uniform(depth * h_depth_min_factor, depth * h_depth_max_factor)
+        h_w = round_to_precision(np.random.uniform(cell_w * h_width_min_factor, h_width_max_factor * width / h_width_divisor))
+        h_l = round_to_precision(np.random.uniform(cell_l * h_length_min_factor, h_length_max_factor * length))
+        h_d = round_to_precision(random.uniform(depth * h_depth_min_factor, depth * h_depth_max_factor))
         h_x = col * cell_w + (cell_w - h_w) / 2
         h_y = row * cell_l + (cell_l - h_l) / 2
         # Clamp so cuboid stays within base

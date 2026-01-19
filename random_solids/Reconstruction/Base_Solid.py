@@ -69,7 +69,7 @@ base_depth = 300
 # ============================================================================
 # COORDINATE ROUNDING FOR BUILD PROCESS
 # ============================================================================
-# Build tolerance: 0.5mm for dimensional precision
+# Build tolerance: 0.1mm for dimensional precision
 # Reconstruction tolerance: 0.05mm (tighter for accurate recovery)
 # Normal/rotation tolerance: 1e-6 (high precision for angles)
 #
@@ -77,14 +77,14 @@ base_depth = 300
 # created with consistent precision from the start.
 
 # Global tolerance for building geometry (dimensions)
-BUILD_TOLERANCE = 0.5  # mm
+BUILD_TOLERANCE = 0.1  # mm
 
 def round_to_precision(value, precision=BUILD_TOLERANCE):
-    """Round a single coordinate value to specified precision (default 0.5mm)"""
+    """Round a single coordinate value to specified precision (default 0.1mm)"""
     return round(value / precision) * precision
 
 def make_rounded_pnt(x, y, z, precision=BUILD_TOLERANCE):
-    """Create a gp_Pnt with coordinates rounded to specified precision (default 0.5mm)"""
+    """Create a gp_Pnt with coordinates rounded to specified precision (default 0.1mm)"""
     return gp_Pnt(
         round_to_precision(x, precision),
         round_to_precision(y, precision),
@@ -92,7 +92,7 @@ def make_rounded_pnt(x, y, z, precision=BUILD_TOLERANCE):
     )
 
 def make_rounded_vec(x, y, z, precision=BUILD_TOLERANCE):
-    """Create a gp_Vec with coordinates rounded to specified precision (default 0.5mm)"""
+    """Create a gp_Vec with coordinates rounded to specified precision (default 0.1mm)"""
     return gp_Vec(
         round_to_precision(x, precision),
         round_to_precision(y, precision),
@@ -277,11 +277,11 @@ def generate_valid_base(seed=None, max_attempts=10, current_attempt=0):
           f"(seed={seed}, attempt {current_attempt+1}/{max_attempts})")
     cuboids = []
     for i in range(num_cuboids):
-        cx = random.uniform(0, 40)
-        cy = random.uniform(0, 40)
-        w = random.uniform(10, 30)
-        d = random.uniform(10, 30)
-        h = random.uniform(20, 60)
+        cx = round_to_precision(random.uniform(0, 40))
+        cy = round_to_precision(random.uniform(0, 40))
+        w = round_to_precision(random.uniform(10, 30))
+        d = round_to_precision(random.uniform(10, 30))
+        h = round_to_precision(random.uniform(20, 60))
         # 20% chance of being angled, otherwise 0
         if random.random() < 0.2:
             ang = random.choice([15, 30, 45, 60, 90])
@@ -294,10 +294,10 @@ def generate_valid_base(seed=None, max_attempts=10, current_attempt=0):
     boxes = []
     # Place each cuboid base below z=0
     for cx, cy, w, d, h, ang in cuboids:
-        base_offset = random.uniform(5, 15)
+        base_offset = round_to_precision(random.uniform(5, 15))
         z_base = -base_offset
         # Round all coordinates to 0.1mm precision
-        box = BRepPrimAPI_MakeBox(make_rounded_pnt(cx, cy, z_base), float(w), float(d), float(h)).Shape()
+        box = BRepPrimAPI_MakeBox(make_rounded_pnt(cx, cy, z_base), w, d, h).Shape()
         trsf = gp_Trsf()
         # Only rotate about z axis, keep translation in x/y/z_base
         if ang != 0:
@@ -549,8 +549,8 @@ def build_solid_with_polygons(seed, quiet, no_lettering=False):
                         for i in range(num_sides):
                             angle = angle_offset + i * 2 * np.pi / num_sides
                             pt = [
-                                center.x + radius * np.cos(angle),
-                                center.y + radius * np.sin(angle)
+                                round_to_precision(center.x + radius * np.cos(angle)),
+                                round_to_precision(center.y + radius * np.sin(angle))
                             ]
                             polygon_points.append(tuple(pt))
                     else:
@@ -558,8 +558,8 @@ def build_solid_with_polygons(seed, quiet, no_lettering=False):
                             angle = angle_offset + i * 2 * np.pi / num_sides
                             r = max(radius * random.uniform(0.7, 1.0), min_radius)
                             pt = [
-                                center.x + r * np.cos(angle),
-                                center.y + r * np.sin(angle)
+                                round_to_precision(center.x + r * np.cos(angle)),
+                                round_to_precision(center.y + r * np.sin(angle))
                             ]
                             polygon_points.append(tuple(pt))
                     polygon_points.append(polygon_points[0])
@@ -637,7 +637,7 @@ def build_solid_with_polygons(seed, quiet, no_lettering=False):
                     polygon_wire_builder.Add(edge)
                 polygon_wire = polygon_wire_builder.Wire()
                 polygon_face = BRepBuilderAPI_MakeFace(polygon_wire).Face()
-                extrude_depth = random.uniform(5, 20)
+                extrude_depth = round_to_precision(random.uniform(5, 20))
                 extrude_vec = extrude_vec_func['vec'](extrude_depth)
                 extruded_solid = BRepPrimAPI_MakePrism(
                     polygon_face, extrude_vec
@@ -689,10 +689,10 @@ def build_solid_with_polygons(seed, quiet, no_lettering=False):
                 polygon_boundary = Polygon(outer_2d)
                 minx, miny, maxx, maxy = polygon_boundary.bounds
                 for _ in range(100):
-                    rw = random.uniform((maxx-minx)*0.2, (maxx-minx)*0.7)
-                    rl = random.uniform((maxy-miny)*0.2, (maxy-miny)*0.7)
-                    rx = random.uniform(minx, maxx - rw)
-                    ry = random.uniform(miny, maxy - rl)
+                    rw = round_to_precision(random.uniform((maxx-minx)*0.2, (maxx-minx)*0.7))
+                    rl = round_to_precision(random.uniform((maxy-miny)*0.2, (maxy-miny)*0.7))
+                    rx = round_to_precision(random.uniform(minx, maxx - rw))
+                    ry = round_to_precision(random.uniform(miny, maxy - rl))
                     rect = Polygon([
                         (rx, ry),
                         (rx + rw, ry),
@@ -702,10 +702,10 @@ def build_solid_with_polygons(seed, quiet, no_lettering=False):
                     if polygon_boundary.contains(rect):
                         break
                 else:
-                    rw = (maxx-minx)*0.5
-                    rl = (maxy-miny)*0.5
-                    rx = minx + (maxx-minx-rw)/2
-                    ry = miny + (maxy-miny-rl)/2
+                    rw = round_to_precision((maxx-minx)*0.5)
+                    rl = round_to_precision((maxy-miny)*0.5)
+                    rx = round_to_precision(minx + (maxx-minx-rw)/2)
+                    ry = round_to_precision(miny + (maxy-miny-rl)/2)
                 z = np.mean([v[2] for v in outer_vertices])
                 location = (rx, ry, z)
                 u_dir = (rw, 0, 0)
