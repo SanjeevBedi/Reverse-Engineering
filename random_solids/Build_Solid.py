@@ -323,6 +323,14 @@ def main():
         '--no-lettering', action='store_true',
         help='Skip lettering operations for faster testing'
     )
+    parser.add_argument(
+        '--elev', type=float, default=30,
+        help='Elevation angle for 3D view in degrees (default: 30)'
+    )
+    parser.add_argument(
+        '--azim', type=float, default=-60,
+        help='Azimuth angle for 3D view in degrees (default: -60)'
+    )
     
     args = parser.parse_args()
     
@@ -414,9 +422,16 @@ def main():
     os.makedirs("STEPfiles", exist_ok=True)
     save_solid_as_step(solid, "STEPfiles/solid_output.step")
     
+    # Save BREP file for connectivity matrix generation
+    from OCC.Core.BRepTools import breptools_Write
+    os.makedirs("Output", exist_ok=True)
+    brep_filename = f"Output/solid_seed_{config.seed}.brep"
+    breptools_Write(solid, brep_filename)
+    print(f"[SAVE] Saved BREP file: {brep_filename}")
+    
     # Extract face polygons
     print("\n[STEP 2] Extracting face polygons from solid...")
-    face_polygons = extract_and_visualize_faces(solid, visualize=True)
+    face_polygons = extract_and_visualize_faces(solid, visualize=True, elev=args.elev, azim=args.azim)
     print(f"Extracted {len(face_polygons)} faces")
     
     # Compute volume of original solid
@@ -471,7 +486,10 @@ def main():
     
     # Display 3D solid
     print("\n[STEP 4] Visualizing 3D solid...")
-    visualize_3d_solid(face_polygons, all_vertices_sorted)
+    # Default view angles: elev=30, azim=-60
+    # Adjust elev (elevation, vertical angle) and azim (azimuth, horizontal rotation) as needed
+    visualize_3d_solid(face_polygons, all_vertices_sorted, seed=seed, pdf_dir="PDFfiles", 
+                       elev=args.elev, azim=args.azim)
     
     # Create engineering views
     print("\n[STEP 5] Creating engineering views (Top, Front, Side, Isometric)...")

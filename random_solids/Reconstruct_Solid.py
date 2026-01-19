@@ -1348,6 +1348,359 @@ def build_square_connectivity_matrices(
     return top_conn, front_conn, side_conn, top_proj, front_proj, side_proj
 
 
+def generate_face_visualization(face_data, output_filename='face_visualization.pdf'):
+    """
+    Generate publication-quality 6-panel visualization of face construction process.
+    
+    Parameters:
+    -----------
+    face_data : dict
+        Dictionary containing:
+        - 'face_num': Face number
+        - 'vertices_on_plane': List of vertex indices on the plane
+        - 'vertex_coords_3d': All vertex 3D coordinates
+        - 'identified_polygons': List of polygon vertex lists
+        - 'selected_polygons': List of selected polygon vertex lists  
+        - 'relationship_matrix': 2D array showing polygon relationships
+        - 'relationship_labels': List of relationship labels
+        - 'final_boundary': Final boundary vertex list
+        - 'final_holes': List of hole vertex lists
+        - 'solid_shape': OCC TopoDS_Shape of complete solid (optional)
+        - 'plane_normal': Normal vector of face plane
+        - 'plane_d': Plane equation d value
+    output_filename : str
+        Output PDF filename
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Polygon as MplPolygon
+    from matplotlib.backends.backend_pdf import PdfPages
+    import numpy as np
+    
+    # Create figure with 3x2 layout
+    fig = plt.figure(figsize=(12, 16))
+    
+    # Extract data
+    face_num = face_data['face_num']
+    verts_on_plane = face_data['vertices_on_plane']
+    all_coords = face_data['vertex_coords_3d']
+    identified_polys = face_data.get('identified_polygons', [])
+    selected_polys = face_data.get('selected_polygons', [])
+    rel_matrix = face_data.get('relationship_matrix', None)
+    rel_labels = face_data.get('relationship_labels', [])
+    final_boundary = face_data.get('final_boundary', [])
+    final_holes = face_data.get('final_holes', [])
+    plane_normal = face_data['plane_normal']
+    plane_d = face_data['plane_d']
+    
+    # Project all vertices to face plane for 2D visualization
+    def project_to_2d(coords_3d, normal):
+        """Project 3D coordinates to 2D using plane's coordinate system"""
+        # Create orthogonal basis vectors in the plane
+        if abs(normal[2]) < 0.9:
+            u = np.cross(normal, [0, 0, 1])
+        else:
+            u = np.cross(normal, [1, 0, 0])
+        u = u / np.linalg.norm(u)
+        v = np.cross(normal, u)
+        v = v / np.linalg.norm(v)
+        
+        # Project to 2D
+        centroid = np.mean([all_coords[i] for i in verts_on_plane], axis=0)
+        coords_2d = []
+        for coord in coords_3d:
+            rel = coord - centroid
+            x = np.dot(rel, u)
+            y = np.dot(rel, v)
+            coords_2d.append([x, y])
+        return np.array(coords_2d)
+    
+    coords_2d = project_to_2d(all_coords, plane_normal)
+    
+    # Panel 1: Vertices on face plane
+    ax1 = plt.subplot(3, 2, 1)
+    ax1.set_title(f'(a) Vertices on Face {face_num} Plane', fontsize=12, fontweight='bold')
+    ax1.set_aspect('equal')
+    
+    # Plot all vertices in gray
+    ax1.scatter(coords_2d[:, 0], coords_2d[:, 1], c='lightgray', s=30, alpha=0.3, zorder=1)
+    
+    # Highlight vertices on this plane
+    plane_coords = coords_2d[verts_on_plane]
+    ax1.scatter(plane_coords[:, 0], plane_coords[:, 1], c='blue', s=80, alpha=0.7, zorder=2, label='On-plane vertices')
+    
+    # Label vertices
+    for idx in verts_on_plane:
+        ax1.annotate(f'{idx}', xy=coords_2d[idx], xytext=(3, 3), 
+                    textcoords='offset points', fontsize=8, color='darkblue')
+    
+    ax1.set_xlabel('u (mm)')
+    ax1.set_ylabel('v (mm)')
+    ax1.legend(loc='upper right', fontsize=9)
+    ax1.grid(True, alpha=0.3)
+    
+    # Panel 2: Polygons from edges on face plane
+    ax2 = plt.subplot(3, 2, 2)
+    ax2.set_title(f'(b) Polygons from Face Plane Edges ({len(identified_polys)})', 
+                  fontsize=12, fontweight='bold')
+    ax2.set_aspect('equal')
+    
+    # Plot vertices first
+    ax2.scatter(coords_2d[verts_on_plane, 0], coords_2d[verts_on_plane, 1],
+               c='gray', s=40, alpha=0.6, zorder=2, label='Vertices')
+    
+    # Draw all identified polygons with thin black lines and different dash patterns
+    # Shift each polygon slightly for better visibility when overlapping
+    line_styles = [
+        '-',                    # solid
+        '--',                   # dashed
+        (0, (5, 5)),           # dashed (5 on, 5 off)
+        (0, (3, 2)),           # small dashed
+        (0, (5, 2, 1, 2)),     # dash-dot
+        (0, (5, 2, 1, 2, 1, 2)), # dash-double-dot
+        (0, (1, 1)),           # densely dotted
+        (0, (3, 1, 1, 1)),     # dash-dot-dot
+        (0, (7, 3)),           # long dashed
+    ]
+    
+    for poly_idx, poly in enumerate(identified_polys):
+        # Shift polygon by (0.2*idx, 0.2*idx) for visibility
+        shift = np.array([0.2 * poly_idx, 0.2 * poly_idx])
+        poly_coords = coords_2d[poly] + shift
+        
+        linestyle = line_styles[poly_idx % len(line_styles)]
+        polygon = MplPolygon(poly_coords, fill=False,
+                           edgecolor='black',
+                           linestyle=linestyle,
+                           linewidth=1.5, label=f'Poly {poly_idx+1}')
+        ax2.add_patch(polygon)
+        
+        center = np.mean(poly_coords, axis=0)
+        ax2.text(center[0], center[1], f'{poly_idx+1}', fontsize=11,
+                ha='center', va='center', fontweight='bold', 
+                bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.7, edgecolor='none'))
+    
+    ax2.set_xlabel('u (mm)')
+    ax2.set_ylabel('v (mm)')
+    if len(identified_polys) <= 10:
+        ax2.legend(loc='upper right', fontsize=8, ncol=2, framealpha=0)
+    ax2.grid(True, alpha=0.3)
+    ax2.autoscale()
+    
+    # Panel 3: Final face polygon
+    ax3 = plt.subplot(3, 2, 3)
+    title_text = f'(c) Final Face Polygon'
+    if len(final_holes) > 0:
+        title_text += f' (with {len(final_holes)} Hole{"s" if len(final_holes) > 1 else ""})'
+    ax3.set_title(title_text, fontsize=12, fontweight='bold')
+    ax3.set_aspect('equal')
+    
+    # Plot vertices first
+    ax3.scatter(coords_2d[verts_on_plane, 0], coords_2d[verts_on_plane, 1],
+               c='gray', s=40, alpha=0.6, zorder=2, label='Vertices')
+    
+    # Draw final boundary polygon with thin black solid line
+    if len(final_boundary) > 0:
+        boundary_coords = coords_2d[final_boundary]
+        boundary_poly = MplPolygon(boundary_coords, fill=False,
+                                  edgecolor='black', linestyle='-', linewidth=2, 
+                                  label='Boundary')
+        ax3.add_patch(boundary_poly)
+    
+    # Draw holes with thin black lines and different dash patterns, shifted for visibility
+    hole_line_styles = [
+        '--',                   # dashed
+        (0, (5, 2, 1, 2)),     # dash-dot
+        (0, (3, 2)),           # small dashed
+        (0, (5, 2, 1, 2, 1, 2)), # dash-double-dot
+        (0, (7, 3)),           # long dashed
+    ]
+    
+    for hole_idx, hole in enumerate(final_holes):
+        # Shift holes by (0.2*idx, 0.2*idx) for visibility
+        shift = np.array([0.2 * (hole_idx + 1), 0.2 * (hole_idx + 1)])
+        hole_coords = coords_2d[hole] + shift
+        
+        linestyle = hole_line_styles[hole_idx % len(hole_line_styles)]
+        hole_poly = MplPolygon(hole_coords, fill=False,
+                             edgecolor='black', linestyle=linestyle,
+                             linewidth=1.5, label=f'Hole {hole_idx+1}' if hole_idx == 0 else '')
+        ax3.add_patch(hole_poly)
+        
+        # Label hole center
+        center = np.mean(hole_coords, axis=0)
+        ax3.text(center[0], center[1], f'H{hole_idx+1}', fontsize=10,
+                ha='center', va='center', fontweight='bold',
+                bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.7, edgecolor='none'))
+    
+    ax3.set_xlabel('u (mm)')
+    ax3.set_ylabel('v (mm)')
+    if len(selected_polys) + (1 if len(final_holes) > 0 else 0) <= 10:
+        ax3.legend(loc='upper right', fontsize=8, framealpha=0)
+    ax3.grid(True, alpha=0.3)
+    ax3.autoscale()
+    
+    # Panel 4: Relevant orthogonal view of complete solid
+    ax4 = plt.subplot(3, 2, 4)
+    
+    # Determine which view is most relevant based on plane normal
+    plane_normal = face_data.get('plane_normal', np.array([0, 0, 1]))
+    abs_normal = np.abs(plane_normal)
+    
+    # Find dominant axis (which view shows this face best)
+    if abs_normal[2] > max(abs_normal[0], abs_normal[1]):  # Z-dominant -> use top view
+        view_name = 'Top View'
+        view_coords = all_coords[:, [0, 1]]  # X, Y
+        xlabel, ylabel = 'X (mm)', 'Y (mm)'
+    elif abs_normal[1] > abs_normal[0]:  # Y-dominant -> use front view
+        view_name = 'Front View'
+        view_coords = all_coords[:, [0, 2]]  # X, Z
+        xlabel, ylabel = 'X (mm)', 'Z (mm)'
+    else:  # X-dominant -> use side view
+        view_name = 'Side View'
+        view_coords = all_coords[:, [1, 2]]  # Y, Z
+        xlabel, ylabel = 'Y (mm)', 'Z (mm)'
+    
+    ax4.set_title(f'(d) Complete Solid - {view_name}', fontsize=12, fontweight='bold')
+    ax4.set_aspect('equal')
+    
+    # Draw all faces of the solid
+    all_faces_data = face_data.get('all_faces', [])
+    for face_idx, face_dict in enumerate(all_faces_data):
+        if 'vertices' in face_dict:
+            face_verts = face_dict['vertices']
+            face_coords = view_coords[face_verts]
+            
+            # Highlight the current face being visualized
+            if face_idx == face_num - 1:  # Current face
+                ax4.fill(np.append(face_coords[:, 0], face_coords[0, 0]),
+                        np.append(face_coords[:, 1], face_coords[0, 1]),
+                        color='yellow', alpha=0.5, zorder=2)
+                ax4.plot(np.append(face_coords[:, 0], face_coords[0, 0]),
+                        np.append(face_coords[:, 1], face_coords[0, 1]),
+                        'g-', linewidth=2.5, alpha=0.9, label=f'Face {face_num}')
+            else:  # Other faces
+                ax4.plot(np.append(face_coords[:, 0], face_coords[0, 0]),
+                        np.append(face_coords[:, 1], face_coords[0, 1]),
+                        'gray', linewidth=0.8, alpha=0.4)
+    
+    ax4.set_xlabel(xlabel)
+    ax4.set_ylabel(ylabel)
+    ax4.legend(loc='upper right', fontsize=9)
+    ax4.grid(True, alpha=0.3)
+    ax4.autoscale()
+    
+    # Panel 5: Final face
+    ax5 = plt.subplot(3, 2, 5)
+    ax5.set_title(f'(e) Final Face (Boundary + {len(final_holes)} Holes)', fontsize=12, fontweight='bold')
+    ax5.set_aspect('equal')
+    
+    # Draw boundary
+    if len(final_boundary) > 0:
+        boundary_coords = coords_2d[final_boundary]
+        polygon = MplPolygon(boundary_coords, fill=True, alpha=0.5,
+                           edgecolor='darkgreen', facecolor='lightgreen',
+                           linewidth=3, label='Boundary')
+        ax5.add_patch(polygon)
+        
+        # Draw vertices
+        ax5.scatter(boundary_coords[:, 0], boundary_coords[:, 1], 
+                   c='darkgreen', s=60, zorder=3)
+        
+        # Label vertices
+        for idx in final_boundary:
+            ax5.annotate(f'{idx}', xy=coords_2d[idx], xytext=(3, 3),
+                        textcoords='offset points', fontsize=8, color='darkgreen', fontweight='bold')
+    
+    # Draw holes
+    for hole_idx, hole in enumerate(final_holes):
+        hole_coords = coords_2d[hole]
+        hole_poly = MplPolygon(hole_coords, fill=True, alpha=0.7,
+                             edgecolor='red', facecolor='white',
+                             linewidth=2.5, label=f'Hole {hole_idx+1}')
+        ax5.add_patch(hole_poly)
+        
+        # Draw vertices
+        ax5.scatter(hole_coords[:, 0], hole_coords[:, 1],
+                   c='red', s=50, zorder=3)
+    
+    ax5.set_xlabel('u (mm)')
+    ax5.set_ylabel('v (mm)')
+    ax5.legend(loc='upper right', fontsize=9)
+    ax5.grid(True, alpha=0.3)
+    ax5.autoscale()
+    
+    # Panel 6: Complete solid with face highlighted
+    ax6 = plt.subplot(3, 2, 6, projection='3d')
+    ax6.set_title('(f) Complete Solid (Face Highlighted)', fontsize=12, fontweight='bold')
+    
+    # For now, just show 3D projection of face
+    # TODO: If OCC solid is available, render it properly
+    solid_shape = face_data.get('solid_shape', None)
+    
+    if solid_shape is not None:
+        # Try to render OCC shape (simplified version)
+        ax6.text(0.5, 0.5, 0.5, 'OCC 3D rendering\n(to be implemented)', 
+                ha='center', va='center', fontsize=10)
+    else:
+        # Draw face in 3D
+        if len(final_boundary) > 0:
+            boundary_coords_3d = all_coords[final_boundary]
+            
+            # Create 3D polygon
+            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+            verts = [boundary_coords_3d]
+            poly_collection = Poly3DCollection(verts, alpha=0.6, 
+                                              facecolor='lightblue', 
+                                              edgecolor='darkblue', linewidth=2)
+            ax6.add_collection3d(poly_collection)
+            
+            # Draw holes
+            for hole in final_holes:
+                hole_coords_3d = all_coords[hole]
+                hole_verts = [hole_coords_3d]
+                hole_collection = Poly3DCollection(hole_verts, alpha=0.8,
+                                                  facecolor='white',
+                                                  edgecolor='red', linewidth=2)
+                ax6.add_collection3d(hole_collection)
+            
+            # Set axis limits
+            all_face_coords = boundary_coords_3d
+            for hole in final_holes:
+                all_face_coords = np.vstack([all_face_coords, all_coords[hole]])
+            
+            margin = 20
+            ax6.set_xlim(all_face_coords[:, 0].min() - margin, 
+                        all_face_coords[:, 0].max() + margin)
+            ax6.set_ylim(all_face_coords[:, 1].min() - margin,
+                        all_face_coords[:, 1].max() + margin)
+            ax6.set_zlim(all_face_coords[:, 2].min() - margin,
+                        all_face_coords[:, 2].max() + margin)
+    
+    ax6.set_xlabel('X (mm)')
+    ax6.set_ylabel('Y (mm)')
+    ax6.set_zlabel('Z (mm)')
+    
+    # Overall title
+    fig.suptitle(f'Face {face_num} Construction Process', 
+                fontsize=14, fontweight='bold', y=0.995)
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.99])
+    
+    # Save to PDF
+    with PdfPages(output_filename) as pdf:
+        pdf.savefig(fig, dpi=300, bbox_inches='tight')
+        
+        # Add metadata
+        d = pdf.infodict()
+        d['Title'] = f'Face {face_num} Construction Visualization'
+        d['Author'] = 'Solid Reconstruction System'
+        d['Subject'] = 'Engineering drawing reconstruction'
+        d['Keywords'] = 'face construction, polygon identification, topology'
+    
+    plt.close(fig)
+    print(f"\n[VISUALIZATION] Saved face visualization to: {output_filename}")
+
+
 def main():
     from OCC.Core.BRepCheck import BRepCheck_Analyzer
     from Build_Solid import make_face_with_holes
@@ -1378,8 +1731,22 @@ def main():
         '--no-graphics', action='store_true',
         help='Save graphics to PDF instead of displaying interactively'
     )
+    parser.add_argument(
+        '--visualize-face', type=str, default=None, metavar='FACE_NUM',
+        help='Generate publication-quality visualization for specified face (e.g., "6" for Face 6). Creates 6-panel figure showing face construction process.'
+    )
     
     args = parser.parse_args()
+    
+    # Initialize visualization mode if requested
+    visualize_face_num = None
+    if args.visualize_face:
+        try:
+            visualize_face_num = int(args.visualize_face)
+            print(f"\n[VISUALIZATION MODE] Will generate publication figure for Face {visualize_face_num}")
+        except ValueError:
+            print(f"\n[ERROR] Invalid face number: {args.visualize_face}")
+            return
     
     print("\n" + "="*70)
     print("SOLID RECONSTRUCTION FROM ENGINEERING VIEWS")
@@ -1396,6 +1763,12 @@ def main():
             args.seed, args.input_dir,
             units, drawing_scale_real, 
             drawing_scale_drawing)
+        
+        # Enable visualization data collection if requested
+        if visualize_face_num is not None:
+            import V6_current
+            V6_current.FACE_VIZ_ENABLED = True
+            print(f"[VISUALIZATION] Enabled data collection for all faces")
         
         # Ensure face_polygons is a list, not None
         if face_polygons is None:
@@ -1450,6 +1823,48 @@ def main():
     front_conn_binary = (front_conn > 0).astype(int)
     side_conn_binary = (side_conn > 0).astype(int)
     merged_conn = top_conn_binary + front_conn_binary + side_conn_binary
+    
+    # Check for edges perpendicular to missing view with point projection
+    # If conn=2 and edge is perpendicular to third view with a point there, increment to conn=3
+    print("  Checking for perpendicular edges projecting to points in missing view...")
+    upgraded_edges = 0
+    N = len(selected_vertices)
+    for i in range(N):
+        for j in range(i+1, N):
+            if merged_conn[i, j] == 2:
+                v1, v2 = selected_vertices[i], selected_vertices[j]
+                dx = abs(v2[0] - v1[0])
+                dy = abs(v2[1] - v1[1])
+                dz = abs(v2[2] - v1[2])
+                
+                # Check if perpendicular to top view (vertical: dx≈0, dy≈0) and not visible there
+                if dx < 1e-6 and dy < 1e-6 and top_conn_binary[i, j] == 0:
+                    # Edge projects to a point in top view - check if point exists
+                    if top_conn[i, i] > 0 or top_conn[j, j] > 0:
+                        merged_conn[i, j] += 1
+                        merged_conn[j, i] += 1
+                        upgraded_edges += 1
+                        continue
+                
+                # Check if perpendicular to front view (parallel to X: dy≈0, dz≈0) and not visible there
+                if dy < 1e-6 and dz < 1e-6 and front_conn_binary[i, j] == 0:
+                    # Edge projects to a point in front view
+                    if front_conn[i, i] > 0 or front_conn[j, j] > 0:
+                        merged_conn[i, j] += 1
+                        merged_conn[j, i] += 1
+                        upgraded_edges += 1
+                        continue
+                
+                # Check if perpendicular to side view (parallel to Y: dx≈0, dz≈0) and not visible there
+                if dx < 1e-6 and dz < 1e-6 and side_conn_binary[i, j] == 0:
+                    # Edge projects to a point in side view
+                    if side_conn[i, i] > 0 or side_conn[j, j] > 0:
+                        merged_conn[i, j] += 1
+                        merged_conn[j, i] += 1
+                        upgraded_edges += 1
+    
+    if upgraded_edges > 0:
+        print(f"  Upgraded {upgraded_edges} edges from conn=2 to conn=3 (perpendicular with point projection)")
     
     total_edges = np.sum(merged_conn > 0) // 2
     edges_conn3 = np.sum(merged_conn == 3) // 2
@@ -2884,10 +3299,199 @@ def main():
                         print(f"   Found {len(closed_polygons)} closed polygon(s) "
                               f"formed by free edges:")
                         
-                        # Check each closed polygon
+                        # ========================================================
+                        # STEP 1: Group polygons by plane and check relationships
+                        # ========================================================
+                        from shapely.geometry import Polygon as ShapelyPolygon
+                        
+                        # First pass: Compute plane equations for all polygons
+                        polygon_planes = []
                         for poly_idx, poly in enumerate(closed_polygons):
-                            print(f"     Polygon {poly_idx+1}: {len(poly)} "
-                                  f"vertices: {poly}")
+                            if len(poly) >= 3:
+                                poly_coords_3d = np.array([selected_vertices[v] for v in poly])
+                                centroid = np.mean(poly_coords_3d, axis=0)
+                                centered = poly_coords_3d - centroid
+                                _, _, Vt = np.linalg.svd(centered)
+                                normal = Vt[-1]
+                                d = -np.dot(normal, centroid)
+                                
+                                # Check planarity
+                                max_dist = max([abs(np.dot(normal, v) + d) for v in poly_coords_3d])
+                                
+                                polygon_planes.append({
+                                    'poly_idx': poly_idx,
+                                    'vertices': poly,
+                                    'normal': normal,
+                                    'd': d,
+                                    'centroid': centroid,
+                                    'max_dist': max_dist
+                                })
+                        
+                        # Second pass: Group polygons by coplanar relationships
+                        coplanar_groups = []
+                        processed = set()
+                        
+                        for i, plane_i in enumerate(polygon_planes):
+                            if i in processed:
+                                continue
+                            
+                            # Start new group with this polygon
+                            group = [i]
+                            processed.add(i)
+                            
+                            # Find all other polygons coplanar with this one
+                            for j, plane_j in enumerate(polygon_planes):
+                                if j <= i or j in processed:
+                                    continue
+                                
+                                # Check if coplanar
+                                angle = np.arccos(np.clip(np.abs(np.dot(plane_i['normal'], plane_j['normal'])), 0, 1))
+                                dist_diff = abs(np.dot(plane_i['normal'], plane_j['centroid']) + plane_i['d'])
+                                
+                                # Tolerance: 0.1 radians (~5.7°) and 0.5mm
+                                if angle < 0.1 and dist_diff < 0.5:
+                                    group.append(j)
+                                    processed.add(j)
+                            
+                            coplanar_groups.append(group)
+                        
+                        # Third pass: For each coplanar group, check hole relationships
+                        polygons_to_process = []  # List of (poly, classification)
+                        
+                        for group in coplanar_groups:
+                            if len(group) == 1:
+                                # Single polygon, process normally
+                                idx = group[0]
+                                polygons_to_process.append({
+                                    'vertices': polygon_planes[idx]['vertices'],
+                                    'normal': polygon_planes[idx]['normal'],
+                                    'd': polygon_planes[idx]['d'],
+                                    'classification': 'standalone'
+                                })
+                            else:
+                                # Multiple coplanar polygons - check for hole relationships
+                                print(f"\n   → Found {len(group)} coplanar polygons - checking hole relationships:")
+                                
+                                # Project all polygons to 2D using first polygon's coordinate system
+                                ref_idx = group[0]
+                                ref_plane = polygon_planes[ref_idx]
+                                normal = ref_plane['normal']
+                                centroid = ref_plane['centroid']
+                                
+                                # Create 2D coordinate system
+                                if abs(normal[2]) < 0.9:
+                                    u = np.cross(normal, [0, 0, 1])
+                                else:
+                                    u = np.cross(normal, [1, 0, 0])
+                                u = u / np.linalg.norm(u)
+                                v = np.cross(normal, u)
+                                v = v / np.linalg.norm(v)
+                                
+                                # Project all polygons to 2D
+                                shapely_polys = []
+                                for idx in group:
+                                    poly = polygon_planes[idx]['vertices']
+                                    poly_coords_3d = np.array([selected_vertices[v] for v in poly])
+                                    
+                                    poly_2d = []
+                                    for coord in poly_coords_3d:
+                                        rel = coord - centroid
+                                        x = np.dot(rel, u)
+                                        y = np.dot(rel, v)
+                                        poly_2d.append((x, y))
+                                    
+                                    try:
+                                        shapely_poly = ShapelyPolygon(poly_2d)
+                                        if not shapely_poly.is_valid:
+                                            shapely_poly = shapely_poly.buffer(0)
+                                        shapely_polys.append({
+                                            'idx': idx,
+                                            'vertices': poly,
+                                            'shapely': shapely_poly,
+                                            'area': shapely_poly.area
+                                        })
+                                    except Exception as e:
+                                        print(f"     ⚠️  Failed to create Shapely polygon for poly {idx}: {e}")
+                                        shapely_polys.append({
+                                            'idx': idx,
+                                            'vertices': poly,
+                                            'shapely': None,
+                                            'area': 0
+                                        })
+                                
+                                # Sort by area (largest first - likely boundaries)
+                                shapely_polys.sort(key=lambda x: x['area'], reverse=True)
+                                
+                                # Check for hole relationships
+                                boundary_poly = None
+                                holes = []
+                                independent_polys = []
+                                
+                                for i, poly_data in enumerate(shapely_polys):
+                                    if poly_data['shapely'] is None:
+                                        independent_polys.append(poly_data)
+                                        continue
+                                    
+                                    if boundary_poly is None:
+                                        # Largest polygon is the boundary
+                                        boundary_poly = poly_data
+                                        print(f"     Polygon {poly_data['idx']+1}: Boundary (largest, area={poly_data['area']:.2f})")
+                                    else:
+                                        # Check if this polygon is inside the boundary
+                                        if poly_data['shapely'].within(boundary_poly['shapely']):
+                                            holes.append(poly_data)
+                                            print(f"     Polygon {poly_data['idx']+1}: HOLE in Polygon {boundary_poly['idx']+1} (contained within)")
+                                        else:
+                                            # Not a hole, process independently
+                                            independent_polys.append(poly_data)
+                                            print(f"     Polygon {poly_data['idx']+1}: Independent (not contained)")
+                                
+                                # Create face with holes if applicable
+                                if boundary_poly is not None:
+                                    boundary_plane = polygon_planes[boundary_poly['idx']]
+                                    
+                                    # Print identified polygons on this plane
+                                    print(f"   [COPLANAR GROUP] Plane (normal={boundary_plane['normal']}, d={boundary_plane['d']:.1f}):")
+                                    print(f"      Boundary polygon: {len(boundary_poly['vertices'])} vertices")
+                                    for h_idx, h in enumerate(holes):
+                                        print(f"      Hole {h_idx+1}: {len(h['vertices'])} vertices")
+                                    for ind_idx, ind in enumerate(independent_polys):
+                                        print(f"      Independent polygon {ind_idx+1}: {len(ind['vertices'])} vertices")
+                                    
+                                    polygons_to_process.append({
+                                        'vertices': boundary_poly['vertices'],
+                                        'normal': boundary_plane['normal'],
+                                        'd': boundary_plane['d'],
+                                        'classification': 'boundary_with_holes',
+                                        'holes': [h['vertices'] for h in holes]
+                                    })
+                                
+                                # Process independent polygons normally
+                                for poly_data in independent_polys:
+                                    plane = polygon_planes[poly_data['idx']]
+                                    polygons_to_process.append({
+                                        'vertices': poly_data['vertices'],
+                                        'normal': plane['normal'],
+                                        'd': plane['d'],
+                                        'classification': 'standalone'
+                                    })
+                        
+                        # ========================================================
+                        # STEP 2: Process each polygon with its classification
+                        # ========================================================
+                        # Check each closed polygon
+                        for poly_data in polygons_to_process:
+                            poly = poly_data['vertices']
+                            poly_idx = closed_polygons.index(poly)  # Get original index for printing
+                            classification = poly_data.get('classification', 'standalone')
+                            holes = poly_data.get('holes', [])
+                            
+                            if classification == 'boundary_with_holes':
+                                print(f"\n     Polygon {poly_idx+1}: {len(poly)} vertices: {poly}")
+                                print(f"       → Boundary polygon with {len(holes)} hole(s)")
+                            else:
+                                print(f"\n     Polygon {poly_idx+1}: {len(poly)} "
+                                      f"vertices: {poly}")
                             
                             # Check if this polygon matches any face in extracted_faces
                             poly_set = set(poly)
@@ -2926,12 +3530,10 @@ def main():
                             if len(poly) >= 3:
                                 outer_verts_3d = [selected_vertices[v_idx] for v_idx in poly]
                             
-                                # Fit plane using SVD
+                                # Use precomputed plane equation from poly_data
+                                computed_normal = poly_data['normal']
+                                computed_d = poly_data['d']
                                 centroid = np.mean(outer_verts_3d, axis=0)
-                                centered = np.array(outer_verts_3d) - centroid
-                                _, _, Vt = np.linalg.svd(centered)
-                                computed_normal = Vt[-1]
-                                computed_d = -np.dot(computed_normal, centroid)
                                 
                                 # Check max distance from fitted plane
                                 max_dist = 0.0
@@ -3495,20 +4097,26 @@ def main():
                                                     'vertices': poly,
                                                     'normal': tuple(computed_normal),
                                                     'd': computed_d,
-                                                    'holes': []
+                                                    'holes': holes  # Include any holes from classification
                                                 }
                                                 extracted_faces.append(new_face)
-                                                print(f"       ✓ Added planar face with {len(poly)} vertices")
+                                                if len(holes) > 0:
+                                                    print(f"       ✓ Added planar face with {len(poly)} vertices and {len(holes)} hole(s)")
+                                                else:
+                                                    print(f"       ✓ Added planar face with {len(poly)} vertices")
                                         else:
                                             print(f"       ✗ Merge failed: no remaining edges")
                                             new_face = {
                                                 'vertices': poly,
                                                 'normal': tuple(computed_normal),
                                                 'd': computed_d,
-                                                'holes': []
+                                                'holes': holes  # Include any holes from classification
                                             }
                                             extracted_faces.append(new_face)
-                                            print(f"       ✓ Added planar face with {len(poly)} vertices")
+                                            if len(holes) > 0:
+                                                print(f"       ✓ Added planar face with {len(poly)} vertices and {len(holes)} hole(s)")
+                                            else:
+                                                print(f"       ✓ Added planar face with {len(poly)} vertices")
                                     else:
                                         # No coplanar face found, add as new face
                                         print(f"       → Adding as new face to close free edges")
@@ -3516,10 +4124,15 @@ def main():
                                             'vertices': poly,
                                             'normal': tuple(computed_normal),
                                             'd': computed_d,
-                                            'holes': []
+                                            'holes': holes  # Include any holes from classification
                                         }
                                         extracted_faces.append(new_face)
-                                        print(f"       ✓ Added planar face with {len(poly)} vertices")
+                                        if len(holes) > 0:
+                                            print(f"       ✓ Added planar face with {len(poly)} vertices and {len(holes)} hole(s)")
+                                            for hole_idx, hole in enumerate(holes):
+                                                print(f"         Hole {hole_idx+1}: {len(hole)} vertices: {hole}")
+                                        else:
+                                            print(f"       ✓ Added planar face with {len(poly)} vertices")
                                         faces_were_merged = True  # Trigger re-build and re-sew
                         
                             # Try to find which face in extracted_faces matches
@@ -5633,6 +6246,84 @@ def main():
         f.write("\n" + "="*70 + "\n")
     
     print(f"\nSummary saved to: {summary_file}")
+    
+    # Generate face visualization if requested
+    if visualize_face_num is not None and visualize_face_num > 0:
+        print(f"\n[VISUALIZATION] Generating publication figure for Face {visualize_face_num}...")
+        
+        # Check if face exists
+        if visualize_face_num > len(extracted_faces):
+            print(f"[ERROR] Face {visualize_face_num} does not exist (only {len(extracted_faces)} faces found)")
+        else:
+            face_idx = visualize_face_num - 1
+            face = extracted_faces[face_idx]
+            
+            # Get collected visualization data from V6_current
+            # Match by plane equation since face numbering changes during processing
+            import V6_current
+            face_normal = np.array(face['normal'])
+            face_d = face['d']
+            plane_key = f"plane_{face_normal[0]:.6f}_{face_normal[1]:.6f}_{face_normal[2]:.6f}_{face_d:.6f}"
+            print(f"[VISUALIZATION] Looking for plane_key: {plane_key}")
+            collected_data = V6_current.FACE_VIZ_DATA.get(plane_key, {})
+            
+            if not collected_data:
+                print(f"[WARNING] No visualization data collected for this face's plane")
+                print(f"[WARNING] Available planes: {list(V6_current.FACE_VIZ_DATA.keys())[:5]}")
+            
+            # Get all vertices on this face's plane
+            face_normal = np.array(face['normal'])
+            face_d = face['d']
+            verts_on_plane = []
+            for v_idx, v_coord in enumerate(selected_vertices):
+                dist_to_plane = abs(np.dot(face_normal, v_coord) + face_d)
+                if dist_to_plane < 0.5:  # Within 0.5mm of plane
+                    verts_on_plane.append(v_idx)
+            
+            # Use collected data if available, otherwise fall back to final face
+            boundary_verts = face['vertices']
+            hole_verts = face.get('holes', [])
+            alternate_verts = face.get('alternates', [])  # Get alternate polygons from face data
+            
+            # Get all identified polygons (including rejected ones) from collected data
+            # Fall back to using boundary + holes + alternates from final face data
+            fallback_polys = [boundary_verts] + hole_verts + alternate_verts
+            all_identified = collected_data.get('all_identified_polygons', fallback_polys)
+            selected_polys = collected_data.get('selected_polygons', [boundary_verts] + hole_verts)
+            
+            print(f"[VISUALIZATION] Found {len(all_identified)} identified polygons (including rejected)")
+            print(f"[VISUALIZATION] Found {len(selected_polys)} selected polygons")
+            
+            # Create minimal relationship matrix for single polygon
+            rel_matrix = [['-']]
+            rel_labels = ['Boundary']
+            
+            face_viz_data = {
+                'face_num': visualize_face_num,
+                'vertices_on_plane': verts_on_plane,
+                'vertex_coords_3d': selected_vertices,
+                'identified_polygons': all_identified,  # All polygons including rejected
+                'selected_polygons': selected_polys,  # Only those that passed filtering
+                'relationship_matrix': rel_matrix,
+                'relationship_labels': rel_labels,
+                'final_boundary': boundary_verts,
+                'final_holes': hole_verts,
+                'solid_shape': reconstructed_solid if 'reconstructed_solid' in locals() else None,
+                'plane_normal': face_normal,
+                'plane_d': face_d,
+                'all_faces': extracted_faces  # All faces of the solid for orthogonal view
+            }
+            
+            output_file = f"PDFfiles/face_{visualize_face_num}_seed_{args.seed}_visualization.pdf"
+            os.makedirs('PDFfiles', exist_ok=True)
+            
+            try:
+                generate_face_visualization(face_viz_data, output_file)
+                print(f"[SUCCESS] Face visualization saved to: {output_file}")
+            except Exception as e:
+                print(f"[ERROR] Failed to generate visualization: {e}")
+                import traceback
+                traceback.print_exc()
     
     print("\n" + "="*70)
     print("[COMPLETED] Reconstruction process finished.")
