@@ -384,13 +384,13 @@ def load_connectivity_matrices(seed, data_dir="."):
     )
 
 
-def pad_to_size(matrix, target_size=200):
+def pad_to_size(matrix, target_size=100):
     """
-    Pad connectivity matrix to target size (200, 204, 11).
+    Pad connectivity matrix to target size (100, 104, 11).
     
     Args:
         matrix: Original matrix of shape (N, N+4) or (N, N+4, 11)
-        target_size: Target first dimension (default 200)
+        target_size: Target first dimension (default 100)
     
     Returns:
         Padded matrix of shape (target_size, target_size+4, 11)
@@ -860,6 +860,14 @@ def extract_edges_from_predicted_topview(predicted_matrix, input_padded, thresho
     else:
         pred_matrix_2d = predicted_matrix
     
+    # DEBUG: Check matrix structure
+    print(f"  [DEBUG] pred_matrix_2d shape: {pred_matrix_2d.shape}")
+    print(f"  [DEBUG] First row (vertex 0): idx={pred_matrix_2d[0, 0]:.2f}, x={pred_matrix_2d[0, 1]:.2f}, y={pred_matrix_2d[0, 2]:.2f}, z={pred_matrix_2d[0, 3]:.2f}")
+    if pred_matrix_2d.shape[1] > 4:
+        print(f"  [DEBUG] First row connectivity columns [4:8]: {pred_matrix_2d[0, 4:8]}")
+    print(f"  [DEBUG] Max value in matrix: {pred_matrix_2d.max():.4f}, Min: {pred_matrix_2d.min():.4f}")
+    print(f"  [DEBUG] Max in columns 4+: {pred_matrix_2d[:, 4:].max():.4f}")
+    
     edges = []
     filtered_count = 0
     debug_first_filtered = []
@@ -870,18 +878,115 @@ def extract_edges_from_predicted_topview(predicted_matrix, input_padded, thresho
     n_vertices = min(n_actual, n_pred)
     print(f"  Extracting edges from {n_vertices} vertices")
     
+    # DEBUG: Check predicted connectivity values
+    max_conn_val = 0
+    max_conn_loc = (0, 0)
+    num_above_1 = 0
+    num_above_05 = 0
+    # Check ALL rows and columns to see where non-zero values are
+    all_conn_values = pred_matrix_2d[:, 4:].flatten()
+    print(f"  [DEBUG] Connectivity columns (4+) statistics:")
+    print(f"    Max: {all_conn_values.max():.4f}, Mean: {all_conn_values.mean():.4f}, Std: {all_conn_values.std():.4f}")
+    print(f"    Non-zero count: {np.count_nonzero(all_conn_values)}")
+    
+    # Find where max value is
+    max_row, max_col = np.unravel_index(pred_matrix_2d[:, 4:].argmax(), pred_matrix_2d[:, 4:].shape)
+    max_col += 4  # Adjust for offset
+    print(f"    Max value location: row {max_row}, col {max_col} (col {max_col}-4 = vertex {max_col-4})")
+    print(f"    Value at max location: {pred_matrix_2d[max_row, max_col]:.4f}")
+    
+    # Check specific locations for debugging
+    print(f"  [DEBUG] Checking specific edge locations:")
+    for i in range(min(5, n_vertices)):
+        for j in range(i+1, min(5, n_vertices)):
+            col = 4 + j
+            if col < pred_matrix_2d.shape[1]:
+                val = pred_matrix_2d[i, col]
+                print(f"    Row {i}, Col {col} (V{i}->V{j}): {val:.4f}")
+    
+    # Check the max location specifically
+    print(f"  [DEBUG] Checking max location (row {max_row}, col {max_col}):")
+    if max_row < n_vertices:
+        print(f"    Row {max_row} is WITHIN n_vertices range ({n_vertices})")
+    else:
+        print(f"    Row {max_row} is OUTSIDE n_vertices range ({n_vertices}) - THIS IS THE PROBLEM!")
+    print(f"    Value at [row {max_row}, col {max_col}]: {pred_matrix_2d[max_row, max_col]:.4f}")
+    
+    # Interpret this: row 11, col 12 means V11->V(12-4)=V8
+    v1 = max_row
+    v2 = max_col - 4
+    print(f"    This represents edge V{v1} -> V{v2}")
+    print(f"    v2 ({v2}) < v1 ({v1})? {v2 < v1}")
+    
+    # Check the reverse direction
+    if v2 < v1:
+        # Should be stored as (v2, v1)
+        reverse_col = 4 + v1
+        reverse_val = pred_matrix_2d[v2, reverse_col] if reverse_col < pred_matrix_2d.shape[1] else -999
+        print(f"    Reverse direction [row {v2}, col {reverse_col}]: {reverse_val:.4f}")
+    
+    # Now check within our actual vertex range
+    for i in range(n_vertices):
+        for j in range(i + 1, n_vertices):
+            col = 4 + j
+            if col < pred_matrix_2d.shape[1]:
+                conn_val = pred_matrix_2d[i, col]
+                if conn_val > max_conn_val:
+                    max_conn_val = conn_val
+                    max_conn_loc = (i, j)
+                if conn_val > 1.0:
+                    num_above_1 += 1
+                if conn_val > 0.5:
+                    num_above_05 += 1
+    
+    # ALSO CHECK LOWER TRIANGLE (maybe matrix isn't properly formatted)
+    print(f"  [DEBUG] Also checking lower triangle...")
+    max_conn_val_lower = 0
+    max_conn_loc_lower = (0, 0)
+    num_above_1_lower = 0
+    num_above_05_lower = 0
+    for i in range(n_vertices):
+        for j in range(i):  # j < i (lower triangle)
+            col = 4 + j
+            if col < pred_matrix_2d.shape[1]:
+                conn_val = pred_matrix_2d[i, col]
+                if conn_val > max_conn_val_lower:
+                    max_conn_val_lower = conn_val
+                    max_conn_loc_lower = (i, j)
+                if conn_val > 1.0:
+                    num_above_1_lower += 1
+                if conn_val > 0.5:
+                    num_above_05_lower += 1
+    
+    print(f"  [DEBUG] Lower triangle results:")
+    print(f"    Max connectivity value: {max_conn_val_lower:.4f} at edge ({max_conn_loc_lower[0]}, {max_conn_loc_lower[1]})")
+    print(f"    Edges with conn > 1.0: {num_above_1_lower}")
+    print(f"    Edges with conn > 0.5: {num_above_05_lower}")
+    
+    print(f"  [DEBUG] Within first {n_vertices} vertices (upper triangle):")
+    print(f"    Max connectivity value: {max_conn_val:.4f} at edge ({max_conn_loc[0]}, {max_conn_loc[1]})")
+    print(f"    Edges with conn > 1.0: {num_above_1}")
+    print(f"    Edges with conn > 0.5: {num_above_05}")
+    print(f"  [DEBUG] Using threshold: {threshold}")
+    
     # IMPORTANT: Predicted matrix has same format as training Y: [idx, x, y, z, conn0, conn1, ...]
     # Column 4+j = connectivity to vertex j (same as solid and training matrices)
+    # Matrix should be symmetric: (i,j) == (j,i), but model may not predict perfectly symmetric
+    # So check BOTH directions and take the maximum
     for i in range(n_vertices):
         x_i, y_i = input_matrix[i, 1], input_matrix[i, 2]
         if x_i == 0 and y_i == 0:
             continue
         for j in range(i + 1, n_vertices):  # Upper triangle
-            # Predicted output: column 4+j is connectivity to vertex j
-            col = 4 + j
-            if col < pred_matrix_2d.shape[1]:
-                conn_val = pred_matrix_2d[i, col]
-                if conn_val > threshold:
+            # Check both (i,j) and (j,i) and take maximum (matrix should be symmetric)
+            col_ij = 4 + j  # Connectivity from i to j
+            col_ji = 4 + i  # Connectivity from j to i
+            
+            conn_val_ij = pred_matrix_2d[i, col_ij] if col_ij < pred_matrix_2d.shape[1] else 0
+            conn_val_ji = pred_matrix_2d[j, col_ji] if col_ji < pred_matrix_2d.shape[1] else 0
+            conn_val = max(conn_val_ij, conn_val_ji)  # Take maximum of both directions
+            
+            if conn_val > threshold:
                     # Check if edge exists in views (if filtering enabled)
                     if filter_by_views and top_matrix is not None and front_matrix is not None and side_matrix is not None:
                         # Get connectivity values from all views for debugging
@@ -1130,22 +1235,38 @@ def plot_connectivity_comparison(pred_edges, pred_vertices,
         # Column 3: Predicted Output
         ax3 = fig.add_subplot(1, 3, 3)
         
-        for i, j, weight in pred_edges:
-            x_coords = [pred_vertices[i, 0], pred_vertices[j, 0]]
-            y_coords = [pred_vertices[i, 1], pred_vertices[j, 1]]
+        # Use filtered predicted edges if available
+        edges_to_plot = pred_topview_edges if pred_topview_edges is not None else pred_edges
+        vertices_to_plot = pred_topview_vertices if pred_topview_vertices is not None else pred_vertices
+        filter_note = " (filtered)" if pred_topview_edges is not None else ""
+        
+        # DEBUG: Print what we're plotting
+        print(f"\n[PLOT DEBUG] Column 3 (Predicted):")
+        print(f"  edges_to_plot: {len(edges_to_plot) if edges_to_plot is not None else 'None'}")
+        print(f"  vertices_to_plot shape: {vertices_to_plot.shape if vertices_to_plot is not None else 'None'}")
+        if edges_to_plot and len(edges_to_plot) > 0:
+            print(f"  First edge: {edges_to_plot[0]}")
+            i, j, w = edges_to_plot[0]
+            print(f"    V{i}: ({vertices_to_plot[i, 0]:.2f}, {vertices_to_plot[i, 1]:.2f})")
+            print(f"    V{j}: ({vertices_to_plot[j, 0]:.2f}, {vertices_to_plot[j, 1]:.2f})")
+        
+        for i, j, weight in edges_to_plot:
+            x_coords = [vertices_to_plot[i, 0], vertices_to_plot[j, 0]]
+            y_coords = [vertices_to_plot[i, 1], vertices_to_plot[j, 1]]
             ax3.plot(x_coords, y_coords, 'r-', alpha=0.5, linewidth=1)
         
-        ax3.scatter(pred_vertices[:, 0], pred_vertices[:, 1], 
+        ax3.scatter(vertices_to_plot[:, 0], vertices_to_plot[:, 1], 
                    c='lightcoral', s=50, zorder=5, edgecolors='black', linewidth=1)
         
-        for i in range(num_pred_vertices):
-            ax3.text(pred_vertices[i, 0], pred_vertices[i, 1], str(i), 
-                    ha='center', va='bottom', fontsize=8, fontweight='bold')
+        for i in range(len(vertices_to_plot)):
+            if vertices_to_plot[i, 0] != 0 or vertices_to_plot[i, 1] != 0:
+                ax3.text(vertices_to_plot[i, 0], vertices_to_plot[i, 1], str(i), 
+                        ha='center', va='bottom', fontsize=8, fontweight='bold')
         
         ax3.set_xlabel('X')
         ax3.set_ylabel('Y')
         ax3.set_aspect('equal')
-        ax3.set_title(f'PREDICTED OUTPUT: Full Solid (from model)\\n{len(pred_edges)} edges', 
+        ax3.set_title(f'PREDICTED OUTPUT: Full Solid (from model){filter_note}\\n{len(edges_to_plot)} edges', 
                      fontsize=12, color='red', fontweight='bold')
         ax3.grid(True, alpha=0.3)
         
@@ -1438,6 +1559,8 @@ def main():
                        help='Skip displaying plot (only save)')
     parser.add_argument('--training-data', default=None,
                        help='Path to training data .npz file for comparison')
+    parser.add_argument('--no-filter', action='store_true',
+                       help='Disable filtering edges by view visibility (keep all predicted edges)')
     
     args = parser.parse_args()
     
@@ -1701,15 +1824,19 @@ def main():
             print("\n=== PREDICTED CONNECTIVITY (using predicted coordinates) ===")
             # Don't use mapping - edges should reference pred_vertices directly with indices 0,1,2,...
             # So we extract edges from the predicted matrix without any mapping
+            # Check BOTH triangles since matrix should be symmetric but may not be perfectly so
             pred_edges = []
             pred_2d_for_edges = predicted[:, :, 0] if len(predicted.shape) == 3 else predicted
             for i in range(n_pred):
                 for j in range(i + 1, n_pred):
-                    col = 4 + j
-                    if col < pred_2d_for_edges.shape[1]:
-                        conn_val = pred_2d_for_edges[i, col]
-                        if conn_val > args.threshold:
-                            pred_edges.append((i, j, conn_val))
+                    # Check both (i,j) and (j,i) positions and take maximum (matrix should be symmetric)
+                    col_ij = 4 + j
+                    col_ji = 4 + i
+                    conn_val_ij = pred_2d_for_edges[i, col_ij] if col_ij < pred_2d_for_edges.shape[1] else 0
+                    conn_val_ji = pred_2d_for_edges[j, col_ji] if col_ji < pred_2d_for_edges.shape[1] else 0
+                    conn_val = max(conn_val_ij, conn_val_ji)  # Take max of both directions
+                    if conn_val > args.threshold:
+                        pred_edges.append((i, j, conn_val))
             
             print(f"Found {len(pred_edges)} predicted edges")
             if pred_edges:
@@ -1726,11 +1853,13 @@ def main():
                         print(f"  Edge: V{i} ({pred_vertices[i, 0]:.1f},{pred_vertices[i, 1]:.1f},{pred_vertices[i, 2]:.1f}) - V{j} ({pred_vertices[j, 0]:.1f},{pred_vertices[j, 1]:.1f},{pred_vertices[j, 2]:.1f}), weight={w:.3f}")
             
             # Also extract predicted top view edges for visualization
-            print("\n=== EXTRACTING PREDICTED TOP VIEW ===")
+            filter_enabled = not args.no_filter
+            filter_msg = "DISABLED" if args.no_filter else "ENABLED"
+            print(f"\n=== EXTRACTING PREDICTED TOP VIEW (filtering {filter_msg}) ===")
             pred_topview_edges, pred_topview_vertices = extract_edges_from_predicted_topview(
                 predicted, top_padded, threshold=args.threshold,
                 top_matrix=top_padded, front_matrix=front_padded, side_matrix=side_padded,
-                filter_by_views=True
+                filter_by_views=filter_enabled
             )
             
             # Print summary statistics
@@ -1854,7 +1983,19 @@ def main():
         
         # Use filtered edges for this plot too
         edges_for_3d_plot = pred_topview_edges if pred_topview_edges is not None else pred_edges
+        # IMPORTANT: Always use full 3D vertices for 3D plotting, NOT 2D top view vertices
+        vertices_for_3d_plot = pred_vertices  # Always use 3D coordinates for 3D plot
         filter_label_3d = " (filtered)" if pred_topview_edges is not None else ""
+        
+        # DEBUG: Print what we're plotting
+        print(f"[3D PLOT DEBUG]:")
+        print(f"  edges_for_3d_plot: {len(edges_for_3d_plot) if edges_for_3d_plot is not None else 'None'}")
+        print(f"  vertices_for_3d_plot shape: {vertices_for_3d_plot.shape if vertices_for_3d_plot is not None else 'None'}")
+        if edges_for_3d_plot and len(edges_for_3d_plot) > 0:
+            print(f"  First edge: {edges_for_3d_plot[0]}")
+            i, j, w = edges_for_3d_plot[0]
+            print(f"    V{i}: ({vertices_for_3d_plot[i, 0]:.2f}, {vertices_for_3d_plot[i, 1]:.2f}, {vertices_for_3d_plot[i, 2]:.2f})")
+            print(f"    V{j}: ({vertices_for_3d_plot[j, 0]:.2f}, {vertices_for_3d_plot[j, 1]:.2f}, {vertices_for_3d_plot[j, 2]:.2f})")
         
         # Left: Predicted 3D connectivity
         ax1 = fig_3d.add_subplot(1, 2, 1, projection='3d')
@@ -1863,33 +2004,38 @@ def main():
         ax1.set_ylabel('Y')
         ax1.set_zlabel('Z')
         
-        # Plot predicted edges (filtered)
+        # Plot predicted edges (filtered) - use full 3D vertices
         for i, j, weight in edges_for_3d_plot:
-            x_coords = [pred_vertices[i, 0], pred_vertices[j, 0]]
-            y_coords = [pred_vertices[i, 1], pred_vertices[j, 1]]
-            z_coords = [pred_vertices[i, 2], pred_vertices[j, 2]]
+            x_coords = [vertices_for_3d_plot[i, 0], vertices_for_3d_plot[j, 0]]
+            y_coords = [vertices_for_3d_plot[i, 1], vertices_for_3d_plot[j, 1]]
+            z_coords = [vertices_for_3d_plot[i, 2], vertices_for_3d_plot[j, 2]]
             ax1.plot(x_coords, y_coords, z_coords, 'b-', alpha=0.5, linewidth=1)
         
-        # Plot vertices
-        ax1.scatter(pred_vertices[:, 0], pred_vertices[:, 1], pred_vertices[:, 2], 
+        # Plot vertices - use full 3D vertices
+        ax1.scatter(vertices_for_3d_plot[:, 0], vertices_for_3d_plot[:, 1], vertices_for_3d_plot[:, 2], 
                    c='blue', s=50, zorder=5, edgecolors='black', linewidth=1)
         
         # Right: Original solid for comparison
         if orig_edges is not None and orig_vertices is not None:
             ax2 = fig_3d.add_subplot(1, 2, 2, projection='3d')
+            
+            # Plot ALL original edges, not just "visible" ones
+            # The original solid should show complete connectivity for comparison
+            print(f"\n[ORIGINAL 3D PLOT] Plotting {len(orig_edges)} edges with {len(orig_vertices)} vertices")
+            
             ax2.set_title(f'Original Solid - {len(orig_edges)} edges', fontsize=12, fontweight='bold')
             ax2.set_xlabel('X')
             ax2.set_ylabel('Y')
             ax2.set_zlabel('Z')
             
-            # Plot original edges
+            # Plot all original edges
             for i, j, weight in orig_edges:
                 x_coords = [orig_vertices[i, 0], orig_vertices[j, 0]]
                 y_coords = [orig_vertices[i, 1], orig_vertices[j, 1]]
                 z_coords = [orig_vertices[i, 2], orig_vertices[j, 2]]
                 ax2.plot(x_coords, y_coords, z_coords, 'g-', alpha=0.5, linewidth=1)
             
-            # Plot vertices
+            # Plot all vertices
             ax2.scatter(orig_vertices[:, 0], orig_vertices[:, 1], orig_vertices[:, 2], 
                        c='green', s=50, zorder=5, edgecolors='black', linewidth=1)
         

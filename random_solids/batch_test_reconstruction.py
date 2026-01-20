@@ -231,7 +231,7 @@ def main():
     args = parser.parse_args()
     
     # Configuration
-    seeds = range(0, 501, 5)  # Seeds from 1000 to 1300 inclusive 
+    seeds = range(2025, 4056, 5)  # Seeds from 1000 to 1300 inclusive 
     # [201, 211, 221, 231, 241, 251, 261, 271, 281, 291,
     #             202, 212, 222, 232, 242, 252, 262, 272, 282, 292,
     #             203, 213, 223, 233, 243, 253, 263, 273, 283, 293,
@@ -516,9 +516,9 @@ def main():
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         output_file = f"NN/training_data_{timestamp}.npz"
         
-        # New prepare_training_data.py CLI interface
+        # New prepare_training_data_v2.py CLI interface (with proper reconstruction)
         # Note: Use pyocc environment for data preparation (OCC dependencies)
-        prep_cmd = (f"conda run -n pyocc python NN/prepare_training_data.py "
+        prep_cmd = (f"conda run -n pyocc python NN/prepare_training_data_v2.py "
                    f"--seeds {seeds_str} "
                    f"--tolerance {tolerance} "
                    f"--augment {augment} "
