@@ -133,9 +133,9 @@ from Reconstruction.edge_reconstruction import reconstruct_edges_from_views
 from Reconstruction.Base_Solid import build_solid_with_polygons
 from Reconstruction.polygon_classifier import classify_polygons_by_visibility
 from opencascade import get_face_normal_from_opencascade, extract_and_visualize_faces, extract_wire_vertices_in_sequence, OPENCASCADE_AVAILABLE
-from unified_summary import (create_unified_summary, print_summary_info,
-                             save_summary_to_file, save_summary_to_numpy,
-                             visualize_adjacency_matrix)
+# from unified_summary import (create_unified_summary, print_summary_info,
+#                              save_summary_to_file, save_summary_to_numpy,
+#                              visualize_adjacency_matrix)
 from V6_Sept_25 import save_solid_as_step
 
 # ...existing code...
@@ -536,22 +536,37 @@ def extract_wire_vertices_in_sequence(wire, wire_id):
                 
                 edge_count = 0
                 while wire_explorer.More():
-                    edge = wire_explorer.Current()
+                    edge = topods.Edge(wire_explorer.Current())
                     
-                    # Get the current vertex from the wire explorer
-                    # This gives us vertices in the correct wire traversal order
-                    current_vertex_shape = wire_explorer.CurrentVertex()
-                    current_vertex = topods.Vertex(current_vertex_shape)
+                    # Get both vertices of the edge to properly chain them
+                    from OCC.Core.TopExp import topexp
+                    vertex1 = topexp.FirstVertex(edge, True)  # True = consider orientation
+                    vertex2 = topexp.LastVertex(edge, True)
                     
-                    # Extract coordinates
-                    pnt = BRep_Tool.Pnt(current_vertex)
-                    vertex_coords = [pnt.X(), pnt.Y(), pnt.Z()]
+                    pnt1 = BRep_Tool.Pnt(vertex1)
+                    pnt2 = BRep_Tool.Pnt(vertex2)
                     
-                    # Add to sequence
-                    vertex_sequence.append(vertex_coords)
+                    v1_coords = [pnt1.X(), pnt1.Y(), pnt1.Z()]
+                    v2_coords = [pnt2.X(), pnt2.Y(), pnt2.Z()]
                     
-                    print(f"              Edge {edge_count}: vertex ({vertex_coords[0]:.1f},"
-                          f"{vertex_coords[1]:.1f},{vertex_coords[2]:.1f})")
+                    # Chain the vertices: add first vertex of first edge, then subsequent end vertices
+                    if edge_count == 0:
+                        vertex_sequence.append(v1_coords)
+                        vertex_sequence.append(v2_coords)
+                    else:
+                        # Check if the new edge connects to the last vertex
+                        last_v = vertex_sequence[-1]
+                        if np.linalg.norm(np.array(v1_coords) - np.array(last_v)) < 1e-6:
+                            vertex_sequence.append(v2_coords)
+                        elif np.linalg.norm(np.array(v2_coords) - np.array(last_v)) < 1e-6:
+                            vertex_sequence.append(v1_coords)
+                        else:
+                            # Edge doesn't connect - might be a gap or different ordering
+                            print(f"              WARNING: Edge {edge_count} doesn't connect to previous edge")
+                            vertex_sequence.append(v2_coords)
+                    
+                    print(f"              Edge {edge_count}: ({v1_coords[0]:.1f},{v1_coords[1]:.1f},{v1_coords[2]:.1f}) → "
+                          f"({v2_coords[0]:.1f},{v2_coords[1]:.1f},{v2_coords[2]:.1f})")
                     
                     wire_explorer.Next()
                     edge_count += 1
@@ -1990,34 +2005,44 @@ def create_view_connectivity_matrix(visible, hidden, projection_normal, view_nam
                         # Skip adding to this view's connectivity matrix
                         degenerate_edges_skipped += 1
                     else:
-                        # Determine visibility value:
-                        # 1 = visible/solid line (in visible polygons)
-                        # 2 = hidden/dashed line (in hidden polygons)
-                        is_visible = id(poly_data) in visible_set
-                        visibility_value = 1 if is_visible else 2
+                        # Mark edge connectivity as 2.0 (edge exists)
+                        # Note: We use 2.0 as the standard value for edge existence
+                        # The neural network and reconstruction code expect conn > 1.5 for edges
                         
-                        # Add connection in both directions
-                        # Prefer solid (1) over dashed (2) if edge already exists
-                        if result_matrix[v1_idx, 3 + v2_idx] == 0 or visibility_value == 1:
-                            result_matrix[v1_idx, 3 + v2_idx] = visibility_value
-                        if result_matrix[v2_idx, 3 + v1_idx] == 0 or visibility_value == 1:
-                            result_matrix[v2_idx, 3 + v1_idx] = visibility_value
+                        # Add connection in both directions (symmetric matrix)
+                        result_matrix[v1_idx, 3 + v2_idx] = 2.0
+                        result_matrix[v2_idx, 3 + v1_idx] = 2.0
                         edges_found += 1
     
     print(f"{view_name}: Added {edges_found} edges to connectivity matrix")
     print(f"{view_name}: Skipped {degenerate_edges_skipped} degenerate edges (project to points)")
     print(f"{view_name}: Matrix shape: {result_matrix.shape}")
     
-    # Ensure connectivity part is symmetric (mirrored about the diagonal)
-    # n_vertices = result_matrix.shape[0]
-    # if result_matrix.shape[1] > 3:
-    #     conn = result_matrix[:, 3:]
-    #     for i in range(n_vertices):
-    #         for j in range(n_vertices):
-    #             # Mirror connectivity: if either [i, j] or [j, i] is set, set both
-    #             if conn[i, j] > 0 or conn[j, i] > 0:
-    #                 conn[i, j] = conn[j, i] = max(conn[i, j], conn[j, i])
-    #     result_matrix[:, 3:] = conn
+    # Check for asymmetric connectivity matrix entries
+    n_vertices = result_matrix.shape[0]
+    if result_matrix.shape[1] > 3:
+        conn = result_matrix[:, 3:]
+        asymmetries_found = []
+        for i in range(n_vertices):
+            for j in range(i+1, n_vertices):  # Only check upper triangle
+                if conn[i, j] != conn[j, i]:
+                    asymmetries_found.append((i, j, conn[i, j], conn[j, i]))
+        
+        if asymmetries_found:
+            print(f"\n[WARNING] {view_name}: Found {len(asymmetries_found)} asymmetric edges:")
+            for i, j, val_ij, val_ji in asymmetries_found[:10]:  # Show first 10
+                print(f"  Vertex {i} -> {j}: {val_ij}, but Vertex {j} -> {i}: {val_ji}")
+            
+            # Fix asymmetries by taking the maximum value
+            print(f"[FIXING] Enforcing symmetry by setting both directions to max value...")
+            for i in range(n_vertices):
+                for j in range(n_vertices):
+                    if conn[i, j] > 0 or conn[j, i] > 0:
+                        conn[i, j] = conn[j, i] = max(conn[i, j], conn[j, i])
+            result_matrix[:, 3:] = conn
+            print(f"[FIXED] Symmetry enforced for {view_name}")
+        else:
+            print(f"[OK] {view_name}: Connectivity matrix is symmetric")
 
     return result_matrix
 
